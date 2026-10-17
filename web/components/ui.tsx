@@ -35,10 +35,17 @@ export function GroupBadge({ group, className, short, asl, inline, from }: { gro
     const left = isWithdrawn(group)
     const label = left ? (short ? 'Chiqarilgan' : 'Safdan chiqarilgan') : (short ? "Akad. ta'til" : "Akademik ta'til")
     const title = `${left ? 'Talabalar safidan chiqarilganlar' : "Akademik ta'til olganlar"}${from ? ` — ${from} guruhidan` : ''}`
-    return (
-      <span className={cx('chip', left ? 'border-rose/40 bg-rose/10 text-rose' : 'border-violet/40 bg-violet/10 text-violet', className)} title={title}>
+    const chip = (
+      <span className={cx('chip max-w-full truncate', left ? 'border-rose/40 bg-rose/10 text-rose' : 'border-violet/40 bg-violet/10 text-violet', inline && className)} title={title}>
         {label}
-        {from && <span className="mono font-normal text-fg-muted">· {from} dan</span>}
+        {inline && from && <span className="mono font-normal text-fg-muted"> · {from} dan</span>}
+      </span>
+    )
+    if (inline || !from) return chip
+    return (
+      <span className={cx('inline-flex flex-col items-start gap-0.5 leading-none max-w-full', className)} title={title}>
+        {chip}
+        <span className="mono pl-1 text-[10px] text-fg-muted truncate max-w-full">{from} dan</span>
       </span>
     )
   }

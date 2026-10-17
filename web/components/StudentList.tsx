@@ -190,7 +190,7 @@ function CardGrid({ students, duplicateRows, compact, onOpen, onToggleVerify, on
   )
 }
 
-const COLS = '40px 80px 90px minmax(190px,1.5fr) 120px 144px 88px 124px minmax(110px,1fr) 44px 104px 114px 34px'
+const COLS = '40px 96px 74px minmax(190px,1.5fr) 120px 144px 88px 124px minmax(110px,1fr) 44px 104px 114px 34px'
 
 const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleVerify, onToggleBaza }: {
   s: Student; n: number; dup: boolean; onOpen: (s: Student) => void; onToggleVerify: (s: Student) => void; onToggleBaza: (s: Student) => void
@@ -202,8 +202,8 @@ const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleVerify, onT
       style={{ gridTemplateColumns: COLS }}
     >
       <span className="mono text-center text-[12px] font-bold text-fg-subtle tabular-nums">{n}</span>
-      <span><GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} short /></span>
-      <span className="mono font-bold text-blue-soft">#{s.shnum || '—'}</span>
+      <span className="min-w-0 overflow-hidden"><GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} short /></span>
+      <span className="mono font-bold text-blue-soft truncate">#{s.shnum || '—'}</span>
       <span className="truncate font-semibold text-fg" title={fullName(s)}>{fullName(s)}</span>
       <span className="truncate"><Mono value={s.pv} />{passTypeShort(s) && <span className="ml-1.5 text-[10.5px] font-bold text-fg-subtle">{passTypeShort(s)}</span>}</span>
       <span className="truncate"><Mono value={formatPinfl(s.pinfl)} className="text-[12.5px]" /></span>
