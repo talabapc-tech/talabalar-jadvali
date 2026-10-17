@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { Award, FileImage, FileText, IdCard, ImageOff, Loader2, Maximize2, QrCode, RotateCw, Sparkles, Upload } from 'lucide-react'
-import { AI_MODELS, analyzeAndUploadDocs, fieldsFromQr, getSavedAiModel, scanQrCodes, setSavedAiModel, type AiModelId } from '@/lib/ai-doc'
+import { AI_MODELS, analyzeAndUploadDocs, fieldsFromQr, getSavedAiModel, scanQrCodes, setSavedAiModel } from '@/lib/ai-doc'
+import { getActiveAllowedModels } from '@/lib/settings'
 import type { EditFields, Student } from '@/lib/types'
 import DocDropZone from './DocDropZone'
 import InlineZoomImage from './InlineZoomImage'
@@ -43,7 +44,13 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
   const [passFiles, setPassFiles] = useState<File[]>([])
   const [certFiles, setCertFiles] = useState<File[]>([])
   const [docxFiles, setDocxFiles] = useState<File[]>([])
-  const [model, setModel] = useState<AiModelId>(() => getSavedAiModel())
+  const [allowedModels, setAllowedModels] = useState<[string, string][]>(() => getActiveAllowedModels())
+  const [model, setModel] = useState<string>(() => {
+    const saved = getSavedAiModel()
+    const active = getActiveAllowedModels()
+    if (active.some(([id]) => id === saved)) return saved
+    return active[0]?.[0] || saved
+  })
   const [busy, setBusy] = useState(false)
   const [statusMsg, setStatusMsg] = useState('')
   const [extracted, setExtracted] = useState<Partial<EditFields> | null>(null)
@@ -155,11 +162,11 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
       <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-ink-900/80 p-2">
         <select
           value={model}
-          onChange={(e) => { const m = e.target.value as AiModelId; setModel(m); setSavedAiModel(m) }}
+          onChange={(e) => { const m = e.target.value; setModel(m); setSavedAiModel(m) }}
           className="field h-8 w-auto min-w-[165px] py-1 pr-7 pl-2.5 text-[11.5px]"
-          title="AI Tahlil modeli"
+          title="AI Tahlil modeli (Sozlamalar bo'limidan boshqariladi)"
         >
-          {AI_MODELS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+          {allowedModels.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
         </select>
 
         <button

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Archive, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, Loader2, LogOut, Moon, RefreshCw, Download, Send, Sun, UserPlus } from 'lucide-react'
+import { Archive, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus } from 'lucide-react'
 import { exportRole, ROLE_META, sendRoleToTelegram, type Role } from '@/lib/excel'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
@@ -405,8 +405,8 @@ function ThemeButton() {
 }
 
 export default function Header({
-  students, pendingCount, onRefresh, refreshing, onAdd, notify,
-}: { students: Student[]; pendingCount: number; onRefresh: () => void; refreshing: boolean; onAdd: () => void; notify: Notify }) {
+  students, pendingCount, onRefresh, refreshing, onAdd, onOpenSettings, notify,
+}: { students: Student[]; pendingCount: number; onRefresh: () => void; refreshing: boolean; onAdd: () => void; onOpenSettings?: () => void; notify: Notify }) {
   return (
     <header className="z-40 border-b border-line bg-ink-950/85 backdrop-blur-md sm:sticky sm:top-0">
       <div className="mx-auto flex max-w-[1680px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
@@ -432,6 +432,17 @@ export default function Header({
             <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
             <span className="hidden sm:inline">Yangilash</span>
           </button>
+          {onOpenSettings && (
+            <button
+              type="button"
+              className="btn-ghost h-9 px-2.5 sm:px-3 text-fg-muted hover:text-fg"
+              onClick={onOpenSettings}
+              title="Sozlamalar (API kalitlar, AI modellar)"
+            >
+              <Settings size={15} />
+              <span className="hidden sm:inline">Sozlamalar</span>
+            </button>
+          )}
           <ThemeButton />
           <ExportMenu students={students} notify={notify} />
           <LogoutButton />

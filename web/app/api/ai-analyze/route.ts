@@ -53,21 +53,23 @@ Aniq JSON formatda qaytar:
 const FALLBACK_MODELS = ['google/gemini-3.8-flash', 'anthropic/claude-haiku-5.5', 'google/gemini-2.5-flash']
 
 export async function POST(request: Request) {
-  const key = process.env.OPENROUTER_API_KEY
+  const body = (await request.json().catch(() => null)) as { model?: unknown; images?: unknown; openrouterKey?: unknown } | null
+  const customKey = typeof body?.openrouterKey === 'string' ? body.openrouterKey.trim() : ''
+  const key = customKey || request.headers.get('x-openrouter-key') || process.env.OPENROUTER_API_KEY
   if (!key) {
     return Response.json(
-      { success: false, error: "AI sozlanmagan: OPENROUTER_API_KEY yo'q (Netlify → Environment variables yoki web/.env.local)" },
+      { success: false, error: "AI sozlanmagan: OPENROUTER_API_KEY yo'q (Sozlamalar oynasida yoki Vercel Environment variables'da kiriting)" },
       { status: 503 },
     )
   }
 
-  const body = (await request.json().catch(() => null)) as { model?: unknown; images?: unknown } | null
   const images = (Array.isArray(body?.images) ? body.images : [])
     .filter((s): s is string => typeof s === 'string' && s.startsWith('data:image/'))
     .slice(0, 6)
   if (!images.length) return Response.json({ success: false, error: 'Rasm yuborilmadi' }, { status: 400 })
 
-  const picked = AI_MODELS.some(([id]) => id === body?.model) ? String(body?.model) : FALLBACK_MODELS[0]
+  const rawModel = typeof body?.model === 'string' ? body.model.trim() : ''
+  const picked = rawModel || FALLBACK_MODELS[0]
   const models = [picked, ...FALLBACK_MODELS.filter((m) => m !== picked)]
   const content = [{ type: 'text', text: PROMPT }, ...images.map((url) => ({ type: 'image_url', image_url: { url } }))]
 

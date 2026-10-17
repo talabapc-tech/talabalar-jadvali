@@ -15,6 +15,7 @@ import Overview from './Overview'
 import StudentList from './StudentList'
 import StudentModal from './StudentModal'
 import AddStudentModal from './AddStudentModal'
+import SettingsModal from './SettingsModal'
 import { Toasts, useToasts } from './Toast'
 import { cx } from './ui'
 
@@ -47,6 +48,7 @@ export default function Portal() {
   // Guruh sozlamalari (data/guruhlar.json): kurs, rahbar, yo'nalish — config.ts dagi qiymatlar ustiga
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/groups', { cache: 'no-store' })
@@ -186,7 +188,15 @@ export default function Portal() {
 
   return (
     <>
-      <Header students={data.students} pendingCount={data.pendingCount} onRefresh={onRefresh} refreshing={refreshing} onAdd={() => setAdding(true)} notify={notify} />
+      <Header
+        students={data.students}
+        pendingCount={data.pendingCount}
+        onRefresh={onRefresh}
+        refreshing={refreshing}
+        onAdd={() => setAdding(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        notify={notify}
+      />
 
       <main className="mx-auto max-w-[1680px] space-y-5 px-4 py-5 sm:px-6">
         {data.state === 'loading' && (
@@ -314,6 +324,14 @@ export default function Portal() {
           preselected={selectedGroups(filters.group)}
           onClose={() => setGroupSettingsOpen(false)}
           onSave={onSaveGroupSettings}
+        />
+      )}
+
+      {settingsOpen && (
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          notify={notify}
         />
       )}
 

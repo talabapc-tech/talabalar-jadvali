@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Award, FileText, IdCard, Loader2, Plus, Save, Sparkles, UserPlus, X } from 'lucide-react'
-import { AI_MODELS, analyzeAndUploadDocs, getSavedAiModel, setSavedAiModel, type AiModelId } from '@/lib/ai-doc'
+import { analyzeAndUploadDocs, getSavedAiModel, setSavedAiModel } from '@/lib/ai-doc'
+import { getActiveAllowedModels } from '@/lib/settings'
 import { YON_OPTIONS } from '@/lib/config'
 import { decodePinfl, dobFromPinfl, findDuplicates, fullName, groupOptions, isAcademicLeave, isOfficialGroup, isWithdrawn } from '@/lib/student'
 import type { EditFields, Student } from '@/lib/types'
@@ -71,7 +72,13 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
   const [dobFlash, setDobFlash] = useState(false)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiMsg, setAiMsg] = useState('')
-  const [model, setModel] = useState<AiModelId>(() => getSavedAiModel())
+  const [allowedModels] = useState<[string, string][]>(() => getActiveAllowedModels())
+  const [model, setModel] = useState<string>(() => {
+    const saved = getSavedAiModel()
+    const active = getActiveAllowedModels()
+    if (active.some(([id]) => id === saved)) return saved
+    return active[0]?.[0] || saved
+  })
   const [passFiles, setPassFiles] = useState<File[]>([])
   const [certFiles, setCertFiles] = useState<File[]>([])
   const [docxFiles, setDocxFiles] = useState<File[]>([])
@@ -203,10 +210,11 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
             <span className="text-[12.5px] font-bold text-fg">AI orqali to'ldirish:</span>
             <select
               value={model}
-              onChange={(e) => { const m = e.target.value as AiModelId; setModel(m); setSavedAiModel(m) }}
+              onChange={(e) => { const m = e.target.value; setModel(m); setSavedAiModel(m) }}
               className="field h-8 w-auto min-w-[165px] py-1 pr-7 pl-2.5 text-[11.5px]"
+              title="AI Tahlil modeli (Sozlamalar bo'limidan boshqariladi)"
             >
-              {AI_MODELS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+              {allowedModels.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             </select>
             <div className="w-full pt-1">
               <DocDropZone

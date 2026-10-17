@@ -13,19 +13,19 @@ export const AI_MODELS = [
 
 export const DEFAULT_AI_MODEL: AiModelId = 'google/gemini-3.8-flash'
 
-export type AiModelId = (typeof AI_MODELS)[number][0]
+export type AiModelId = (typeof AI_MODELS)[number][0] | string
 
 const MODEL_STORAGE_KEY = 'portal_ai_model'
 const LOCAL_PY_SERVER = 'http://localhost:8080'
 
-export function getSavedAiModel(): AiModelId {
+export function getSavedAiModel(): string {
   if (typeof window === 'undefined') return DEFAULT_AI_MODEL
   const saved = localStorage.getItem(MODEL_STORAGE_KEY)
-  if (saved && AI_MODELS.some(([id]) => id === saved)) return saved as AiModelId
+  if (saved) return saved
   return DEFAULT_AI_MODEL
 }
 
-export function setSavedAiModel(model: AiModelId) {
+export function setSavedAiModel(model: string) {
   try { localStorage.setItem(MODEL_STORAGE_KEY, model) } catch { /* ignore */ }
 }
 
@@ -367,11 +367,24 @@ async function shrinkDataUrl(src: string, max = 1800): Promise<string> {
 }
 
 /** Rasmlarni portal serveri orqali OpenRouter AI ga yuborish (eski portaldagi brauzer AI zaxirasi o'rnida) */
-async function analyzeImagesViaPortal(images: string[], model: AiModelId): Promise<AiFields> {
+async function analyzeImagesViaPortal(images: string[], model: string): Promise<AiFields> {
+  let customKey = ''
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('portal_app_settings_v2') : null
+    if (raw) {
+      const parsed = JSON.parse(raw) as { openrouterKey?: string }
+      if (parsed.openrouterKey) customKey = parsed.openrouterKey.trim()
+    }
+  } catch { /* ignore */ }
+
   const res = await fetch('/api/ai-analyze', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, images: await Promise.all(images.slice(0, 6).map((s) => shrinkDataUrl(s))) }),
+    body: JSON.stringify({
+      model,
+      openrouterKey: customKey || undefined,
+      images: await Promise.all(images.slice(0, 6).map((s) => shrinkDataUrl(s))),
+    }),
   })
   const body = (await res.json().catch(() => ({}))) as PyResult & { data?: Record<string, unknown> }
   if (!res.ok || !body.success) throw new Error(body.error || `AI tahlil xatosi (${res.status})`)
