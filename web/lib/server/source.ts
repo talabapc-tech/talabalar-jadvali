@@ -231,8 +231,8 @@ function applyQueue(base: Student[], queue: Change[]): Student[] {
   return list
 }
 
-let cachedStudents: { data: Student[]; expiresAt: number } | null = null
-const CACHE_TTL_MS = 6_000 // 6 soniya server kesh (GitHub rate limit xatolarining oldini oladi)
+let cachedStudents: { data: Student[]; source: 'supabase' | 'local' | 'github'; expiresAt: number } | null = null
+const CACHE_TTL_MS = 10_000 // 10 soniya server in-memory kesh (Vercel Serverless CPU vaqti va Supabase chiqishini tejaydi)
 
 export function invalidateCache() {
   cachedStudents = null
@@ -434,25 +434,27 @@ async function enrichAll(students: Student[]): Promise<Student[]> {
 }
 
 export async function loadStudentsWithSource(): Promise<{ students: Student[]; source: 'supabase' | 'local' | 'github' }> {
+  const now = Date.now()
+  if (cachedStudents && cachedStudents.expiresAt > now) {
+    return { students: cachedStudents.data, source: cachedStudents.source }
+  }
+
   // 1. Avval Supabase'dan o'qish (eng tezkor, jonli va real vaqt ma'lumot)
   const sbData = await loadFromSupabase()
   if (sbData && sbData.length > 0) {
-    return { students: await enrichAll(sbData), source: 'supabase' }
+    const enriched = await enrichAll(sbData)
+    cachedStudents = { data: enriched, source: 'supabase', expiresAt: now + CACHE_TTL_MS }
+    return { students: enriched, source: 'supabase' }
   }
 
   // 2. Agar Supabase vaqtincha mavjud bo'lmasa, zaxira sifatida fayllar/GitHub'dan o'qish (kesh bilan)
-  const now = Date.now()
-  if (cachedStudents && cachedStudents.expiresAt > now) {
-    return { students: cachedStudents.data, source: syncMode() }
-  }
-
   const [students, queue] = await Promise.all([
     loadBaseStudents(),
     syncMode() === 'github' ? loadQueue() : Promise.resolve([]),
   ])
   const result = queue.length ? applyQueue(students, queue) : students
   const enriched = await enrichAll(result)
-  cachedStudents = { data: enriched, expiresAt: now + CACHE_TTL_MS }
+  cachedStudents = { data: enriched, source: syncMode(), expiresAt: now + CACHE_TTL_MS }
   return { students: enriched, source: syncMode() }
 }
 

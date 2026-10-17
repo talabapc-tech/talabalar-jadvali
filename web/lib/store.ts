@@ -177,6 +177,7 @@ export function useStudents() {
   const inflight = useRef(false)
   const version = useRef('')
   const inFlightAdds = useRef(new Set<string>())
+  const lastFetchTime = useRef(0)
   const pendingRef = useRef(pending)
   useEffect(() => { pendingRef.current = pending }, [pending])
 
@@ -280,6 +281,7 @@ export function useStudents() {
         version.current = payload.version || ''
       }
       setFetchedAt(new Date().toISOString())
+      lastFetchTime.current = Date.now()
       setState('ready')
       setError('')
       void retryUnsent()
@@ -293,18 +295,22 @@ export function useStudents() {
 
   useEffect(() => { setPending(readPending()) }, [])
 
-  // Birinchi yuklash, keyin har 45 soniyada va oynaga qaytilganda yangilash
+  // Birinchi yuklash, keyin har 5 daqiqada (REFRESH_MS). Oyna ko'ringanda faqat 60s dan keyin so'rash
   useEffect(() => {
     void refresh()
     const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh() }, REFRESH_MS)
-    const onFocus = () => void refresh()
-    const onVisibility = () => { if (document.visibilityState === 'visible') void refresh() }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVisibility)
+    const onFocusOrVisible = () => {
+      // Oynani tez-tez almashtirganda Vercel Serverless Function chaqiruvlari tejaladi
+      if (document.visibilityState === 'visible' && Date.now() - lastFetchTime.current > 60_000) {
+        void refresh()
+      }
+    }
+    window.addEventListener('focus', onFocusOrVisible)
+    document.addEventListener('visibilitychange', onFocusOrVisible)
     return () => {
       clearInterval(t)
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('focus', onFocusOrVisible)
+      document.removeEventListener('visibilitychange', onFocusOrVisible)
     }
   }, [refresh])
 
