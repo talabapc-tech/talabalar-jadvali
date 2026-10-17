@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ozodbeknapasov007-dotcom/talabalar-jadvali.git"
+    "url": "git+https://github.com/talabapc-tech/talabalar-jadvali.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/ozodbeknapasov007-dotcom/talabalar-jadvali/issues"
+    "url": "https://github.com/talabapc-tech/talabalar-jadvali/issues"
   },
-  "homepage": "https://github.com/ozodbeknapasov007-dotcom/talabalar-jadvali#readme"
+  "homepage": "https://github.com/talabapc-tech/talabalar-jadvali#readme"
 }
