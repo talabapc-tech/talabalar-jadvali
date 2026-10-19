@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-14 21:28:11",
+  "updated_at": "2026-10-19 14:22:39",
   "total_students": 563,
   "students": [
     {
@@ -13411,40 +13411,8 @@
       "buyruq_sana": "02.09.2026"
     },
     {
-      "row": 144,
-      "tr": 420,
-      "shnum": "280",
-      "sana": "2026-09-07",
-      "ism": "Tuychiyeva Farzona",
-      "ota": "Dalerovna",
-      "fish": "Tuychiyeva Farzona Dalerovna",
-      "yon": "Hamshiralik ishi",
-      "group": "26-04",
-      "pv": "AE4114421",
-      "pass_type": "ID-karta",
-      "pinfl": "60508095680049",
-      "dob": "05.08.2009",
-      "ber": "09.09.2025",
-      "sh_doc": "UM-O 00064269",
-      "sh_qr": "https://e-shahodatnoma.uz/api/public/getcertpdf/3884713/3404183/e0f02e0b-2135-4684-83d1-f3e60ea32b99?preview=true",
-      "mak": "34-sonli umumiy o‘rta ta’lim maktabi",
-      "doc_tur": "Shahodatnoma",
-      "yil": "2026",
-      "tel": "+998 97 573-22-92",
-      "doc_file": "To’ychiyeva  Farzona 280.docx",
-      "status": "full",
-      "pass_fish": "Tuychiyeva Farzona Dalerovna",
-      "cert_fish": "Tuychiyeva Farzona Dalerovna",
-      "name_match": "Pasport: MOS | Shahodatnoma: MOS",
-      "name_flag": "ok",
-      "verified": "TASDIQLANDI",
-      "baza": "KIRITILDI",
-      "buyruq": "T-40/2",
-      "buyruq_sana": "02.09.2026"
-    },
-    {
       "row": 145,
-      "tr": 421,
+      "tr": 420,
       "shnum": "313",
       "sana": "",
       "ism": "Ulugbekova Zara",
@@ -13476,7 +13444,7 @@
     },
     {
       "row": 153,
-      "tr": 422,
+      "tr": 421,
       "shnum": "14",
       "sana": "2026-06-24",
       "ism": "Xamdamova Madina",
@@ -13508,7 +13476,7 @@
     },
     {
       "row": 154,
-      "tr": 423,
+      "tr": 422,
       "shnum": "181",
       "sana": "2026-08-13",
       "ism": "Xannonova Shohsanam",
@@ -13540,7 +13508,7 @@
     },
     {
       "row": 157,
-      "tr": 424,
+      "tr": 423,
       "shnum": "302",
       "sana": "2026-09-14",
       "ism": "Xo'jaqulova Navbahor",
@@ -13572,7 +13540,7 @@
     },
     {
       "row": 160,
-      "tr": 425,
+      "tr": 424,
       "shnum": "307",
       "sana": "2026-09-15",
       "ism": "Xolmurodova Dilnura",
@@ -13604,7 +13572,7 @@
     },
     {
       "row": 162,
-      "tr": 426,
+      "tr": 425,
       "shnum": "232",
       "sana": "",
       "ism": "Xujamuratova Durdona",
@@ -13636,7 +13604,7 @@
     },
     {
       "row": 164,
-      "tr": 427,
+      "tr": 426,
       "shnum": "29",
       "sana": "2026-07-01",
       "ism": "Xurramova Shahnoza",
@@ -13668,7 +13636,7 @@
     },
     {
       "row": 165,
-      "tr": 428,
+      "tr": 427,
       "shnum": "96",
       "sana": "2026-09-02",
       "ism": "Xurramova Shahrizoda",
@@ -13700,7 +13668,7 @@
     },
     {
       "row": 167,
-      "tr": 429,
+      "tr": 428,
       "shnum": "196",
       "sana": "2026-09-02",
       "ism": "Xusanova Aziza",
@@ -13732,7 +13700,7 @@
     },
     {
       "row": 172,
-      "tr": 430,
+      "tr": 429,
       "shnum": "387",
       "sana": "2026-09-02",
       "ism": "Zayidova Shaboda",
@@ -13764,7 +13732,7 @@
     },
     {
       "row": 3,
-      "tr": 431,
+      "tr": 430,
       "shnum": "238",
       "sana": "2026-09-02",
       "ism": "Abdishukurova Gulsevar",
@@ -13796,7 +13764,7 @@
     },
     {
       "row": 9,
-      "tr": 432,
+      "tr": 431,
       "shnum": "33",
       "sana": "2026-09-02",
       "ism": "Ahmadova Munisa",
@@ -13828,7 +13796,7 @@
     },
     {
       "row": 14,
-      "tr": 433,
+      "tr": 432,
       "shnum": "224",
       "sana": "2026-09-02",
       "ism": "Ashirova Gulsanam",
@@ -13860,7 +13828,7 @@
     },
     {
       "row": 19,
-      "tr": 434,
+      "tr": 433,
       "shnum": "46",
       "sana": "2026-09-02",
       "ism": "Berdimurodova Nafosat",
@@ -13892,7 +13860,7 @@
     },
     {
       "row": 21,
-      "tr": 435,
+      "tr": 434,
       "shnum": "109",
       "sana": "2026-09-02",
       "ism": "Choriyeva Zahro",
@@ -13924,7 +13892,7 @@
     },
     {
       "row": 23,
-      "tr": 436,
+      "tr": 435,
       "shnum": "123",
       "sana": "2026-09-02",
       "ism": "Ergasheva Shabbona",
@@ -13956,7 +13924,7 @@
     },
     {
       "row": 24,
-      "tr": 437,
+      "tr": 436,
       "shnum": "45",
       "sana": "2026-09-02",
       "ism": "Eshboboyeva Fotima",
@@ -13988,7 +13956,7 @@
     },
     {
       "row": 33,
-      "tr": 438,
+      "tr": 437,
       "shnum": "97",
       "sana": "2026-09-02",
       "ism": "G'ayratova Jasmina",
@@ -14020,7 +13988,7 @@
     },
     {
       "row": 174,
-      "tr": 439,
+      "tr": 438,
       "shnum": "227",
       "sana": "",
       "ism": "Ixtiyorova Niginabonu",
@@ -14052,7 +14020,7 @@
     },
     {
       "row": 48,
-      "tr": 440,
+      "tr": 439,
       "shnum": "202",
       "sana": "2026-09-02",
       "ism": "Jabborova Bahoroy",
@@ -14084,7 +14052,7 @@
     },
     {
       "row": 49,
-      "tr": 441,
+      "tr": 440,
       "shnum": "95",
       "sana": "2026-09-02",
       "ism": "Jalilova Jasmina",
@@ -14116,7 +14084,7 @@
     },
     {
       "row": 55,
-      "tr": 442,
+      "tr": 441,
       "shnum": "59",
       "sana": "15.07.2026",
       "ism": "Jumayeva Muxlisa",
@@ -14148,7 +14116,7 @@
     },
     {
       "row": 57,
-      "tr": 443,
+      "tr": 442,
       "shnum": "215",
       "sana": "2026-09-02",
       "ism": "Jurayeva Madina",
@@ -14180,7 +14148,7 @@
     },
     {
       "row": 60,
-      "tr": 444,
+      "tr": 443,
       "shnum": "139",
       "sana": "2026-09-02",
       "ism": "Luxmonova Nozima",
@@ -14212,7 +14180,7 @@
     },
     {
       "row": 73,
-      "tr": 445,
+      "tr": 444,
       "shnum": "81",
       "sana": "2026-07-21",
       "ism": "Muhammadiyeva Gulbahor",
@@ -14244,7 +14212,7 @@
     },
     {
       "row": 76,
-      "tr": 446,
+      "tr": 445,
       "shnum": "167",
       "sana": "2026-09-02",
       "ism": "Murodova Munisa",
@@ -14276,7 +14244,7 @@
     },
     {
       "row": 83,
-      "tr": 447,
+      "tr": 446,
       "shnum": "69",
       "sana": "2026-07-18",
       "ism": "Muzrapova Ruhshona",
@@ -14308,7 +14276,7 @@
     },
     {
       "row": 86,
-      "tr": 448,
+      "tr": 447,
       "shnum": "258",
       "sana": "2026-09-02",
       "ism": "Nazarova Munisa",
@@ -14340,7 +14308,7 @@
     },
     {
       "row": 87,
-      "tr": 449,
+      "tr": 448,
       "shnum": "",
       "sana": "",
       "ism": "Ne'matova Sevinch",
@@ -14372,7 +14340,7 @@
     },
     {
       "row": 91,
-      "tr": 450,
+      "tr": 449,
       "shnum": "136",
       "sana": "2026-09-02",
       "ism": "Normurodova Gulsanam",
@@ -14404,7 +14372,7 @@
     },
     {
       "row": 96,
-      "tr": 451,
+      "tr": 450,
       "shnum": "230",
       "sana": "2026-09-02",
       "ism": "Omonova Charos",
@@ -14436,7 +14404,7 @@
     },
     {
       "row": 97,
-      "tr": 452,
+      "tr": 451,
       "shnum": "",
       "sana": "2026-09-08",
       "ism": "Oripova Sevinch",
@@ -14468,7 +14436,7 @@
     },
     {
       "row": 99,
-      "tr": 453,
+      "tr": 452,
       "shnum": "285",
       "sana": "2026-09-07",
       "ism": "Ozodova Klara",
@@ -14500,7 +14468,7 @@
     },
     {
       "row": 113,
-      "tr": 454,
+      "tr": 453,
       "shnum": "67",
       "sana": "2026-09-02",
       "ism": "Saidova Dilso'z",
@@ -14532,7 +14500,7 @@
     },
     {
       "row": 124,
-      "tr": 455,
+      "tr": 454,
       "shnum": "57",
       "sana": "2026-09-02",
       "ism": "Sharipova Diyora",
@@ -14564,7 +14532,7 @@
     },
     {
       "row": 134,
-      "tr": 456,
+      "tr": 455,
       "shnum": "388",
       "sana": "2026-09-02",
       "ism": "Toshmurodova Sarvara",
@@ -14596,7 +14564,7 @@
     },
     {
       "row": 141,
-      "tr": 457,
+      "tr": 456,
       "shnum": "276",
       "sana": "2026-09-08",
       "ism": "Tursunova Aziza",
@@ -14628,7 +14596,7 @@
     },
     {
       "row": 142,
-      "tr": 458,
+      "tr": 457,
       "shnum": "218",
       "sana": "2026-09-02",
       "ism": "Tursunova Fotima",
@@ -14660,7 +14628,7 @@
     },
     {
       "row": 143,
-      "tr": 459,
+      "tr": 458,
       "shnum": "219",
       "sana": "2026-09-02",
       "ism": "Tursunova Zuhra",
@@ -14692,7 +14660,7 @@
     },
     {
       "row": 151,
-      "tr": 460,
+      "tr": 459,
       "shnum": "188",
       "sana": "2026-09-02",
       "ism": "Usmonova Sabrina",
@@ -14724,7 +14692,7 @@
     },
     {
       "row": 159,
-      "tr": 461,
+      "tr": 460,
       "shnum": "183",
       "sana": "2026-09-02",
       "ism": "Xolmirzayeva Zebuniso",
@@ -14756,7 +14724,7 @@
     },
     {
       "row": 170,
-      "tr": 462,
+      "tr": 461,
       "shnum": "118",
       "sana": "2026-09-02",
       "ism": "Yuldosheva Ruhshona",
@@ -14788,7 +14756,7 @@
     },
     {
       "row": 175,
-      "tr": 463,
+      "tr": 462,
       "shnum": "273",
       "sana": "07.09.2026",
       "ism": "Abdinazarova Dilafro'z",
@@ -14820,7 +14788,7 @@
     },
     {
       "row": 5,
-      "tr": 464,
+      "tr": 463,
       "shnum": "286",
       "sana": "2026-09-07",
       "ism": "Abdixoliqova Elmira",
@@ -14852,7 +14820,7 @@
     },
     {
       "row": 176,
-      "tr": 465,
+      "tr": 464,
       "shnum": "318",
       "sana": "",
       "ism": "Azimova Zahroxon",
@@ -14884,7 +14852,7 @@
     },
     {
       "row": 18,
-      "tr": 466,
+      "tr": 465,
       "shnum": "44",
       "sana": "2026-09-02",
       "ism": "Bahodirova Asila",
@@ -14916,7 +14884,7 @@
     },
     {
       "row": 22,
-      "tr": 467,
+      "tr": 466,
       "shnum": "310",
       "sana": "2026-09-16",
       "ism": "Davlatova Gulnoza",
@@ -14948,7 +14916,7 @@
     },
     {
       "row": 25,
-      "tr": 468,
+      "tr": 467,
       "shnum": "174",
       "sana": "2026-09-02",
       "ism": "Eshimova Zilola",
@@ -14980,7 +14948,7 @@
     },
     {
       "row": 181,
-      "tr": 469,
+      "tr": 468,
       "shnum": "",
       "sana": "",
       "ism": "Irgasheva Dinora",
@@ -15012,7 +14980,7 @@
     },
     {
       "row": 50,
-      "tr": 470,
+      "tr": 469,
       "shnum": "17",
       "sana": "2026-09-02",
       "ism": "Jalilova Shabnam",
@@ -15044,7 +15012,7 @@
     },
     {
       "row": 54,
-      "tr": 471,
+      "tr": 470,
       "shnum": "18",
       "sana": "2026-09-02",
       "ism": "Jumayeva Husnida",
@@ -15076,7 +15044,7 @@
     },
     {
       "row": 58,
-      "tr": 472,
+      "tr": 471,
       "shnum": "250",
       "sana": "2026-09-12",
       "ism": "Karimova Nozliya",
@@ -15108,7 +15076,7 @@
     },
     {
       "row": 61,
-      "tr": 473,
+      "tr": 472,
       "shnum": "390",
       "sana": "2026-09-02",
       "ism": "Mahmadmurodova Sevara",
@@ -15140,7 +15108,7 @@
     },
     {
       "row": 62,
-      "tr": 474,
+      "tr": 473,
       "shnum": "314",
       "sana": "",
       "ism": "Mahmatqulova Nilufar",
@@ -15172,7 +15140,7 @@
     },
     {
       "row": 64,
-      "tr": 475,
+      "tr": 474,
       "shnum": "120",
       "sana": "2026-09-02",
       "ism": "Mahmudova Maftuna",
@@ -15204,7 +15172,7 @@
     },
     {
       "row": 66,
-      "tr": 476,
+      "tr": 475,
       "shnum": "199",
       "sana": "2026-09-02",
       "ism": "Mannonova Shahrizoda",
@@ -15236,7 +15204,7 @@
     },
     {
       "row": 68,
-      "tr": 477,
+      "tr": 476,
       "shnum": "253",
       "sana": "2026-09-04",
       "ism": "Maxmarajabova Zerda",
@@ -15268,7 +15236,7 @@
     },
     {
       "row": 75,
-      "tr": 478,
+      "tr": 477,
       "shnum": "163",
       "sana": "2026-09-02",
       "ism": "Muminova Sevinch",
@@ -15300,7 +15268,7 @@
     },
     {
       "row": 81,
-      "tr": 479,
+      "tr": 478,
       "shnum": "206",
       "sana": "2026-08-21",
       "ism": "Mustafayeva Nargiza",
@@ -15332,7 +15300,7 @@
     },
     {
       "row": 82,
-      "tr": 480,
+      "tr": 479,
       "shnum": "176",
       "sana": "2026-09-02",
       "ism": "Muxtorova Xadicha",
@@ -15364,7 +15332,7 @@
     },
     {
       "row": 85,
-      "tr": 481,
+      "tr": 480,
       "shnum": "212",
       "sana": "22.08.2026",
       "ism": "Narziyeva Intizor",
@@ -15396,7 +15364,7 @@
     },
     {
       "row": 89,
-      "tr": 482,
+      "tr": 481,
       "shnum": "304",
       "sana": "2026-09-14",
       "ism": "Niyozova Sevara",
@@ -15428,7 +15396,7 @@
     },
     {
       "row": 94,
-      "tr": 483,
+      "tr": 482,
       "shnum": "246",
       "sana": "2026-08-29",
       "ism": "Nurillayeva Sevinch",
@@ -15460,7 +15428,7 @@
     },
     {
       "row": 98,
-      "tr": 484,
+      "tr": 483,
       "shnum": "47",
       "sana": "2026-09-02",
       "ism": "Ortiqova Dilnoza",
@@ -15492,7 +15460,7 @@
     },
     {
       "row": 104,
-      "tr": 485,
+      "tr": 484,
       "shnum": "55",
       "sana": "2026-09-02",
       "ism": "Qarshiyeva Shahlo",
@@ -15524,7 +15492,7 @@
     },
     {
       "row": 106,
-      "tr": 486,
+      "tr": 485,
       "shnum": "187",
       "sana": "2026-09-02",
       "ism": "Quchqarova Zebiniso",
@@ -15556,7 +15524,7 @@
     },
     {
       "row": 116,
-      "tr": 487,
+      "tr": 486,
       "shnum": "271",
       "sana": "2026-09-08",
       "ism": "Samiyeva Sevinchbonu",
@@ -15588,7 +15556,7 @@
     },
     {
       "row": 117,
-      "tr": 488,
+      "tr": 487,
       "shnum": "254",
       "sana": "2026-09-12",
       "ism": "Sanaqulova Muxtarama",
@@ -15620,7 +15588,7 @@
     },
     {
       "row": 118,
-      "tr": 489,
+      "tr": 488,
       "shnum": "32",
       "sana": "2026-09-02",
       "ism": "Sanaqulova Nozliya",
@@ -15652,7 +15620,7 @@
     },
     {
       "row": 178,
-      "tr": 490,
+      "tr": 489,
       "shnum": "",
       "sana": "",
       "ism": "Sayfieva Sarvinoz",
@@ -15684,7 +15652,7 @@
     },
     {
       "row": 120,
-      "tr": 491,
+      "tr": 490,
       "shnum": "3",
       "sana": "2026-06-19",
       "ism": "Sayfillayeva Shodiyona",
@@ -15716,7 +15684,7 @@
     },
     {
       "row": 138,
-      "tr": 492,
+      "tr": 491,
       "shnum": "21",
       "sana": "2026-09-02",
       "ism": "Turayeva Gulasal",
@@ -15748,7 +15716,7 @@
     },
     {
       "row": 150,
-      "tr": 493,
+      "tr": 492,
       "shnum": "283",
       "sana": "2026-09-07",
       "ism": "Usmonova Gulnoza",
@@ -15780,7 +15748,7 @@
     },
     {
       "row": 161,
-      "tr": 494,
+      "tr": 493,
       "shnum": "138",
       "sana": "2026-09-02",
       "ism": "Xolmurodova Sabina",
@@ -15812,7 +15780,7 @@
     },
     {
       "row": 168,
-      "tr": 495,
+      "tr": 494,
       "shnum": "247",
       "sana": "2026-09-02",
       "ism": "Yahyomurodova Gulsanam",
@@ -15844,7 +15812,7 @@
     },
     {
       "row": 171,
-      "tr": 496,
+      "tr": 495,
       "shnum": "93",
       "sana": "2026-09-02",
       "ism": "Zarifova Marjona",
@@ -15876,7 +15844,7 @@
     },
     {
       "row": 79,
-      "tr": 497,
+      "tr": 496,
       "shnum": "25",
       "sana": "2026-06-29",
       "ism": "Murtazayeva Kamola",
@@ -15908,7 +15876,7 @@
     },
     {
       "row": 179,
-      "tr": 498,
+      "tr": 497,
       "shnum": "52",
       "sana": "",
       "ism": "Xurramova Sabina",
@@ -15940,7 +15908,7 @@
     },
     {
       "row": 185,
-      "tr": 499,
+      "tr": 498,
       "shnum": "",
       "sana": "",
       "ism": "Abdixakimova Xurshida",
@@ -15972,7 +15940,7 @@
     },
     {
       "row": 186,
-      "tr": 500,
+      "tr": 499,
       "shnum": "",
       "sana": "",
       "ism": "Abdukarimova Nafosat",
@@ -16004,7 +15972,7 @@
     },
     {
       "row": 187,
-      "tr": 501,
+      "tr": 500,
       "shnum": "",
       "sana": "",
       "ism": "Abduvaliyeva Jasmina",
@@ -16036,7 +16004,7 @@
     },
     {
       "row": 188,
-      "tr": 502,
+      "tr": 501,
       "shnum": "",
       "sana": "",
       "ism": "Azizova Asila",
@@ -16068,7 +16036,7 @@
     },
     {
       "row": 189,
-      "tr": 503,
+      "tr": 502,
       "shnum": "",
       "sana": "",
       "ism": "Baxtiyorova Dinora",
@@ -16100,7 +16068,7 @@
     },
     {
       "row": 190,
-      "tr": 504,
+      "tr": 503,
       "shnum": "",
       "sana": "",
       "ism": "Mahmudjonova Mohinur",
@@ -16132,7 +16100,7 @@
     },
     {
       "row": 191,
-      "tr": 505,
+      "tr": 504,
       "shnum": "",
       "sana": "",
       "ism": "Mahmudova Vasila",
@@ -16164,7 +16132,7 @@
     },
     {
       "row": 407,
-      "tr": 506,
+      "tr": 505,
       "shnum": "",
       "sana": "",
       "ism": "Murodullayeva Gulasal",
@@ -16196,7 +16164,7 @@
     },
     {
       "row": 192,
-      "tr": 507,
+      "tr": 506,
       "shnum": "",
       "sana": "",
       "ism": "Nasimova Durdona",
@@ -16228,7 +16196,7 @@
     },
     {
       "row": 360,
-      "tr": 508,
+      "tr": 507,
       "shnum": "",
       "sana": "",
       "ism": "Navro'zova Ro'zigul",
@@ -16260,7 +16228,7 @@
     },
     {
       "row": 193,
-      "tr": 509,
+      "tr": 508,
       "shnum": "",
       "sana": "",
       "ism": "Nishonova Hilola",
@@ -16292,7 +16260,7 @@
     },
     {
       "row": 194,
-      "tr": 510,
+      "tr": 509,
       "shnum": "",
       "sana": "",
       "ism": "Nomazova Rayhona",
@@ -16324,7 +16292,7 @@
     },
     {
       "row": 195,
-      "tr": 511,
+      "tr": 510,
       "shnum": "",
       "sana": "",
       "ism": "Norboboyeva Zahro",
@@ -16356,7 +16324,7 @@
     },
     {
       "row": 196,
-      "tr": 512,
+      "tr": 511,
       "shnum": "",
       "sana": "",
       "ism": "Omonova Dilorom",
@@ -16388,7 +16356,7 @@
     },
     {
       "row": 197,
-      "tr": 513,
+      "tr": 512,
       "shnum": "",
       "sana": "",
       "ism": "Otaqulova Moxiniso",
@@ -16420,7 +16388,7 @@
     },
     {
       "row": 198,
-      "tr": 514,
+      "tr": 513,
       "shnum": "",
       "sana": "",
       "ism": "Qurbonova Gulida",
@@ -16452,7 +16420,7 @@
     },
     {
       "row": 199,
-      "tr": 515,
+      "tr": 514,
       "shnum": "",
       "sana": "",
       "ism": "Raimova Zulfizar",
@@ -16484,7 +16452,7 @@
     },
     {
       "row": 200,
-      "tr": 516,
+      "tr": 515,
       "shnum": "",
       "sana": "",
       "ism": "Sayfilloyeva Anisa",
@@ -16516,7 +16484,7 @@
     },
     {
       "row": 201,
-      "tr": 517,
+      "tr": 516,
       "shnum": "",
       "sana": "",
       "ism": "Sayfiyeva Parizod",
@@ -16548,7 +16516,7 @@
     },
     {
       "row": 202,
-      "tr": 518,
+      "tr": 517,
       "shnum": "",
       "sana": "",
       "ism": "Sayfullayeva Kumush",
@@ -16580,7 +16548,7 @@
     },
     {
       "row": 203,
-      "tr": 519,
+      "tr": 518,
       "shnum": "",
       "sana": "",
       "ism": "Shodiyeva Fayyoza",
@@ -16612,7 +16580,7 @@
     },
     {
       "row": 389,
-      "tr": 520,
+      "tr": 519,
       "shnum": "",
       "sana": "",
       "ism": "Shodiyeva Gulasal",
@@ -16644,7 +16612,7 @@
     },
     {
       "row": 204,
-      "tr": 521,
+      "tr": 520,
       "shnum": "",
       "sana": "",
       "ism": "To'rayeva Elsenora",
@@ -16676,7 +16644,7 @@
     },
     {
       "row": 205,
-      "tr": 522,
+      "tr": 521,
       "shnum": "",
       "sana": "",
       "ism": "Uroqova Muslima",
@@ -16708,7 +16676,7 @@
     },
     {
       "row": 206,
-      "tr": 523,
+      "tr": 522,
       "shnum": "",
       "sana": "",
       "ism": "Usmonjonova Marjona",
@@ -16740,7 +16708,7 @@
     },
     {
       "row": 418,
-      "tr": 524,
+      "tr": 523,
       "shnum": "",
       "sana": "",
       "ism": "Usmonova Sabrina",
@@ -16772,7 +16740,7 @@
     },
     {
       "row": 207,
-      "tr": 525,
+      "tr": 524,
       "shnum": "",
       "sana": "",
       "ism": "Xusanboyeva Fotimaxon",
@@ -16804,7 +16772,7 @@
     },
     {
       "row": 208,
-      "tr": 526,
+      "tr": 525,
       "shnum": "",
       "sana": "",
       "ism": "Yusupova Asila",
@@ -16836,7 +16804,7 @@
     },
     {
       "row": 209,
-      "tr": 527,
+      "tr": 526,
       "shnum": "",
       "sana": "",
       "ism": "Abdialimova Nilufar",
@@ -16868,7 +16836,7 @@
     },
     {
       "row": 15,
-      "tr": 528,
+      "tr": 527,
       "shnum": "258",
       "sana": "2026-09-18",
       "ism": "Axmedova Saodat",
@@ -16900,7 +16868,7 @@
     },
     {
       "row": 210,
-      "tr": 529,
+      "tr": 528,
       "shnum": "",
       "sana": "",
       "ism": "Baxtiyorova Fotima",
@@ -16932,7 +16900,7 @@
     },
     {
       "row": 211,
-      "tr": 530,
+      "tr": 529,
       "shnum": "",
       "sana": "",
       "ism": "G'abborova Xosiyat",
@@ -16964,7 +16932,7 @@
     },
     {
       "row": 34,
-      "tr": 531,
+      "tr": 530,
       "shnum": "125",
       "sana": "2026-09-02",
       "ism": "G'iyosova Shodiyona",
@@ -16996,7 +16964,7 @@
     },
     {
       "row": 212,
-      "tr": 532,
+      "tr": 531,
       "shnum": "",
       "sana": "",
       "ism": "Hasanova Gulsevar",
@@ -17028,7 +16996,7 @@
     },
     {
       "row": 213,
-      "tr": 533,
+      "tr": 532,
       "shnum": "",
       "sana": "",
       "ism": "Jabborova Anora",
@@ -17060,7 +17028,7 @@
     },
     {
       "row": 214,
-      "tr": 534,
+      "tr": 533,
       "shnum": "",
       "sana": "",
       "ism": "Jumanova Xolinisa",
@@ -17092,7 +17060,7 @@
     },
     {
       "row": 215,
-      "tr": 535,
+      "tr": 534,
       "shnum": "",
       "sana": "",
       "ism": "Jumayeva Xurshida",
@@ -17124,7 +17092,7 @@
     },
     {
       "row": 216,
-      "tr": 536,
+      "tr": 535,
       "shnum": "",
       "sana": "",
       "ism": "Mahmudova Munisa",
@@ -17156,7 +17124,7 @@
     },
     {
       "row": 217,
-      "tr": 537,
+      "tr": 536,
       "shnum": "",
       "sana": "",
       "ism": "Meyliqulova Sabrina",
@@ -17188,7 +17156,7 @@
     },
     {
       "row": 74,
-      "tr": 538,
+      "tr": 537,
       "shnum": "",
       "sana": "2026-09-17",
       "ism": "Muminova Durdona",
@@ -17220,7 +17188,7 @@
     },
     {
       "row": 218,
-      "tr": 539,
+      "tr": 538,
       "shnum": "",
       "sana": "",
       "ism": "Numonova Feruza",
@@ -17252,7 +17220,7 @@
     },
     {
       "row": 184,
-      "tr": 540,
+      "tr": 539,
       "shnum": "326",
       "sana": "",
       "ism": "Nurillayeva Dilsuz",
@@ -17284,7 +17252,7 @@
     },
     {
       "row": 219,
-      "tr": 541,
+      "tr": 540,
       "shnum": "",
       "sana": "",
       "ism": "Omonova Sumbula",
@@ -17316,7 +17284,7 @@
     },
     {
       "row": 220,
-      "tr": 542,
+      "tr": 541,
       "shnum": "",
       "sana": "",
       "ism": "Qarshiyeva Ruxshona",
@@ -17348,7 +17316,7 @@
     },
     {
       "row": 180,
-      "tr": 543,
+      "tr": 542,
       "shnum": "",
       "sana": "29.09.2026",
       "ism": "Qulmatova Shabbona",
@@ -17380,7 +17348,7 @@
     },
     {
       "row": 221,
-      "tr": 544,
+      "tr": 543,
       "shnum": "",
       "sana": "",
       "ism": "Salimova Zarina",
@@ -17412,7 +17380,7 @@
     },
     {
       "row": 183,
-      "tr": 545,
+      "tr": 544,
       "shnum": "146",
       "sana": "",
       "ism": "Samatova Oydin",
@@ -17444,7 +17412,7 @@
     },
     {
       "row": 222,
-      "tr": 546,
+      "tr": 545,
       "shnum": "",
       "sana": "",
       "ism": "Saydaliyeva Sevinch",
@@ -17476,7 +17444,7 @@
     },
     {
       "row": 223,
-      "tr": 547,
+      "tr": 546,
       "shnum": "",
       "sana": "",
       "ism": "Soliyeva E'zoza",
@@ -17508,7 +17476,7 @@
     },
     {
       "row": 224,
-      "tr": 548,
+      "tr": 547,
       "shnum": "",
       "sana": "",
       "ism": "Suyunova Marjona",
@@ -17540,7 +17508,7 @@
     },
     {
       "row": 225,
-      "tr": 549,
+      "tr": 548,
       "shnum": "",
       "sana": "",
       "ism": "Suyunova Ruxshona",
@@ -17572,7 +17540,7 @@
     },
     {
       "row": 226,
-      "tr": 550,
+      "tr": 549,
       "shnum": "",
       "sana": "",
       "ism": "Suyunova Shaxlo",
@@ -17604,7 +17572,7 @@
     },
     {
       "row": 228,
-      "tr": 551,
+      "tr": 550,
       "shnum": "",
       "sana": "",
       "ism": "Toshkentova Sevinchoy",
@@ -17636,7 +17604,7 @@
     },
     {
       "row": 227,
-      "tr": 552,
+      "tr": 551,
       "shnum": "",
       "sana": "",
       "ism": "To'xtayeva Shirida",
@@ -17668,7 +17636,7 @@
     },
     {
       "row": 229,
-      "tr": 553,
+      "tr": 552,
       "shnum": "",
       "sana": "",
       "ism": "Tug'izova Zahro",
@@ -17700,7 +17668,7 @@
     },
     {
       "row": 368,
-      "tr": 554,
+      "tr": 553,
       "shnum": "",
       "sana": "",
       "ism": "Turdiqulova Dilfuza",
@@ -17732,7 +17700,7 @@
     },
     {
       "row": 230,
-      "tr": 555,
+      "tr": 554,
       "shnum": "",
       "sana": "",
       "ism": "Tursunova Sevinch",
@@ -17761,6 +17729,38 @@
       "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
+    },
+    {
+      "row": 144,
+      "tr": 555,
+      "shnum": "280",
+      "sana": "2026-09-07",
+      "ism": "Tuychiyeva Farzona",
+      "ota": "Dalerovna",
+      "fish": "Tuychiyeva Farzona Dalerovna",
+      "yon": "Hamshiralik ishi",
+      "group": "Talabalar safidan chiqarilganlar",
+      "pv": "AE4114421",
+      "pass_type": "ID-karta",
+      "pinfl": "60508095680049",
+      "dob": "05.08.2009",
+      "ber": "09.09.2025",
+      "sh_doc": "UM-O 00064269",
+      "sh_qr": "https://e-shahodatnoma.uz/api/public/getcertpdf/3884713/3404183/e0f02e0b-2135-4684-83d1-f3e60ea32b99?preview=true",
+      "mak": "34-sonli umumiy o‘rta ta’lim maktabi",
+      "doc_tur": "Shahodatnoma",
+      "yil": "2026",
+      "tel": "+998 97 573-22-92",
+      "doc_file": "To’ychiyeva  Farzona 280.docx",
+      "status": "full",
+      "pass_fish": "Tuychiyeva Farzona Dalerovna",
+      "cert_fish": "Tuychiyeva Farzona Dalerovna",
+      "name_match": "Pasport: MOS | Shahodatnoma: MOS",
+      "name_flag": "ok",
+      "verified": "TASDIQLANDI",
+      "baza": "KIRITILDI",
+      "buyruq": "---",
+      "buyruq_sana": "19.10.2026"
     },
     {
       "row": 557,

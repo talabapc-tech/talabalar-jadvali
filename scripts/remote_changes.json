@@ -1,18 +1,1 @@
-[
-  {
-    "type": "update_student",
-    "data": {
-      "row": 144,
-      "fields": {
-        "group": "Talabalar safidan chiqarilganlar",
-        "buyruq": "---",
-        "buyruq_sana": "19.10.2026"
-      },
-      "shnum": "280",
-      "pinfl": "60508095680049",
-      "ism": "Tuychiyeva Farzona"
-    },
-    "id": "chg_1792401747307_4zjta",
-    "created_at": "2026-10-19T09:22:27.307Z"
-  }
-]
+[]
