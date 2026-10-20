@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
         id: newId,
         fish: item.fish.trim(),
         lavozim: (item.lavozim || 'Xodim').trim(),
+        kategoriya: item.kategoriya || "ShTAT - xodimlar",
         bolim: (item.bolim || "Ma'muriy").trim(),
         ish_turi: item.ish_turi || 'Shtat',
         stavka: item.stavka || '1.0',
@@ -46,12 +47,18 @@ export async function POST(request: NextRequest) {
         pinfl: (item.pinfl || '').replace(/\s/g, '').trim(),
         pv: (item.pv || '').trim().toUpperCase(),
         dob: item.dob || '',
+        tugilgan_joy: item.tugilgan_joy || '',
+        tamomlagan_otm: item.tamomlagan_otm || '',
+        otm_tamom_yili: item.otm_tamom_yili || '',
+        mutaxassislik: item.mutaxassislik || '',
+        buyruq_sana: item.buyruq_sana || '',
         ishga_sana: item.ishga_sana || '',
         boshan_sana: item.boshan_sana || '',
+        yashash_joyi: item.yashash_joyi || '',
+        pasport_berilgan_joy: item.pasport_berilgan_joy || '',
         maosh: item.maosh || '',
         soat_stavka: item.soat_stavka || '',
         status: item.status || 'faol',
-        mutaxassislik: item.mutaxassislik || '',
         doc_file: item.doc_file || '',
         izoh: item.izoh || '',
       }
@@ -109,6 +116,7 @@ export async function POST(request: NextRequest) {
           id: it.id || `X-${String(nextNum++).padStart(3, '0')}`,
           fish: it.fish.trim(),
           lavozim: (it.lavozim || 'Xodim').trim(),
+          kategoriya: it.kategoriya || "ShTAT - xodimlar",
           bolim: (it.bolim || "Ma'muriy").trim(),
           ish_turi: it.ish_turi || 'Shtat',
           stavka: it.stavka || '1.0',
@@ -116,12 +124,18 @@ export async function POST(request: NextRequest) {
           pinfl: (it.pinfl || '').replace(/\s/g, '').trim(),
           pv: (it.pv || '').trim().toUpperCase(),
           dob: it.dob || '',
+          tugilgan_joy: it.tugilgan_joy || '',
+          tamomlagan_otm: it.tamomlagan_otm || '',
+          otm_tamom_yili: it.otm_tamom_yili || '',
+          mutaxassislik: it.mutaxassislik || '',
+          buyruq_sana: it.buyruq_sana || '',
           ishga_sana: it.ishga_sana || '',
           boshan_sana: it.boshan_sana || '',
+          yashash_joyi: it.yashash_joyi || '',
+          pasport_berilgan_joy: it.pasport_berilgan_joy || '',
           maosh: it.maosh || '',
           soat_stavka: it.soat_stavka || '',
           status: it.status || 'faol',
-          mutaxassislik: it.mutaxassislik || '',
           doc_file: it.doc_file || '',
           izoh: it.izoh || '',
         }
@@ -131,6 +145,20 @@ export async function POST(request: NextRequest) {
 
       await saveStaff(staff, `${count} nafar xodim import qilindi`)
       return Response.json({ ok: true, count, staff })
+    }
+
+    if (action === 'sync_hr') {
+      try {
+        const { exec } = await import('child_process')
+        const { promisify } = await import('util')
+        const execAsync = promisify(exec)
+        await execAsync('python scripts/sync_hr_staff.py')
+        const refreshed = await loadStaff()
+        return Response.json({ ok: true, count: refreshed.length, staff: refreshed })
+      } catch (err) {
+        const refreshed = await loadStaff()
+        return Response.json({ ok: true, count: refreshed.length, staff: refreshed, note: String(err) })
+      }
     }
 
     return Response.json({ ok: false, error: "Noma'lum amal" }, { status: 400 })

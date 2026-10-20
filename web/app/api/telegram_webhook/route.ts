@@ -3,7 +3,8 @@ import { COURSES, GROUP_LEADERS } from '@/lib/config'
 import { malumotnomaBlocker, malumotnomaData, malumotnomaFileName } from '@/lib/malumotnoma'
 import { renderMalumotnomaJpg } from '@/lib/server/malumotnoma-rasm'
 import { academicGroups, byName, fullName, groupTitle, isAcademicLeave, isOfficialGroup, isOutside, kursOf } from '@/lib/student'
-import { loadGroupSettings, loadStudents, REPO_PATHS, readRepoFile, readRepoFileIn } from '@/lib/server/source'
+import { loadGroupSettings, loadStaff, loadStudents, REPO_PATHS, readRepoFile, readRepoFileIn } from '@/lib/server/source'
+import { cleanStaffPhone, type StaffMember } from '@/lib/staff'
 import { renderGroupListPng } from '@/lib/server/guruh-rasm'
 import { siteOrigin, TG_ALLOWED_IDS, TG_BOT_TOKEN, TG_CHAT_ID, TG_REPORT_KEY, TG_WEBHOOK_SECRET, tgCall, tgEsc as esc, tgSendPhoto } from '@/lib/server/telegram'
 import type { Student } from '@/lib/types'
@@ -32,12 +33,10 @@ const DEFAULT_CHAT_ID = TG_CHAT_ID
 
 const BOT_KEYBOARD = {
   keyboard: [
-    [{ text: '📈 Kontingentni olish' }, { text: "📋 4. To'liq Ma'lumotlar (.xlsx)" }],
-    [{ text: '📊 1. Buxgalteriya (.xlsx)' }, { text: '🗂 2. Baza Admin (.xlsx)' }],
-    [{ text: '👥 3. Guruh Rahbarlari (.xlsx)' }, { text: '📝 Davomat Jurnali (.xlsx)' }],
-    [{ text: '📦 JSON Baza (.json)' }, { text: '📑 Guruh Jurnallari (PDF)' }],
-    [{ text: "⚠️ Kamchiliklar ro'yxati" }, { text: "📋 1-kurs So'rovnoma (.xlsx)" }],
-    [{ text: "👥 Guruhlar ro'yxati" }],
+    [{ text: "🎓 Guruhlar ro'yxati" }, { text: '📈 Kontingent' }],
+    [{ text: "👨‍🏫 O'qituvchilar ro'yxati" }, { text: '👔 Shtat xodimlari' }],
+    [{ text: '📊 Excel hisobotlar' }, { text: '📝 Davomat jurnallari' }],
+    [{ text: '📦 JSON Baza (.json)' }, { text: "⚠️ Kamchiliklar ro'yxati" }],
   ],
   resize_keyboard: true,
   is_persistent: true,
@@ -191,6 +190,226 @@ function studentCard(s: Student, i: number) {
     `   • Hujjat (${esc(s.doc_tur || 'Shahodatnoma')}): <b>${esc(s.sh_doc || '—')}</b>\n` +
     `   • Muassasa: ${esc(s.mak || '—')} (${esc(s.yil || '—')}-yil)\n` +
     `   • Tel: ${esc(s.tel || '—')}`
+}
+
+
+async function loadStaffDb(): Promise<StaffMember[]> {
+  try {
+    const list = await loadStaff()
+    if (Array.isArray(list) && list.length) return list
+    const buf = await readRepoFile(['data/xodimlar.json', 'xodimlar.json'], BOT_CACHE)
+    if (buf) {
+      const parsed = JSON.parse(buf.toString('utf-8'))
+      if (Array.isArray(parsed)) return parsed as StaffMember[]
+    }
+  } catch { /* bo'sh */ }
+  return []
+}
+
+function teachersSummaryText(staff: StaffMember[], filter: 'all' | 'asosiy' | 'orindosh' = 'all') {
+  const asosiy = staff.filter((s) => s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy'))
+  const orindosh = staff.filter((s) => s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh"))
+  const { stamp } = tashkentStamp()
+
+  if (filter === 'asosiy') {
+    const lines = [
+      '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
+      `📗 <b>ASOSIY O'QITUVCHILAR (${asosiy.length} nafar)</b>`,
+      `🕒 Sana: <b>${stamp}</b>`,
+      '━━━━━━━━━━━━━━━━━━━━━━',
+    ]
+    asosiy.forEach((t, i) => {
+      lines.push(`${i + 1}. <b>${esc(t.fish)}</b>\n   • Fani: <i>${esc(t.mutaxassislik || "O'qituvchi")}</i>\n   • OTM: ${esc(t.tamomlagan_otm || '—')}\n   • Tel: ${esc(cleanStaffPhone(t.tel))}`)
+    })
+    return lines.join('\n')
+  }
+
+  if (filter === 'orindosh') {
+    const lines = [
+      '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
+      `📘 <b>O'RINDOSH O'QITUVCHILAR (${orindosh.length} nafar)</b>`,
+      `🕒 Sana: <b>${stamp}</b>`,
+      '━━━━━━━━━━━━━━━━━━━━━━',
+    ]
+    orindosh.forEach((t, i) => {
+      lines.push(`${i + 1}. <b>${esc(t.fish)}</b>\n   • Fani: <i>${esc(t.mutaxassislik || "O'qituvchi")}</i>\n   • OTM: ${esc(t.tamomlagan_otm || '—')}\n   • Tel: ${esc(cleanStaffPhone(t.tel))}`)
+    })
+    return lines.join('\n')
+  }
+
+  const lines = [
+    '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
+    "👨‍🏫 <b>O'QITUVCHILAR VA PEDAGOGLAR RO'YXATI</b>",
+    `🕒 Sana: <b>${stamp}</b>`,
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    `📊 <b>Jami pedagoglar: ${asosiy.length + orindosh.length} nafar</b>`,
+    `• 📗 Asosiy o'qituvchilar: <b>${asosiy.length} nafar</b>`,
+    `• 📘 O'rindosh o'qituvchilar: <b>${orindosh.length} nafar</b>`,
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    `📗 <b>ASOSIY O'QITUVCHILAR (${asosiy.length} nafar):</b>`,
+  ]
+  asosiy.forEach((t, i) => {
+    lines.push(`${i + 1}. <b>${esc(t.fish)}</b> — <i>${esc(t.mutaxassislik || "O'qituvchi")}</i> (📞 ${esc(cleanStaffPhone(t.tel))})`)
+  })
+
+  lines.push('', `📘 <b>O'RINDOSH O'QITUVCHILAR (${orindosh.length} nafar):</b>`)
+  orindosh.forEach((t, i) => {
+    lines.push(`${i + 1}. <b>${esc(t.fish)}</b> — <i>${esc(t.mutaxassislik || "O'qituvchi")}</i> (📞 ${esc(cleanStaffPhone(t.tel))})`)
+  })
+
+  return lines.join('\n')
+}
+
+function shtatStaffSummaryText(staff: StaffMember[]) {
+  const shtat = staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat' || (!s.kategoriya?.includes('o\'qituvchi') && !s.ish_turi?.includes('o\'qituvchi') && s.bolim !== 'Pedagog'))
+  const { stamp } = tashkentStamp()
+
+  const lines = [
+    '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
+    "👔 <b>SHTAT XODIMLARI RO'YXATI</b>",
+    `🕒 Sana: <b>${stamp}</b>`,
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    `👥 <b>Jami shtat birligi: ${shtat.length} nafar</b>`,
+    '━━━━━━━━━━━━━━━━━━━━━━',
+  ]
+  shtat.forEach((s, i) => {
+    lines.push(`${i + 1}. <b>${esc(s.fish)}</b> — <b>${esc(s.lavozim)}</b>\n   • Bo'limi: ${esc(s.bolim || "Ma'muriy")}\n   • Pasport: <code>${esc(s.pv || '—')}</code> · Tel: ${esc(cleanStaffPhone(s.tel))}`)
+  })
+  return lines.join('\n')
+}
+
+function teachersListView(staff: StaffMember[], filter: 'all' | 'asosiy' | 'orindosh' = 'all'): View {
+  const text = teachersSummaryText(staff, filter)
+  return {
+    text,
+    markup: {
+      inline_keyboard: [
+        [
+          { text: filter === 'asosiy' ? '✅ Asosiy (13)' : '📗 Asosiy (13)', callback_data: 'tch:asosiy' },
+          { text: filter === 'orindosh' ? '✅ O\'rindosh (8)' : '📘 O\'rindosh (8)', callback_data: 'tch:orindosh' },
+          { text: filter === 'all' ? '✅ Barchasi (21)' : '🌐 Barchasi', callback_data: 'tch:all' },
+        ],
+        [
+          { text: '📥 Excel ro\'yxatni olish (.xlsx)', callback_data: 'doc:tch' },
+        ],
+        [
+          { text: '👔 Shtat xodimlari ro\'yxati', callback_data: 'stf:shtat' },
+        ],
+      ],
+    },
+  }
+}
+
+function shtatStaffView(staff: StaffMember[]): View {
+  const text = shtatStaffSummaryText(staff)
+  return {
+    text,
+    markup: {
+      inline_keyboard: [
+        [
+          { text: '📥 Shtat ro\'yxatini olish (.xlsx)', callback_data: 'doc:stf' },
+        ],
+        [
+          { text: '👨‍🏫 O\'qituvchilar ro\'yxati', callback_data: 'tch:all' },
+        ],
+      ],
+    },
+  }
+}
+
+function excelReportsView(): View {
+  return {
+    text: "📊 <b>Excel Hisobotlar Bo'limi</b>\n\nKerakli Excel (.xlsx) hisobotni tanlang. Hujjat darhol Telegram orqali yuboriladi:\n\n• <b>1. Buxgalteriya</b> — Shartnoma raqamlari va Pasport\n• <b>2. Baza Administratori</b> — Pasport va Diplomlar\n• <b>3. Guruh Rahbarlari</b> — Tug'ilgan sana va shahodatnomalar\n• <b>4. To'liq Baza</b> — Barcha ustunlar jamlangan baza\n• <b>1-kurs So'rovnoma</b> — Manzillar va ota-onalar\n• <b>O'qituvchilar</b> — Asosiy va O'rindosh pedagoglar\n• <b>Shtat xodimlari</b> — Barcha shtat birliklari",
+    markup: {
+      inline_keyboard: [
+        [
+          { text: '📊 1. Buxgalteriya', callback_data: 'doc:bux' },
+          { text: '🗂 2. Baza Admin', callback_data: 'doc:adm' },
+        ],
+        [
+          { text: '👥 3. Guruh Rahbarlari', callback_data: 'doc:grh' },
+          { text: '📋 4. To\'liq Baza', callback_data: 'doc:tol' },
+        ],
+        [
+          { text: '👨‍🏫 O\'qituvchilar', callback_data: 'doc:tch' },
+          { text: '👔 Shtat xodimlari', callback_data: 'doc:stf' },
+        ],
+        [
+          { text: '📋 1-kurs So\'rovnoma', callback_data: 'doc:sor' },
+          { text: '🌐 Barcha xodimlar', callback_data: 'doc:all_stf' },
+        ],
+      ],
+    },
+  }
+}
+
+function davomatReportsView(): View {
+  return {
+    text: "📝 <b>Davomat Jurnallari Bo'limi</b>\n\nKerakli jurnal formatini tanlang:\n\n• <b>Davomat Jurnali (.xlsx)</b> — 1-kurs andoza jadvallari\n• <b>Guruh Jurnallari (PDF)</b> — A4 chop etish uchun jurnallar\n• <b>1-kurs Word Jurnallar (ZIP)</b> — Barcha 6 ta guruh Word fayllari\n• <b>Namunaviy 26-02 Word</b> — To'liq to'ldirilgan namunaviy jurnal\n\n💡 <i>Alohida guruh:</i> <code>/davomat 26-03</code>\n💡 <i>Barcha 19 ta guruh:</i> <code>/davomat barcha</code>",
+    markup: {
+      inline_keyboard: [
+        [
+          { text: '📝 Davomat Jurnali (.xlsx)', callback_data: 'dvm:xls' },
+          { text: '📑 Guruh Jurnallari (PDF)', callback_data: 'dvm:pdf' },
+        ],
+        [
+          { text: '📦 1-kurs Word ZIP', callback_data: 'dvm:zip' },
+          { text: '📄 Namunaviy 26-02 Word', callback_data: 'dvm:doc' },
+        ],
+      ],
+    },
+  }
+}
+
+async function sendStaffExcelDocument(chatId: string | number, type: 'teachers' | 'shtat' | 'all') {
+  const { stamp } = tashkentStamp()
+  let file = 'Oqituvchilar royxati.xlsx'
+  let title = "O'qituvchilar ro'yxati (.xlsx)"
+  if (type === 'shtat') {
+    file = 'Shtat xodimlar royxati.xlsx'
+    title = "ShTAT xodimlar ro'yxati (.xlsx)"
+  } else if (type === 'all') {
+    file = 'Barcha xodimlar royxati.xlsx'
+    title = "Barcha xodimlar ro'yxati (.xlsx)"
+  }
+  const buf = await readRepoFileIn(['hisobotlar', ''], file, BOT_CACHE)
+  if (buf) {
+    await sendDocument(chatId, buf, file, `📊 <b>${esc(title)}</b>\n🕒 Sana: ${stamp}\n✅ <i>Bo'sh joyli toza format</i>`)
+  } else {
+    await sendMessage(chatId, `⚠️ Fayl topilmadi: ${esc(file)}`)
+  }
+}
+
+async function sendRoleExcelDirect(chatId: string | number, file: string, title: string) {
+  const { stamp } = tashkentStamp()
+  const buf = await readRepoFileIn(REPO_PATHS.rollar, file, BOT_CACHE)
+  if (buf) {
+    await sendDocument(chatId, buf, file, `📊 <b>${esc(title)}</b>\n🕒 Sana: ${stamp}`)
+  } else {
+    await sendMessage(chatId, `❌ Fayl yuklashda xatolik: ${esc(file)}`)
+  }
+}
+
+async function sendDavomatDoc(chatId: string | number, type: 'xls' | 'pdf' | 'zip' | 'doc') {
+  const { stamp } = tashkentStamp()
+  const dirs = ['hisobotlar/davomat_jurnallari', 'hisobotlar', '']
+  if (type === 'xls') {
+    const buf = await readRepoFileIn(dirs, 'Davomat_Jurnali_Uchun_Malumotlar.xlsx', BOT_CACHE)
+    if (buf) await sendDocument(chatId, buf, 'Davomat_Jurnali_Uchun_Malumotlar.xlsx', `📝 <b>Davomat Jurnali Uchun Talabalar Ma'lumotlari (.xlsx)</b>\n🕒 Sana: ${stamp}`)
+    else await sendMessage(chatId, '❌ Fayl topilmadi.')
+  } else if (type === 'pdf') {
+    const buf = await readRepoFileIn(REPO_PATHS.pdfJurnallar, 'Barcha_Guruhlar_Jurnali.pdf', BOT_CACHE)
+    if (buf) await sendDocument(chatId, buf, 'Barcha_Guruhlar_Jurnali.pdf', `📑 <b>Barcha ${pdfGroups().length} ta guruh jurnallari (A4 PDF)</b>\n🕒 Sana: ${stamp}`)
+    else await sendMessage(chatId, '❌ PDF jurnal topilmadi.')
+  } else if (type === 'zip') {
+    const buf = await readRepoFileIn(dirs, '1-kurs_Guruhlar_Davomat_Jurnallari_Word.zip', BOT_CACHE)
+    if (buf) await sendDocument(chatId, buf, '1-kurs_Guruhlar_Davomat_Jurnallari_Word.zip', `📦 <b>1-kurs Guruhlari Davomat Jurnallari (Word .docx ZIP)</b>\n🕒 Sana: ${stamp}`)
+    else await sendMessage(chatId, '❌ ZIP fayl topilmadi.')
+  } else if (type === 'doc') {
+    const buf = await readRepoFileIn(dirs, "Davomat jurnali 26-02 (TO'LDIRILGAN).docx", BOT_CACHE)
+    if (buf) await sendDocument(chatId, buf, "Davomat jurnali 26-02 (TO'LDIRILGAN).docx", `📄 <b>Davomat jurnali 26-02 (Word namunasi)</b>\n🕒 Sana: ${stamp}`)
+    else await sendMessage(chatId, '❌ Word fayl topilmadi.')
+  }
 }
 
 /* ------------------------------ GURUHLAR RO'YXATI ------------------------------ */
@@ -483,9 +702,27 @@ export async function POST(request: NextRequest) {
     if (cq) {
       const data = String(cq.data || '')
       const msgId = Number(cq.message?.message_id) || undefined
-      if (data === 'gl') await showView(chatId, await coursePickerView(), msgId)
+            if (data === 'gl') await showView(chatId, await coursePickerView(), msgId)
       else if (data.startsWith('k:')) await showView(chatId, await courseGroupsView(Number(data.slice(2))), msgId)
       else if (data.startsWith('g:')) await sendGroupList(chatId, data.slice(2))
+      else if (data === 'rep:excel') await showView(chatId, excelReportsView(), msgId)
+      else if (data === 'rep:davomat') await showView(chatId, davomatReportsView(), msgId)
+      else if (data === 'tch:all') await showView(chatId, teachersListView(await loadStaffDb(), 'all'), msgId)
+      else if (data === 'tch:asosiy') await showView(chatId, teachersListView(await loadStaffDb(), 'asosiy'), msgId)
+      else if (data === 'tch:orindosh') await showView(chatId, teachersListView(await loadStaffDb(), 'orindosh'), msgId)
+      else if (data === 'stf:shtat') await showView(chatId, shtatStaffView(await loadStaffDb()), msgId)
+      else if (data === 'doc:tch') await sendStaffExcelDocument(chatId, 'teachers')
+      else if (data === 'doc:stf') await sendStaffExcelDocument(chatId, 'shtat')
+      else if (data === 'doc:all_stf') await sendStaffExcelDocument(chatId, 'all')
+      else if (data === 'doc:bux') await sendRoleExcelDirect(chatId, '1_Buxgalteriya_Shartnoma_va_Pasport.xlsx', '1. Buxgalteriya (Shartnoma № va Pasport)')
+      else if (data === 'doc:adm') await sendRoleExcelDirect(chatId, '2_Baza_Admin_Pasport_va_Shahodatnoma.xlsx', '2. Baza Administratori (Pasport va Shahodatnoma/Diplom)')
+      else if (data === 'doc:grh') await sendRoleExcelDirect(chatId, '3_Guruh_Rahbarlari_Talabalar_Malumotlari.xlsx', '3. Guruh Rahbarlari')
+      else if (data === 'doc:tol') await sendRoleExcelDirect(chatId, '4_Toliq_Malumotlar_Bazasi.xlsx', "4. To'liq Ma'lumotlar Bazasi")
+      else if (data === 'doc:sor') await sendRoleExcelDirect(chatId, '1-kurs_Sorovnoma_Malumotlari.xlsx', "1-kurs Talabalari So'rovnoma Ma'lumotlari")
+      else if (data === 'dvm:xls') await sendDavomatDoc(chatId, 'xls')
+      else if (data === 'dvm:pdf') await sendDavomatDoc(chatId, 'pdf')
+      else if (data === 'dvm:zip') await sendDavomatDoc(chatId, 'zip')
+      else if (data === 'dvm:doc') await sendDavomatDoc(chatId, 'doc')
       return Response.json({ ok: true })
     }
     if (t.includes("guruhlar ro'yxati") || t.includes('guruhlar royxati') || t === '/guruhlar_royxati' || t === '/royxat') {
@@ -493,23 +730,45 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: true })
     }
 
-    if (['/start', '/menu', '/help', 'menyu', 'start'].includes(t)) {
+        if (['/start', '/menu', '/help', 'menyu', 'start'].includes(t)) {
       await sendMessage(chatId,
-        "🤖 <b>Talabalar Bazasi va Shartnomalar Boti (24/7 Cloud Webhook)</b>\n\n" +
-        "Quyidagi tugmalar orqali istalgan vaqtda kerakli Excel hisobotlarni, <b>Kontingent</b> ma'lumotini, <b>Guruh jurnallarini (PDF)</b> yoki <b>.json</b> bazani olishingiz mumkin:\n\n" +
-        '• <b>📈 Kontingentni olish</b> — Guruhlar va rahbarlar kesimida kontingent\n' +
-        '• <b>📊 1. Buxgalteriya (.xlsx)</b> — Shartnoma № va Pasport\n' +
-        '• <b>🗂 2. Baza Admin (.xlsx)</b> — Pasport va Shahodatnoma/Diplom\n' +
-        "• <b>👥 3. Guruh Rahbarlari (.xlsx)</b> — Tug'ilgan sana, Pasport, Shahodatnoma\n" +
-        "• <b>📋 4. To'liq Ma'lumotlar (.xlsx)</b> — O'zingiz uchun to'liq baza\n" +
-        "• <b>📝 Davomat Jurnali (.xlsx)</b> — Barcha guruhlar andozasi + 26-02 Word jurnali (yoki /davomat)\n" +
-        "• <b>📋 1-kurs So'rovnoma (.xlsx)</b> — Manzillar, ota-ona va telefonlar (yoki /sorovnoma)\n" +
-        '• <b>📦 JSON Baza (.json)</b> — To\'liq JSON baza fayli\n' +
-        "• <b>⚠️ Kamchiliklar ro'yxati</b> — Hujjati to'liq bo'lmagan talabalar\n" +
-        `• <b>📑 Guruh Jurnallari (PDF)</b> — Barcha ${pdfGroups().length} ta guruh A4 PDF jurnallari\n\n` +
-        "📄 <b>/malumotnoma 285</b> — talabaning o'qiyotganligi haqida ma'lumotnomasi (rasm)\n\n" +
-        "🔍 <i>Tezkor qidiruv:</i> Istalgan talabaning <b>Ism-familiyasi</b>, <b>Shartnoma №</b>, <b>Pasport seriyasi</b> yoki <b>JSHSHIR</b>ini yozib yuboring!\n" +
-        "👥 <i>Guruh ro'yxati:</i> <b>👥 Guruhlar ro'yxati</b> tugmasi yoki guruh raqamini yozing, masalan <b>26-01</b> (matn + rasm)")
+        `🤖 <b>Talabalar Bazasi va Shartnomalar Boti</b>
+
+` +
+        `Quyidagi guruhlangan bo'limlar orqali ma'lumotlarni olishingiz mumkin:
+
+` +
+        `🎓 <b>O'quv va Guruhlar:</b>
+` +
+        `• <b>🎓 Guruhlar ro'yxati</b> — Guruhlar va rasmli jurnallar
+` +
+        `• <b>📈 Kontingent</b> — Talabalar umumiy kontingenti
+
+` +
+        `👨‍🏫 <b>Pedagog va Xodimlar:</b>
+` +
+        `• <b>👨‍🏫 O'qituvchilar ro'yxati</b> — Asosiy va O'rindosh pedagoglar (.xlsx)
+` +
+        `• <b>👔 Shtat xodimlari</b> — Ma'muriy va xo'jalik shtat birliklari (.xlsx)
+
+` +
+        `📊 <b>Hisobot va Hujjatlar:</b>
+` +
+        `• <b>📊 Excel hisobotlar</b> — 1-Buxgalteriya, 2-Admin, 3-Guruh rahbarlari, 4-To'liq
+` +
+        `• <b>📝 Davomat jurnallari</b> — Excel andoza, PDF va Word jurnallari
+
+` +
+        `📦 <b>Baza va Nazorat:</b>
+` +
+        `• <b>📦 JSON Baza (.json)</b> — To'liq JSON ma'lumotlar bazasi
+` +
+        `• <b>⚠️ Kamchiliklar ro'yxati</b> — Hujjati to'liq bo'lmagan talabalar
+
+` +
+        `📄 <b>/malumotnoma 285</b> — Talabaning o'qiyotganligi haqida ma'lumotnoma (rasm)
+` +
+        `🔍 <i>Tezkor qidiruv:</i> Istalgan talabaning <b>Ism-familiyasi</b>, <b>Shartnoma №</b>, <b>Pasport</b> yoki <b>JSHSHIR</b>ini yozing!`)
       return Response.json({ ok: true })
     }
     const cert = /^\/?ma['‘’`]?lumotnoma(?:@\w+)?(?:\s+(.*))?$/i.exec(text)
@@ -524,6 +783,28 @@ export async function POST(request: NextRequest) {
       await sendGroupList(chatId, groupOnly[1])
       return Response.json({ ok: true })
     }
+
+    if (t.includes("o'qituvchi") || t.includes("oqituvchi") || t === '/oqituvchilar' || t === '/ustozlar') {
+      const st = await loadStaffDb()
+      await showView(chatId, teachersListView(st, 'all'))
+      await sendStaffExcelDocument(chatId, 'teachers')
+      return Response.json({ ok: true })
+    }
+    if (t.includes('shtat') || t === '/shtat' || t.includes('xodimlar') || t === '/xodimlar') {
+      const st = await loadStaffDb()
+      await showView(chatId, shtatStaffView(st))
+      await sendStaffExcelDocument(chatId, 'shtat')
+      return Response.json({ ok: true })
+    }
+    if (t.includes('excel hisobot') || t === '/hisobotlar' || t === 'excel hisobotlar') {
+      await showView(chatId, excelReportsView())
+      return Response.json({ ok: true })
+    }
+    if (t.includes('davomat jurnallari') || t.includes('davomat jurnali')) {
+      await showView(chatId, davomatReportsView())
+      return Response.json({ ok: true })
+    }
+
     if (t.includes('kontingent') || t.includes('kontengent')) {
       await sendMessage(chatId, await kontingentText('Bot tugmasi orqali'))
       return Response.json({ ok: true })

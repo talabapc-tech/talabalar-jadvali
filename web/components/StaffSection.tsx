@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Briefcase,
   Building,
+  CheckCircle2,
   Download,
   FileSpreadsheet,
   GraduationCap,
@@ -13,18 +14,20 @@ import {
   Plus,
   RefreshCw,
   Search,
+  SlidersHorizontal,
   Trash2,
   UserCheck,
   Users,
 } from 'lucide-react'
-import * as XLSX from 'xlsx-js-style'
 import {
   cleanStaffPhone,
   formatSalary,
+  STAFF_CATEGORIES,
   STAFF_DEPARTMENTS,
   STAFF_WORK_TYPES,
   type StaffMember,
 } from '@/lib/staff'
+import StaffExportModal from './StaffExportModal'
 import StaffImportModal from './StaffImportModal'
 import StaffModal from './StaffModal'
 import type { Notify } from './Toast'
@@ -37,13 +40,16 @@ interface Props {
 export default function StaffSection({ notify }: Props) {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [query, setQuery] = useState('')
+  const [category, setCategory] = useState<string>('Barchasi')
   const [dept, setDept] = useState<string>('Barchasi')
   const [workType, setWorkType] = useState<string>('Barchasi')
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editMember, setEditMember] = useState<StaffMember | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,32 +72,65 @@ export default function StaffSection({ notify }: Props) {
     void load()
   }, [load])
 
+  // HR papkadan sinxronlash (D:\Ozodbek HR\ASOSIY XUJJATLAR\Shahrisabz\1.Barcha xodimlar\SH.T.T)
+  const handleSyncHr = async () => {
+    setSyncing(true)
+    try {
+      const res = await fetch('/api/staff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync_hr' }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        setStaff(data.staff || [])
+        notify(`HR Bazasidan ${data.count || data.staff?.length || 0} nafar xodim muvaffaqiyatli sinxronlandi!`, 'success')
+      } else {
+        notify(data.error || "HR bazasini sinxronlashda xatolik", 'error')
+      }
+    } catch (e) {
+      notify((e as Error).message, 'error')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   // Filtrlash
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return staff.filter((s) => {
+      if (category !== 'Barchasi') {
+        if (category === 'ShTAT - xodimlar' && !(s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat')) return false
+        if (category === "Asosiy o'qituvchilar" && !(s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy'))) return false
+        if (category === "O'rindosh o'qituvchilar" && !(s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh"))) return false
+      }
       if (dept !== 'Barchasi' && s.bolim !== dept) return false
       if (workType !== 'Barchasi' && s.ish_turi !== workType) return false
       if (!q) return true
       return (
         s.fish.toLowerCase().includes(q) ||
         s.lavozim.toLowerCase().includes(q) ||
+        (s.kategoriya && s.kategoriya.toLowerCase().includes(q)) ||
         (s.bolim && s.bolim.toLowerCase().includes(q)) ||
         (s.tel && s.tel.toLowerCase().includes(q)) ||
         (s.pinfl && s.pinfl.includes(q)) ||
+        (s.pv && s.pv.toLowerCase().includes(q)) ||
+        (s.mutaxassislik && s.mutaxassislik.toLowerCase().includes(q)) ||
+        (s.tamomlagan_otm && s.tamomlagan_otm.toLowerCase().includes(q)) ||
         (s.id && s.id.toLowerCase().includes(q))
       )
     })
-  }, [staff, query, dept, workType])
+  }, [staff, query, category, dept, workType])
 
-  // Statistika hisoblash
+  // Statistika
   const stats = useMemo(() => {
     const total = staff.length
-    const teachers = staff.filter((s) => s.bolim === 'Pedagog' || s.lavozim.toLowerCase().includes('o\'qituvchi')).length
-    const admin = staff.filter((s) => s.bolim === 'Rahbariyat' || s.bolim === "Ma'muriy" || s.bolim === "Moliya bo'limi").length
-    const service = staff.filter((s) => s.bolim === "Xo'jalik").length
+    const shtat = staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat').length
+    const asosiy = staff.filter((s) => s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy')).length
+    const orindosh = staff.filter((s) => s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh")).length
+    const teachers = asosiy + orindosh
     const active = staff.filter((s) => s.status === 'faol' || !s.status).length
-    return { total, teachers, admin, service, active }
+    return { total, shtat, asosiy, orindosh, teachers, active }
   }, [staff])
 
   // Saqlash (yangi yoki tahrir)
@@ -131,61 +170,6 @@ export default function StaffSection({ notify }: Props) {
     }
   }
 
-  // Excelga eksport
-  const handleExport = () => {
-    if (!filtered.length) {
-      notify("Eksport qilish uchun xodimlar mavjud emas", 'warning')
-      return
-    }
-
-    const headers = [
-      'ID', 'F.I.Sh', 'Lavozimi', 'Bo\'limi', 'Ish turi', 'Stavka',
-      'Telefon', 'JSHSHIR', 'Pasport', 'Ishga kirgan sana', 'Oylik maosh', 'Holati', 'Izoh'
-    ]
-
-    const rows = filtered.map((s) => [
-      s.id,
-      s.fish,
-      s.lavozim,
-      s.bolim || '',
-      s.ish_turi || '',
-      s.stavka || '',
-      cleanStaffPhone(s.tel),
-      s.pinfl || '',
-      s.pv || '',
-      s.ishga_sana || '',
-      s.maosh || '',
-      s.status === 'tatilda' ? 'Ta\'tilda' : s.status === 'boshatilgan' ? 'Bo\'shatilgan' : 'Faol',
-      s.izoh || ''
-    ])
-
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-
-    // Sarlavha uslubi
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: 0, c })]
-      if (cell) {
-        cell.s = {
-          font: { bold: true, color: { rgb: 'FFFFFF' } },
-          fill: { fgColor: { rgb: '107C41' } },
-          alignment: { vertical: 'center', horizontal: 'center' },
-        }
-      }
-    }
-
-    ws['!cols'] = [
-      { wch: 10 }, { wch: 32 }, { wch: 26 }, { wch: 18 }, { wch: 12 },
-      { wch: 10 }, { wch: 18 }, { wch: 18 }, { wch: 12 }, { wch: 15 },
-      { wch: 16 }, { wch: 12 }, { wch: 25 },
-    ]
-
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Xodimlar')
-    XLSX.writeFile(wb, `Shahrisabz_Texnikum_Xodimlar_${new Date().toLocaleDateString('ru-RU')}.xlsx`)
-    notify(`${filtered.length} nafar xodim Excelga yuklandi`, 'success')
-  }
-
   return (
     <div className="space-y-4">
       {/* 1. Xulosa / Statistika bloklari */}
@@ -199,36 +183,42 @@ export default function StaffSection({ notify }: Props) {
           <div className="mt-0.5 text-[11px] text-emerald-soft">{stats.active} nafari faol</div>
         </div>
 
-        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm">
+        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-colors"
+          onClick={() => setCategory('ShTAT - xodimlar')}
+        >
           <div className="flex items-center justify-between text-fg-subtle">
-            <span className="text-[12px] font-medium">O'qituvchilar</span>
+            <span className="text-[12px] font-medium">1. ShTAT xodimlar</span>
+            <Briefcase size={16} className="text-amber" />
+          </div>
+          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.shtat}</div>
+          <div className="mt-0.5 text-[11px] text-fg-subtle">Ma'muriy & xo'jalik</div>
+        </div>
+
+        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-colors"
+          onClick={() => setCategory("Asosiy o'qituvchilar")}
+        >
+          <div className="flex items-center justify-between text-fg-subtle">
+            <span className="text-[12px] font-medium">2. Asosiy o'qituvchi</span>
             <GraduationCap size={16} className="text-emerald" />
           </div>
-          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.teachers}</div>
-          <div className="mt-0.5 text-[11px] text-fg-subtle">Pedagogik tarkib</div>
+          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.asosiy}</div>
+          <div className="mt-0.5 text-[11px] text-fg-subtle">Tarifikatsiya bo'yicha</div>
         </div>
 
-        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm">
+        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-colors"
+          onClick={() => setCategory("O'rindosh o'qituvchilar")}
+        >
           <div className="flex items-center justify-between text-fg-subtle">
-            <span className="text-[12px] font-medium">Ma'muriyat</span>
-            <Building size={16} className="text-amber" />
+            <span className="text-[12px] font-medium">3. O'rindosh</span>
+            <Building size={16} className="text-purple-400" />
           </div>
-          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.admin}</div>
-          <div className="mt-0.5 text-[11px] text-fg-subtle">Boshqaruv va bo'limlar</div>
-        </div>
-
-        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm">
-          <div className="flex items-center justify-between text-fg-subtle">
-            <span className="text-[12px] font-medium">Xo'jalik xodimlari</span>
-            <Briefcase size={16} className="text-purple-400" />
-          </div>
-          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.service}</div>
-          <div className="mt-0.5 text-[11px] text-fg-subtle">Yordamchi tarkib</div>
+          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.orindosh}</div>
+          <div className="mt-0.5 text-[11px] text-fg-subtle">O'rindosh pedagoglar</div>
         </div>
 
         <div className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm flex flex-col justify-between">
           <div className="text-[12px] font-medium text-fg-subtle">Tezkor amallar</div>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-1.5">
             <button
               type="button"
               className="btn-success h-8 flex-1 text-[11.5px] justify-center"
@@ -239,19 +229,21 @@ export default function StaffSection({ notify }: Props) {
             </button>
             <button
               type="button"
-              className="btn-ghost h-8 px-2 text-[11.5px]"
-              onClick={() => setImportOpen(true)}
-              title="Excel import"
+              className="btn-ghost h-8 px-2.5 text-[11.5px] border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
+              onClick={() => setExportOpen(true)}
+              title="Excel eksport — kerakli ustunlarni tanlash"
             >
-              <FileSpreadsheet size={14} className="text-emerald" />
+              <Download size={14} />
+              <span className="hidden sm:inline">Eksport</span>
             </button>
             <button
               type="button"
               className="btn-ghost h-8 px-2 text-[11.5px]"
-              onClick={handleExport}
-              title="Excel export"
+              onClick={handleSyncHr}
+              disabled={syncing}
+              title="D:\Ozodbek HR manzilidan avtomatik yangilash"
             >
-              <Download size={14} className="text-sky" />
+              <RefreshCw size={14} className={cx('text-amber', syncing && 'animate-spin')} />
             </button>
           </div>
         </div>
@@ -265,41 +257,55 @@ export default function StaffSection({ notify }: Props) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Xodim F.I.Sh, lavozim, telefon yoki JSHSHIR bo'yicha qidirish…"
+            placeholder="Xodim F.I.Sh, lavozim, mutaxassislik, telefon yoki JSHSHIR bo'yicha…"
             className="field h-9 pl-9 text-[12.5px]"
           />
         </div>
+
+        {/* Kategoriya filtri (1. Shtat, 2. Asosiy, 3. O'rindosh) */}
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="field h-9 w-auto min-w-[170px] py-1 text-[12px] font-medium cursor-pointer border-emerald-500/30 text-emerald-300 bg-emerald-500/5"
+        >
+          {STAFF_CATEGORIES.map((c) => (
+            <option key={c} value={c} className="bg-ink-900 text-fg">
+              {c === 'Barchasi' ? 'Toifa: Barchasi' : c}
+            </option>
+          ))}
+        </select>
 
         {/* Bo'lim filtri */}
         <select
           value={dept}
           onChange={(e) => setDept(e.target.value)}
-          className="field h-9 w-auto min-w-[150px] py-1 text-[12px] cursor-pointer"
+          className="field h-9 w-auto min-w-[140px] py-1 text-[12px] cursor-pointer"
         >
           {STAFF_DEPARTMENTS.map((d) => (
-            <option key={d} value={d}>Bo'lim: {d}</option>
+            <option key={d} value={d} className="bg-ink-900 text-fg">Bo'lim: {d}</option>
           ))}
         </select>
 
-        {/* Ish turi filtri */}
-        <select
-          value={workType}
-          onChange={(e) => setWorkType(e.target.value)}
-          className="field h-9 w-auto min-w-[130px] py-1 text-[12px] cursor-pointer"
-        >
-          {STAFF_WORK_TYPES.map((t) => (
-            <option key={t} value={t}>Shakli: {t}</option>
-          ))}
-        </select>
-
+        {/* Yangilash tugmasi */}
         <button
           type="button"
           onClick={() => void load()}
           disabled={loading}
-          className="btn-ghost size-9 p-0"
+          className="btn-ghost h-9 px-3 text-[12px]"
           title="Xodimlarni yangilash"
         >
           <RefreshCw size={14} className={cx(loading && 'animate-spin')} />
+        </button>
+
+        {/* Katta eksport tugmasi */}
+        <button
+          type="button"
+          onClick={() => setExportOpen(true)}
+          className="btn-ghost h-9 px-3.5 text-[12px] font-semibold border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/15"
+          title="Kerakli ustunlarni tanlab Excelga yuklash"
+        >
+          <SlidersHorizontal size={14} />
+          <span>Excelga eksport</span>
         </button>
       </div>
 
@@ -320,30 +326,29 @@ export default function StaffSection({ notify }: Props) {
             </div>
             <div className="mt-1 text-[12.5px] text-fg-muted max-w-md">
               {staff.length === 0
-                ? "Texnikum xodimlarini birma-bir qo'shishingiz yoki tayyor Excel ro'yxatini yuklashingiz mumkin."
-                : "Qidiruv so'zini o'zgartirib yoki filtrlarni tozalab ko'ring."}
+                ? "D:\\Ozodbek HR papkasidan avtomatik sinxronlashingiz yoki yangi xodim qo'shishingiz mumkin."
+                : "Qidiruv so'zini o'zgartirib yoki toifani tozalab ko'ring."}
             </div>
           </div>
-          {staff.length === 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="btn-success h-9 px-4 text-[12.5px]"
-                onClick={() => { setEditMember(null); setModalOpen(true) }}
-              >
-                <Plus size={14} />
-                <span>Yangi xodim qo'shish</span>
-              </button>
-              <button
-                type="button"
-                className="btn-ghost h-9 px-4 text-[12.5px] border border-sky/35 text-sky-soft"
-                onClick={() => setImportOpen(true)}
-              >
-                <FileSpreadsheet size={14} />
-                <span>Excel orqali import qilish</span>
-              </button>
-            </div>
-          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="btn-success h-9 px-4 text-[12.5px]"
+              onClick={handleSyncHr}
+              disabled={syncing}
+            >
+              <RefreshCw size={14} className={cx(syncing && 'animate-spin')} />
+              <span>HR Bazasidan sinxronlash (29 ta)</span>
+            </button>
+            <button
+              type="button"
+              className="btn-ghost h-9 px-4 text-[12.5px]"
+              onClick={() => { setEditMember(null); setModalOpen(true) }}
+            >
+              <Plus size={14} />
+              <span>Yangi xodim qo'shish</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-line bg-ink-900 shadow-md">
@@ -353,13 +358,13 @@ export default function StaffSection({ notify }: Props) {
                 <tr>
                   <th className="py-3 px-3.5 w-12 text-center">№</th>
                   <th className="py-3 px-3.5">Xodim F.I.Sh</th>
-                  <th className="py-3 px-3.5">Lavozimi</th>
-                  <th className="py-3 px-3.5">Bo'limi</th>
-                  <th className="py-3 px-3.5">Ish shakli</th>
+                  <th className="py-3 px-3.5">Lavozimi & Toifasi</th>
                   <th className="py-3 px-3.5">Telefon</th>
-                  <th className="py-3 px-3.5">Oylik maosh</th>
+                  <th className="py-3 px-3.5">Pasport & JSHSHIR</th>
+                  <th className="py-3 px-3.5">Mutaxassisligi & OTM</th>
+                  <th className="py-3 px-3.5">Buyruq sanasi</th>
                   <th className="py-3 px-3.5">Holati</th>
-                  <th className="py-3 px-3.5 w-24 text-right">Amallar</th>
+                  <th className="py-3 px-3.5 w-20 text-right">Amallar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line/60">
@@ -370,27 +375,22 @@ export default function StaffSection({ notify }: Props) {
                     </td>
                     <td className="py-3 px-3.5 font-bold text-fg">
                       <div className="flex items-center gap-2.5">
-                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-sky/15 text-[11px] font-bold text-sky-soft">
+                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-emerald-500/15 text-[11px] font-bold text-emerald-400">
                           {s.fish.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase()}
                         </span>
                         <div>
-                          <div className="truncate max-w-[240px]">{s.fish}</div>
+                          <div className="truncate max-w-[220px]">{s.fish}</div>
                           <div className="text-[11px] font-normal text-fg-subtle">
-                            ID: {s.id} {s.pinfl ? `· PINFL: ${s.pinfl}` : ''}
+                            {s.dob ? `Tug'ilgan: ${s.dob}` : `ID: ${s.id}`}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-3.5 font-medium text-fg-muted">
-                      {s.lavozim}
-                    </td>
                     <td className="py-3 px-3.5">
-                      <span className="chip border-line bg-ink-800/80 text-fg-muted text-[11px]">
-                        {s.bolim || "Ma'muriy"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3.5 text-fg-muted text-[11.5px]">
-                      {s.ish_turi || 'Shtat'} {s.stavka ? `(${s.stavka})` : ''}
+                      <div className="font-semibold text-fg-muted">{s.lavozim}</div>
+                      <div className="text-[11px] text-fg-subtle">
+                        {s.kategoriya || s.ish_turi || "ShTAT"}
+                      </div>
                     </td>
                     <td className="py-3 px-3.5 mono text-[12px]">
                       {s.tel ? (
@@ -405,8 +405,24 @@ export default function StaffSection({ notify }: Props) {
                         <span className="text-fg-subtle">—</span>
                       )}
                     </td>
-                    <td className="py-3 px-3.5 text-emerald-soft font-semibold text-[12px]">
-                      {formatSalary(s.maosh)}
+                    <td className="py-3 px-3.5">
+                      <div className="font-mono text-[12px] font-semibold text-fg">
+                        {s.pv || '—'}
+                      </div>
+                      <div className="font-mono text-[11px] text-fg-subtle">
+                        {s.pinfl || ''}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3.5">
+                      <div className="text-[12px] text-fg-muted truncate max-w-[200px]" title={s.mutaxassislik || ''}>
+                        {s.mutaxassislik || '—'}
+                      </div>
+                      <div className="text-[11px] text-fg-subtle truncate max-w-[200px]" title={s.tamomlagan_otm || ''}>
+                        {s.tamomlagan_otm || ''}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3.5 font-mono text-[11.5px] text-fg-muted">
+                      {s.buyruq_sana || s.ishga_sana || '—'}
                     </td>
                     <td className="py-3 px-3.5">
                       <span
@@ -449,15 +465,25 @@ export default function StaffSection({ notify }: Props) {
           </div>
           <div className="border-t border-line bg-ink-850/60 px-4 py-2.5 text-[12px] text-fg-muted flex items-center justify-between">
             <span>Ko'rsatilmoqda: <b>{filtered.length}</b> ta xodim (jami {staff.length} tadan)</span>
-            {filtered.length !== staff.length && (
+            <div className="flex items-center gap-3">
+              {filtered.length !== staff.length && (
+                <button
+                  type="button"
+                  onClick={() => { setQuery(''); setCategory('Barchasi'); setDept('Barchasi'); setWorkType('Barchasi') }}
+                  className="text-sky-soft hover:underline text-[11.5px]"
+                >
+                  Filtrlarni tozalash
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => { setQuery(''); setDept('Barchasi'); setWorkType('Barchasi') }}
-                className="text-sky-soft hover:underline text-[11.5px]"
+                onClick={() => setExportOpen(true)}
+                className="text-emerald-400 hover:underline text-[11.5px] font-semibold flex items-center gap-1"
               >
-                Filtrlarni tozalash
+                <Download size={12} />
+                <span>Tanlanganlarni Excelga olish</span>
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -480,6 +506,14 @@ export default function StaffSection({ notify }: Props) {
           }}
         />
       )}
+
+      {/* Maxsus Ustun Tanlanadigan Excel Eksport Modali */}
+      <StaffExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        staff={filtered}
+        onSuccess={(msg) => notify(msg, 'success')}
+      />
     </div>
   )
 }

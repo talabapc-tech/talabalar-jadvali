@@ -2,22 +2,36 @@ export interface StaffMember {
   id: string
   fish: string
   lavozim: string
+  kategoriya?: string // 'ShTAT - xodimlar' | "Asosiy o'qituvchilar" | "O'rindosh o'qituvchilar"
   bolim?: string
-  ish_turi?: string // 'Shtat' | 'Soatbay' | "O'rindosh"
-  stavka?: string   // '1.0' | '0.5' | '0.25' | 'soatbay'
+  ish_turi?: string   // 'Shtat' | 'Asosiy' | "O'rindosh" | 'Soatbay'
+  stavka?: string     // '1.0' | '0.5' | '0.25' | 'soatbay'
   tel?: string
   pinfl?: string
   pv?: string
   dob?: string
+  tugilgan_joy?: string
+  tamomlagan_otm?: string
+  otm_tamom_yili?: string
+  mutaxassislik?: string
+  buyruq_sana?: string
   ishga_sana?: string
   boshan_sana?: string
+  yashash_joyi?: string
+  pasport_berilgan_joy?: string
   maosh?: string | number
   soat_stavka?: string | number
   status?: 'faol' | 'tatilda' | 'boshatilgan'
-  mutaxassislik?: string
   doc_file?: string
   izoh?: string
 }
+
+export const STAFF_CATEGORIES = [
+  'Barchasi',
+  'ShTAT - xodimlar',
+  "Asosiy o'qituvchilar",
+  "O'rindosh o'qituvchilar",
+] as const
 
 export const STAFF_DEPARTMENTS = [
   'Barchasi',
@@ -27,13 +41,16 @@ export const STAFF_DEPARTMENTS = [
   'Moliya bo\'limi',
   "Ma'muriy",
   "Xo'jalik",
+  'Tibbiy xizmat',
+  'Boshqa',
 ] as const
 
 export const STAFF_WORK_TYPES = [
   'Barchasi',
   'Shtat',
-  'Soatbay',
+  'Asosiy',
   "O'rindosh",
+  'Soatbay',
 ] as const
 
 export function formatSalary(val: string | number | undefined): string {

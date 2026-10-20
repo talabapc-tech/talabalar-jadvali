@@ -1433,15 +1433,184 @@ def _start_daily_backup_scheduler():
 
 BOT_KEYBOARD_MARKUP = {
     "keyboard": [
-        [{"text": "📈 Kontingentni olish"}, {"text": "📋 4. To'liq Ma'lumotlar (.xlsx)"}],
-        [{"text": "📊 1. Buxgalteriya (.xlsx)"}, {"text": "🗂 2. Baza Admin (.xlsx)"}],
-        [{"text": "👥 3. Guruh Rahbarlari (.xlsx)"}, {"text": "📦 JSON Baza (.json)"}],
-        [{"text": "📑 Guruh Jurnallari (Rasm)"}]
+        [{"text": "🎓 Guruhlar ro'yxati"}, {"text": "📈 Kontingent"}],
+        [{"text": "👨‍🏫 O'qituvchilar ro'yxati"}, {"text": "👔 Shtat xodimlari"}],
+        [{"text": "📊 Excel hisobotlar"}, {"text": "📝 Davomat jurnallari"}],
+        [{"text": "📦 JSON Baza (.json)"}, {"text": "⚠️ Kamchiliklar"}]
     ],
     "resize_keyboard": True,
     "is_persistent": True
 }
 
+
+
+def send_teachers_list_to_telegram(chat_id=None):
+    import requests
+    cfg = load_backup_config()
+    if not cfg:
+        return False
+    cid = chat_id or cfg['chat_id']
+    token = cfg['token']
+
+    # data/xodimlar.json dan o'qish
+    xodimlar_file = os.path.join(BASE_DIR, 'data', 'xodimlar.json')
+    staff = []
+    if os.path.exists(xodimlar_file):
+        try:
+            with open(xodimlar_file, 'r', encoding='utf-8') as f:
+                staff = json.load(f)
+        except Exception:
+            staff = []
+
+    asosiy = [s for s in staff if "asosiy" in s.get('kategoriya', '').lower() or "asosiy" in s.get('ish_turi', '').lower()]
+    orindosh = [s for s in staff if "o'rindosh" in s.get('kategoriya', '').lower() or "o'rindosh" in s.get('ish_turi', '').lower()]
+    total = len(asosiy) + len(orindosh)
+    stamp = time.strftime('%d.%m.%Y | %H:%M')
+
+    lines = [
+        "🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>",
+        "👨‍🏫 <b>O'QITUVCHILAR VA PEDAGOGLAR RO'YXATI</b>",
+        f"🕒 Sana: <b>{stamp}</b>",
+        "━━━━━━━━━━━━━━━━━━━━━━",
+        f"📊 <b>Jami pedagoglar: {total} nafar</b>",
+        f"• 📗 Asosiy o'qituvchilar: <b>{len(asosiy)} nafar</b>",
+        f"• 📘 O'rindosh o'qituvchilar: <b>{len(orindosh)} nafar</b>",
+        "━━━━━━━━━━━━━━━━━━━━━━",
+        f"📗 <b>ASOSIY O'QITUVCHILAR ({len(asosiy)} nafar):</b>"
+    ]
+    for i, t in enumerate(asosiy, 1):
+        mut = t.get('mutaxassislik') or "O'qituvchi"
+        tel = t.get('tel') or "—"
+        lines.append(f"{i}. <b>{t.get('fish', '')}</b> — <i>{mut}</i> (📞 {tel})")
+
+    lines.append("")
+    lines.append(f"📘 <b>O'RINDOSH O'QITUVCHILAR ({len(orindosh)} nafar):</b>")
+    for i, t in enumerate(orindosh, 1):
+        mut = t.get('mutaxassislik') or "O'qituvchi"
+        tel = t.get('tel') or "—"
+        lines.append(f"{i}. <b>{t.get('fish', '')}</b> — <i>{mut}</i> (📞 {tel})")
+
+    # Matn yuborish
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={'chat_id': cid, 'text': "\n".join(lines), 'parse_mode': 'HTML', 'reply_markup': BOT_KEYBOARD_MARKUP},
+            timeout=30
+        )
+    except Exception as e:
+        print(f"[BOT] O'qituvchilar matni yuborishda xato: {e}")
+
+    # Excel faylini yuborish (Fayl nomida hech qanday tagchiziq '_' yo'q, faqat probel!)
+    excel_file = os.path.join(BASE_DIR, 'hisobotlar', 'Oqituvchilar royxati.xlsx')
+    if os.path.exists(excel_file):
+        try:
+            with open(excel_file, 'rb') as fh:
+                requests.post(
+                    f"https://api.telegram.org/bot{token}/sendDocument",
+                    data={'chat_id': cid, 'caption': f"👨‍🏫 <b>O'qituvchilar ro'yxati (.xlsx)</b>\n👥 Jami: {total} nafar ({len(asosiy)} asosiy, {len(orindosh)} o'rindosh)\n✅ <i>Toza probelli fayl</i>", 'parse_mode': 'HTML'},
+                    files={'document': ('Oqituvchilar royxati.xlsx', fh)},
+                    timeout=60
+                )
+        except Exception as e:
+            print(f"[BOT] O'qituvchilar Excelini yuborishda xato: {e}")
+    return True
+
+
+def send_shtat_staff_to_telegram(chat_id=None):
+    import requests
+    cfg = load_backup_config()
+    if not cfg:
+        return False
+    cid = chat_id or cfg['chat_id']
+    token = cfg['token']
+
+    xodimlar_file = os.path.join(BASE_DIR, 'data', 'xodimlar.json')
+    staff = []
+    if os.path.exists(xodimlar_file):
+        try:
+            with open(xodimlar_file, 'r', encoding='utf-8') as f:
+                staff = json.load(f)
+        except Exception:
+            staff = []
+
+    shtat = [s for s in staff if "shtat" in s.get('kategoriya', '').lower() or s.get('ish_turi') == 'Shtat' or (s.get('bolim') != 'Pedagog' and not 'o\'qituvchi' in s.get('lavozim', '').lower())]
+    stamp = time.strftime('%d.%m.%Y | %H:%M')
+
+    lines = [
+        "🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>",
+        "👔 <b>SHTAT XODIMLARI RO'YXATI</b>",
+        f"🕒 Sana: <b>{stamp}</b>",
+        "━━━━━━━━━━━━━━━━━━━━━━",
+        f"👥 <b>Jami shtat birligi: {len(shtat)} nafar</b>",
+        "━━━━━━━━━━━━━━━━━━━━━━",
+    ]
+    for i, s in enumerate(shtat, 1):
+        lavozim = s.get('lavozim', 'Xodim')
+        tel = s.get('tel') or "—"
+        pv = s.get('pv') or "—"
+        lines.append(f"{i}. <b>{s.get('fish', '')}</b> — <b>{lavozim}</b>\n   • Pasport: <code>{pv}</code> · Tel: {tel}")
+
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={'chat_id': cid, 'text': "\n".join(lines), 'parse_mode': 'HTML', 'reply_markup': BOT_KEYBOARD_MARKUP},
+            timeout=30
+        )
+    except Exception as e:
+        print(f"[BOT] Shtat matni yuborishda xato: {e}")
+
+    # Excel faylini yuborish (probel bilan)
+    excel_file = os.path.join(BASE_DIR, 'hisobotlar', 'Shtat xodimlar royxati.xlsx')
+    if os.path.exists(excel_file):
+        try:
+            with open(excel_file, 'rb') as fh:
+                requests.post(
+                    f"https://api.telegram.org/bot{token}/sendDocument",
+                    data={'chat_id': cid, 'caption': f"👔 <b>Shtat xodimlari ro'yxati (.xlsx)</b>\n👥 Jami: {len(shtat)} nafar shtat birligi", 'parse_mode': 'HTML'},
+                    files={'document': ('Shtat xodimlar royxati.xlsx', fh)},
+                    timeout=60
+                )
+        except Exception as e:
+            print(f"[BOT] Shtat Excelini yuborishda xato: {e}")
+    return True
+
+
+def send_excel_reports_menu(chat_id=None):
+    import requests
+    cfg = load_backup_config()
+    if not cfg:
+        return False
+    cid = chat_id or cfg['chat_id']
+    token = cfg['token']
+
+    text = (
+        "📊 <b>Excel Hisobotlar Bo'limi</b>\n\n"
+        "Quyidagi ro'yxatdan kerakli Excel faylini olishingiz mumkin:\n\n"
+        "1. <b>Buxgalteriya (.xlsx)</b> — Shartnoma raqami va Pasport\n"
+        "2. <b>Baza Admin (.xlsx)</b> — Pasport va Diplomlar\n"
+        "3. <b>Guruh Rahbarlari (.xlsx)</b> — Tug'ilgan sana va shahodatnomalar\n"
+        "4. <b>To'liq Baza (.xlsx)</b> — Barcha ustunlar jamlangan hisobot\n"
+        "5. <b>O'qituvchilar (.xlsx)</b> — Asosiy va O'rindosh o'qituvchilar\n"
+        "6. <b>Shtat xodimlari (.xlsx)</b> — Rahbariyat va ma'muriy xodimlar\n\n"
+        "<i>Kerakli fayl nomini yozing yoki tugmalardan foydalaning.</i>"
+    )
+    # Inline keyboard
+    kb = {
+        "inline_keyboard": [
+            [{"text": "📊 1. Buxgalteriya", "callback_data": "rf:bux"}, {"text": "🗂 2. Baza Admin", "callback_data": "rf:adm"}],
+            [{"text": "👥 3. Guruh Rahbarlari", "callback_data": "rf:grh"}, {"text": "📋 4. To'liq Baza", "callback_data": "rf:tol"}],
+            [{"text": "👨‍🏫 O'qituvchilar", "callback_data": "rf:tch"}, {"text": "👔 Shtat xodimlari", "callback_data": "rf:stf"}]
+        ]
+    }
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={'chat_id': cid, 'text': text, 'parse_mode': 'HTML', 'reply_markup': kb},
+            timeout=20
+        )
+    except Exception as e:
+        print(f"[BOT] Excel menu yuborishda xato: {e}")
+    return True
 
 def send_bot_welcome_menu(chat_id=None):
     import requests
@@ -1449,20 +1618,29 @@ def send_bot_welcome_menu(chat_id=None):
     if not cfg:
         return False
     cid = chat_id or cfg['chat_id']
-    text = (
-        "🤖 <b>Talabalar Bazasi va Shartnomalar Boti</b>\n\n"
-        "Quyidagi tugmalar orqali istalgan vaqtda kerakli Excel (.xlsx) hisobotlarni, "
-        "<b>Kontingent</b> ma'lumotini yoki <b>.json</b> bazani yuklab olishingiz mumkin:\n\n"
-        "• <b>📈 Kontingentni olish</b> — Guruhlar va rahbarlar kesimida kontingent\n"
-        "• <b>📊 1. Buxgalteriya (.xlsx)</b> — Shartnoma № va Pasport\n"
-        "• <b>🗂 2. Baza Admin (.xlsx)</b> — Pasport va Shahodatnoma/Diplom\n"
-        "• <b>👥 3. Guruh Rahbarlari (.xlsx)</b> — Tug'ilgan sana, Pasport, Shahodatnoma\n"
-        "• <b>📋 4. To'liq Ma'lumotlar (.xlsx)</b> — O'zingiz uchun to'liq baza\n"
-        "• <b>📦 JSON Baza (.json)</b> — To'liq JSON baza fayli\n\n"
-        "⏰ <i>Avtomatik rejim:</i>\n"
-        "— Har kuni <b>09:00</b> da: <b>Kontingent hisoboti</b>\n"
-        "— Har kuni <b>18:00</b> da: <b>.json baza zahirasi</b>"
-    )
+    text = """🤖 <b>Talabalar Bazasi va Shartnomalar Boti</b>
+
+Quyidagi guruhlangan tugmalar orqali istalgan vaqtda kerakli ma'lumotlarni olishingiz mumkin:
+
+🎓 <b>O'quv va Guruhlar:</b>
+• <b>🎓 Guruhlar ro'yxati</b> — Guruhlar va rasmli jurnallar
+• <b>📈 Kontingent</b> — Talabalar umumiy kontingenti
+
+👨‍🏫 <b>Pedagog va Xodimlar:</b>
+• <b>👨‍🏫 O'qituvchilar ro'yxati</b> — Asosiy va O'rindosh o'qituvchilar (.xlsx)
+• <b>👔 Shtat xodimlari</b> — Ma'muriy va xo'jalik shtat birliklari (.xlsx)
+
+📊 <b>Hisobot va Hujjatlar:</b>
+• <b>📊 Excel hisobotlar</b> — 1-Buxgalteriya, 2-Admin, 3-Guruh rahbarlari, 4-To'liq
+• <b>📝 Davomat jurnallari</b> — Excel andoza va jurnallar
+
+📦 <b>Baza va Nazorat:</b>
+• <b>📦 JSON Baza (.json)</b> — To'liq JSON ma'lumotlar bazasi
+• <b>⚠️ Kamchiliklar</b> — Hujjati to'liq bo'lmagan talabalar
+
+⏰ <i>Avtomatik rejim:</i>
+— Har kuni <b>09:00</b> da: <b>Kontingent hisoboti</b>
+— Har kuni <b>18:00</b> da: <b>.json baza zahirasi</b>"""
     try:
         resp = requests.post(
             f"https://api.telegram.org/bot{cfg['token']}/sendMessage",
@@ -1545,6 +1723,12 @@ def _start_telegram_bot_polling():
                     t_low = text.lower()
                     if t_low in ('/start', '/menu', '/help', 'menyu', 'start'):
                         send_bot_welcome_menu(chat_id)
+                    elif "o'qituvchi" in t_low or "oqituvchi" in t_low or t_low == '/oqituvchilar' or t_low == '/ustozlar':
+                        send_teachers_list_to_telegram(chat_id)
+                    elif 'shtat' in t_low or t_low == '/shtat' or 'xodimlar' in t_low or t_low == '/xodimlar':
+                        send_shtat_staff_to_telegram(chat_id)
+                    elif 'excel hisobot' in t_low or t_low == '/hisobotlar' or t_low == 'excel hisobotlar':
+                        send_excel_reports_menu(chat_id)
                     elif 'kontingent' in t_low or 'kontengent' in t_low or t_low == '/kontingent':
                         send_kontingent_to_telegram(chat_id, reason="Bot tugmasi orqali")
                     elif 'buxgalter' in t_low or '1. buxgalter' in t_low or t_low == '/buxgalteriya':
