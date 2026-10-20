@@ -4,6 +4,7 @@ import path from 'node:path'
 import { applyGroupSettings, DEFAULT_GROUP_SETTINGS, sanitizeGroupSettings, SECRET_GROUP, type GroupSettings } from '@/lib/config'
 import { buildAddedStudent, fullName, isLeftGroup, lastMoveInto, normalizeShnum } from '@/lib/student'
 import type { Change, EditFields, GroupMove, Student } from '@/lib/types'
+import type { StaffMember } from '@/lib/staff'
 import { getServiceSupabase } from '@/lib/supabase'
 import { syncStudentsToWebJurnal } from '@/lib/server/webjurnal'
 
@@ -782,4 +783,22 @@ export async function saveGroupSettings(raw: unknown): Promise<GroupSettings> {
   await saveRepoJsonFile(GROUP_SETTINGS_PATH, settings, "Guruh sozlamalari yangilandi")
   applyGroupSettings(settings)
   return settings
+}
+
+
+/* ------------------------------ XODIMLAR (STAFF) ------------------------------ */
+
+export async function loadStaff(): Promise<StaffMember[]> {
+  try {
+    const buf = await readRepoFile(['data/xodimlar.json', 'xodimlar.json'], { maxAgeMs: 10_000 })
+    if (buf) {
+      const list = JSON.parse(buf.toString('utf-8'))
+      if (Array.isArray(list)) return list as StaffMember[]
+    }
+  } catch { /* bo'sh */ }
+  return []
+}
+
+export async function saveStaff(list: StaffMember[], msg = "Xodimlar ma'lumoti yangilandi"): Promise<void> {
+  await saveRepoJsonFile('data/xodimlar.json', list, msg)
 }

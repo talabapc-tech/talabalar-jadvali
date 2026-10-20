@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Archive, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus } from 'lucide-react'
+import { Archive, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users } from 'lucide-react'
 import { exportRole, ROLE_META, sendRoleToTelegram, type Role } from '@/lib/excel'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
@@ -406,8 +406,19 @@ function ThemeButton() {
 }
 
 export default function Header({
-  students, pendingCount, onRefresh, refreshing, onAdd, onOpenSettings, notify,
-}: { students: Student[]; pendingCount: number; onRefresh: () => void; refreshing: boolean; onAdd: () => void; onOpenSettings?: () => void; notify: Notify }) {
+  students, pendingCount, onRefresh, refreshing, onAdd, onOpenSettings, notify, activeTab = 'students', onTabChange, onAddStaff,
+}: {
+  students: Student[];
+  pendingCount: number;
+  onRefresh: () => void;
+  refreshing: boolean;
+  onAdd: () => void;
+  onOpenSettings?: () => void;
+  notify: Notify;
+  activeTab?: 'students' | 'staff';
+  onTabChange?: (tab: 'students' | 'staff') => void;
+  onAddStaff?: () => void;
+}) {
   return (
     <header className="z-40 border-b border-line bg-ink-950/85 backdrop-blur-md sm:sticky sm:top-0">
       <div className="mx-auto flex max-w-[1680px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
@@ -419,16 +430,56 @@ export default function Header({
           <div className="min-w-0">
             <div className="text-[11px] font-bold tracking-[0.14em] text-emerald-soft uppercase">Shahrisabz Tibbiyot Texnikumi</div>
             <h1 className="truncate text-[17px] font-extrabold tracking-tight text-fg">
-              Talabalar portali <span className="font-semibold text-fg-subtle">· 2026/2027</span>
+              {activeTab === 'staff' ? 'Xodimlar boshqaruvi' : 'Talabalar portali'} <span className="font-semibold text-fg-subtle">· 2026/2027</span>
             </h1>
           </div>
         </div>
+
+        {/* Asosiy bo'limlar almashgichi (Tab) */}
+        {onTabChange && (
+          <div className="flex items-center rounded-xl border border-line bg-ink-900/90 p-1 shadow-inner">
+            <button
+              type="button"
+              onClick={() => onTabChange('students')}
+              className={cx(
+                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-bold transition select-none',
+                activeTab === 'students'
+                  ? 'border border-sky/40 bg-sky/20 text-sky-soft shadow-sm'
+                  : 'text-fg-muted hover:text-fg'
+              )}
+            >
+              <GraduationCap size={15} />
+              <span>Talabalar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onTabChange('staff')}
+              className={cx(
+                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-bold transition select-none',
+                activeTab === 'staff'
+                  ? 'border border-emerald/40 bg-emerald/20 text-emerald-soft shadow-sm'
+                  : 'text-fg-muted hover:text-fg'
+              )}
+            >
+              <Users size={15} />
+              <span>Xodimlar</span>
+            </button>
+          </div>
+        )}
+
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <SyncBadge pendingCount={pendingCount} notify={notify} />
-          <button type="button" className="btn-success h-9" onClick={onAdd} title="Yangi talaba qo'shish">
-            <UserPlus size={15} />
-            <span>Talaba qo'shish</span>
-          </button>
+          {activeTab === 'staff' ? (
+            <button type="button" className="btn-success h-9" onClick={onAddStaff || onAdd} title="Yangi xodim qo'shish">
+              <UserPlus size={15} />
+              <span>Xodim qo'shish</span>
+            </button>
+          ) : (
+            <button type="button" className="btn-success h-9" onClick={onAdd} title="Yangi talaba qo'shish">
+              <UserPlus size={15} />
+              <span>Talaba qo'shish</span>
+            </button>
+          )}
           <button type="button" className="btn-ghost h-9" onClick={onRefresh} disabled={refreshing} title="Serverdan eng yangi ma'lumotni olish">
             <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
             <span className="hidden sm:inline">Yangilash</span>

@@ -16,6 +16,7 @@ import StudentList from './StudentList'
 import StudentModal from './StudentModal'
 import AddStudentModal from './AddStudentModal'
 import SettingsModal from './SettingsModal'
+import StaffSection from './StaffSection'
 import { Toasts, useToasts } from './Toast'
 import { cx } from './ui'
 
@@ -49,6 +50,7 @@ export default function Portal() {
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [mainTab, setMainTab] = useState<'students' | 'staff'>('students')
 
   useEffect(() => {
     fetch('/api/groups', { cache: 'no-store' })
@@ -196,9 +198,15 @@ export default function Portal() {
         onAdd={() => setAdding(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         notify={notify}
+        activeTab={mainTab}
+        onTabChange={setMainTab}
       />
 
       <main className="mx-auto max-w-[1680px] space-y-5 px-4 py-5 sm:px-6">
+        {mainTab === 'staff' ? (
+          <StaffSection notify={notify} />
+        ) : (
+          <>
         {data.state === 'loading' && (
           <div className="panel grid place-items-center gap-3 py-24 text-fg-muted">
             <Loader2 size={30} className="animate-spin text-sky" />
@@ -288,6 +296,8 @@ export default function Portal() {
             <footer className="pt-4 pb-8 text-center text-[12px] text-fg-subtle">
               Manba: {data.source === 'supabase' ? 'Supabase (jonli rejim ⚡)' : data.source === 'local' ? 'kompyuterdagi baza (lokal rejim)' : 'GitHub'} · yangilangan {data.fetchedAt ? new Date(data.fetchedAt).toLocaleTimeString('uz-UZ') : '—'}
             </footer>
+          </>
+        )}
           </>
         )}
       </main>
