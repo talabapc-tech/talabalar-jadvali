@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Award, FileImage, FileText, IdCard, ImageOff, Loader2, Maximize2, QrCode, RotateCw, Sparkles, Upload } from 'lucide-react'
+import { Award, FileImage, FileText, IdCard, ImageOff, Loader2, Maximize2, QrCode, RotateCw, Sparkles, Upload, X } from 'lucide-react'
 import { AI_MODELS, analyzeAndUploadDocs, fieldsFromQr, getSavedAiModel, scanQrCodes, setSavedAiModel } from '@/lib/ai-doc'
 import { getActiveAllowedModels } from '@/lib/settings'
 import type { EditFields, Student } from '@/lib/types'
@@ -310,8 +310,9 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
                   <span className="text-fg">{l.text}</span>
                   <span className="ml-auto flex items-center gap-1">
                     {(zoom[i] ?? 1) > 1 ? (
-                      <button type="button" className="chip mono h-7 border-sky/40 bg-sky/10 px-2 text-sky-soft hover:bg-sky/20" title="Asl holatga qaytarish" onClick={() => setZoomReset((x) => ({ ...x, [i]: (x[i] ?? 0) + 1 }))}>
-                        {Math.round((zoom[i] ?? 1) * 100)}% ✕
+                      <button type="button" className="chip mono h-7 border-sky/40 bg-sky/10 px-2 text-sky-soft hover:bg-sky/20 inline-flex items-center gap-1" title="Asl holatga qaytarish" onClick={() => setZoomReset((x) => ({ ...x, [i]: (x[i] ?? 0) + 1 }))}>
+                        <span>{Math.round((zoom[i] ?? 1) * 100)}%</span>
+                        <X size={11} />
                       </button>
                     ) : (
                       <span className="hidden text-[10.5px] font-normal text-fg-subtle sm:inline">Shift + g'ildirak — zoom</span>

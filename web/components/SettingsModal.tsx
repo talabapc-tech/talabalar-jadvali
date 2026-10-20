@@ -25,6 +25,7 @@ import {
   Sparkles,
   Trash2,
   X,
+  XCircle,
   Zap,
 } from 'lucide-react'
 import {
@@ -661,11 +662,21 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
                 {tgTestResult && (
                   <div
                     className={cx(
-                      'rounded-xl border p-2.5 text-[12px]',
+                      'flex items-center gap-2 rounded-xl border p-2.5 text-[12px]',
                       tgTestResult.ok ? 'border-emerald/40 bg-emerald/10 text-emerald-soft' : 'border-rose/40 bg-rose/10 text-rose',
                     )}
                   >
-                    {tgTestResult.ok ? `✅ ${tgTestResult.botName} faol va ishlayapti` : `❌ Xatolik: ${tgTestResult.error}`}
+                    {tgTestResult.ok ? (
+                      <>
+                        <CheckCircle2 size={15} className="shrink-0 text-emerald" />
+                        <span>{tgTestResult.botName} faol va ishlayapti</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle size={15} className="shrink-0 text-rose" />
+                        <span>Xatolik: {tgTestResult.error}</span>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -776,7 +787,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
                     <span>Vercel Platformasi</span>
                   </div>
                   <div className="mt-2 text-[14px] font-bold text-fg">Avtomatik Serverless</div>
-                  <div className="text-[11.5px] text-emerald-soft">⚡ Tezkor CDN va Kesh faol</div>
+                  <div className="flex items-center gap-1.5 text-[11.5px] text-emerald-soft"><Zap size={12} className="text-amber fill-amber" /> Tezkor CDN va Kesh faol</div>
                 </div>
 
                 <div className="rounded-2xl border border-line bg-ink-850/60 p-4">

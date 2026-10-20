@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Check, Download, FileSpreadsheet, Loader2, Send, X } from 'lucide-react'
+import { BookOpen, Briefcase, Check, Download, FileSpreadsheet, Globe, GraduationCap, Loader2, Send, X } from 'lucide-react'
 import * as XLSX from 'xlsx-js-style'
 import { cleanXlsxBuffer, downloadBlob } from '@/lib/excel'
 import { cleanStaffPhone, type StaffMember } from '@/lib/staff'
@@ -339,10 +339,10 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
             </label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {[
-                { id: 'Barchasi', label: '🌐 Barchasi', count: staff.length },
-                { id: 'ShTAT - xodimlar', label: '👔 Shtat xodimlar', count: staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat').length },
-                { id: "Asosiy o'qituvchilar", label: '📗 Asosiy o\'qituvchilar', count: staff.filter((s) => s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy')).length },
-                { id: "O'rindosh o'qituvchilar", label: '📘 O\'rindosh o\'qituvchilar', count: staff.filter((s) => s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh")).length },
+                { id: 'Barchasi', label: 'Barchasi', icon: Globe, iconColor: 'text-sky-400', count: staff.length },
+                { id: 'ShTAT - xodimlar', label: 'Shtat xodimlar', icon: Briefcase, iconColor: 'text-amber-400', count: staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat').length },
+                { id: "Asosiy o'qituvchilar", label: "Asosiy o'qituvchilar", icon: GraduationCap, iconColor: 'text-emerald-400', count: staff.filter((s) => s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy')).length },
+                { id: "O'rindosh o'qituvchilar", label: "O'rindosh o'qituvchilar", icon: BookOpen, iconColor: 'text-blue-400', count: staff.filter((s) => s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh")).length },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -354,7 +354,10 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
                       : 'border-line bg-ink-950/40 text-fg hover:border-line-hover'
                   }`}
                 >
-                  <span className="text-[12.5px] font-medium">{cat.label}</span>
+                  <span className="flex items-center gap-1.5 text-[12.5px] font-medium">
+                    <cat.icon size={14} className={cat.iconColor} />
+                    <span>{cat.label}</span>
+                  </span>
                   <span className="mt-1 text-[11px] text-fg-subtle">{cat.count} nafar xodim</span>
                 </button>
               ))}

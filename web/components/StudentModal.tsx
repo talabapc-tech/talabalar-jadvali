@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, ChevronLeft, ChevronRight, FileText, Link2, Pencil, Save, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Link2, Pencil, Save, Trash2, X } from 'lucide-react'
 import { YON_OPTIONS } from '@/lib/config'
 import { decodePinfl, dobFromPinfl, findDuplicates, formatPinfl, fullName, groupOptions, isAcademicLeave, isLeftGroup, isOfficialGroup, isSecretGroup, isWithdrawn, lastMoveInto, NAME_FLAGS, needsOrder, ORDER_DATE_RE } from '@/lib/student'
 import { EDIT_FIELDS, type EditFields, type GroupMove, type Student } from '@/lib/types'
@@ -92,7 +92,18 @@ function PinflCard({ pinfl }: { pinfl: string }) {
         <span className="text-fg-muted">Jinsi: <b className="text-fg">{p.jins}</b></span>
         <span className="text-fg-muted">Sana: <b className="text-fg">{p.sana}</b></span>
         <span className="col-span-2 text-fg-muted">Hudud: <b className="text-fg">{p.kod} — {p.joy}</b></span>
-        <span className="col-span-2 text-fg-muted">Nazorat raqami: {p.nazorat ? <b className="text-emerald-soft">to'g'ri ✓</b> : <b className="text-rose">XATO ✕</b>}</span>
+        <span className="col-span-2 text-fg-muted inline-flex items-center gap-1">
+          Nazorat raqami:{' '}
+          {p.nazorat ? (
+            <span className="inline-flex items-center gap-1 font-bold text-emerald-soft">
+              to&apos;g&apos;ri <Check size={13} />
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 font-bold text-rose">
+              XATO <X size={13} />
+            </span>
+          )}
+        </span>
       </div>
     </div>
   )

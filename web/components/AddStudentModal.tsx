@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Award, FileText, IdCard, Loader2, Plus, Save, Sparkles, UserPlus, X } from 'lucide-react'
+import { AlertTriangle, Award, Check, FileText, IdCard, Loader2, Plus, Save, Sparkles, UserPlus, X } from 'lucide-react'
 import { analyzeAndUploadDocs, getSavedAiModel, setSavedAiModel } from '@/lib/ai-doc'
 import { getActiveAllowedModels } from '@/lib/settings'
 import { YON_OPTIONS } from '@/lib/config'
@@ -288,8 +288,17 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
                 <span className="text-fg-muted">Jinsi: <b className="text-fg">{pinDecoded.jins}</b></span>
                 <span className="text-fg-muted">Tug'ilgan sana: <b className="text-fg">{pinDecoded.sana}</b></span>
                 <span className="text-fg-muted">Hudud: <b className="text-fg">{pinDecoded.joy}</b></span>
-                <span className="ml-auto">
-                  Nazorat raqami: {pinDecoded.nazorat ? <b className="text-emerald-soft">to'g'ri ✓</b> : <b className="text-rose">XATO ✕</b>}
+                <span className="ml-auto inline-flex items-center gap-1">
+                  Nazorat raqami:{' '}
+                  {pinDecoded.nazorat ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-soft">
+                      to&apos;g&apos;ri <Check size={13} />
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose">
+                      XATO <X size={13} />
+                    </span>
+                  )}
                 </span>
               </div>
             )}

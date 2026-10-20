@@ -92,7 +92,7 @@ export function BazaButton({ student, onToggle, compact }: { student: Student; o
       )}
     >
       {ok ? <Database size={12} strokeWidth={2.5} /> : <XCircle size={12} strokeWidth={2.5} />}
-      {compact ? (ok ? 'Bazada ✓' : 'Kirmagan') : ok ? 'Bazaga kiritilgan' : 'Bazaga kiritilmagan'}
+      {compact ? (ok ? 'Bazada' : 'Kirmagan') : ok ? 'Bazaga kiritilgan' : 'Bazaga kiritilmagan'}
     </button>
   )
 }

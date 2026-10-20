@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, FileSpreadsheet, Loader2, Upload, UserPlus, X } from 'lucide-react'
+import { Check, Download, FileSpreadsheet, Loader2, Upload, UserPlus, X } from 'lucide-react'
 import * as XLSX from 'xlsx-js-style'
 import type { StaffMember } from '@/lib/staff'
 
@@ -221,8 +221,9 @@ export default function StaffImportModal({ onClose, onImportSuccess }: Props) {
           {parsedRows.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-[13px]">
-                <span className="font-bold text-emerald-soft">
-                  ✓ {parsedRows.length} nafar xodim ma'lumotlari aniqlandi:
+                <span className="flex items-center gap-1.5 font-bold text-emerald-soft">
+                  <Check size={15} />
+                  <span>{parsedRows.length} nafar xodim ma&apos;lumotlari aniqlandi:</span>
                 </span>
               </div>
               <div className="max-h-[260px] overflow-y-auto rounded-xl border border-line bg-ink-950/50">

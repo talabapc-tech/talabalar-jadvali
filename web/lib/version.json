@@ -1,0 +1,9 @@
+{
+  "version": "2.0.421",
+  "build": 421,
+  "commit": "72b69a8",
+  "commitDate": "2026-10-20T12:18:49+05:00",
+  "lastPushDate": "2026-10-20T12:18:49+05:00",
+  "commitMessage": "fix(staff-export): fix checkbox toggle event bubbling in StaffExportModal",
+  "generatedAt": "2026-10-20T07:29:42.088Z"
+}

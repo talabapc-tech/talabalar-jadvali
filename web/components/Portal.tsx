@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BookOpenCheck, Database, Loader2, ServerCrash } from 'lucide-react'
+import { AlertTriangle, BookOpenCheck, Database, Loader2, ServerCrash, Zap } from 'lucide-react'
 import { exportFiltered } from '@/lib/excel'
 import { useStudents } from '@/lib/store'
 import { applyGroupSettings, COURSES, GROUP_SETTINGS, type GroupSettings } from '@/lib/config'
@@ -332,7 +332,17 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
             )}
 
             <footer className="pt-4 pb-8 text-center text-[12px] text-fg-subtle">
-              Manba: {data.source === 'supabase' ? 'Supabase (jonli rejim ⚡)' : data.source === 'local' ? 'kompyuterdagi baza (lokal rejim)' : 'GitHub'} · yangilangan {data.fetchedAt ? new Date(data.fetchedAt).toLocaleTimeString('uz-UZ') : '—'}
+              Manba:{' '}
+              {data.source === 'supabase' ? (
+                <span className="inline-flex items-center gap-1 text-emerald-soft">
+                  Supabase (jonli rejim <Zap size={11} className="inline text-amber fill-amber" />)
+                </span>
+              ) : data.source === 'local' ? (
+                'kompyuterdagi baza (lokal rejim)'
+              ) : (
+                'GitHub'
+              )}{' '}
+              · yangilangan {data.fetchedAt ? new Date(data.fetchedAt).toLocaleTimeString('uz-UZ') : '—'}
             </footer>
           </>
         )}
