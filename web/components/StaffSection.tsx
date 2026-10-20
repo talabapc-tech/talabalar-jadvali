@@ -52,6 +52,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editMember, setEditMember] = useState<StaffMember | null>(null)
+  const [initialEdit, setInitialEdit] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
 
@@ -234,7 +235,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
             <button
               type="button"
               className="btn-success h-8 flex-1 text-[11.5px] justify-center"
-              onClick={() => { setEditMember(null); setModalOpen(true) }}
+              onClick={() => { setEditMember(null); setInitialEdit(true); setModalOpen(true) }}
             >
               <Plus size={14} />
               <span>Qo'shish</span>
@@ -355,7 +356,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
             <button
               type="button"
               className="btn-ghost h-9 px-4 text-[12.5px]"
-              onClick={() => { setEditMember(null); setModalOpen(true) }}
+              onClick={() => { setEditMember(null); setInitialEdit(true); setModalOpen(true) }}
             >
               <Plus size={14} />
               <span>Yangi xodim qo'shish</span>
@@ -379,9 +380,9 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
                 {filtered.map((s, idx) => (
                   <tr
                     key={s.id || idx}
-                    onClick={() => { setEditMember(s); setModalOpen(true) }}
+                    onClick={() => { setEditMember(s); setInitialEdit(false); setModalOpen(true) }}
                     className="cursor-pointer hover:bg-ink-800/60 transition-colors group select-none"
-                    title="To'liq ma'lumotni ko'rish va tahrirlash uchun bosing"
+                    title="Xodim haqida to'liq ma'lumotni ko'rish uchun bosing"
                   >
                     <td className="py-3.5 px-4 text-center text-fg-subtle font-mono text-[12px] tabular-nums">
                       {idx + 1}
@@ -425,8 +426,8 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
                         <button
                           type="button"
                           className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-ink-700 hover:text-fg transition-colors"
-                          onClick={() => { setEditMember(s); setModalOpen(true) }}
-                          title="Batafsil ko'rish va tahrirlash"
+                          onClick={() => { setEditMember(s); setInitialEdit(true); setModalOpen(true) }}
+                          title="Ma'lumotlarni tahrirlash"
                         >
                           <Pencil size={14} />
                         </button>
@@ -474,6 +475,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
       {isModalOpen && (
         <StaffModal
           member={editMember}
+          initialEdit={initialEdit}
           onClose={() => {
             setModalOpen(false)
             setEditMember(null)
@@ -487,6 +489,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
             const nextIdx = currentStaffIndex + dir
             if (nextIdx >= 0 && nextIdx < filtered.length) {
               setEditMember(filtered[nextIdx])
+              setInitialEdit(false)
             }
           }}
         />

@@ -1,9 +1,9 @@
 {
-  "version": "2.0.422",
-  "build": 422,
-  "commit": "23c069b",
-  "commitDate": "2026-10-20T12:30:07+05:00",
-  "lastPushDate": "2026-10-20T12:30:07+05:00",
-  "commitMessage": "feat(ui): replace emojis with SVG icons and add auto-incrementing version badge with real-time push timer",
-  "generatedAt": "2026-10-20T07:34:02.943Z"
+  "version": "2.0.423",
+  "build": 423,
+  "commit": "e2e0de4",
+  "commitDate": "2026-10-20T12:34:25+05:00",
+  "lastPushDate": "2026-10-20T12:34:25+05:00",
+  "commitMessage": "feat(staff): simplify staff table to No, FISH, Lavozimi, Telefon with full-row click modal and previous/next navigation",
+  "generatedAt": "2026-10-20T07:53:27.324Z"
 }
