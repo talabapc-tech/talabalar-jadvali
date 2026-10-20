@@ -3,7 +3,9 @@ import { COURSES, GROUP_LEADERS } from '@/lib/config'
 import { malumotnomaBlocker, malumotnomaData, malumotnomaFileName } from '@/lib/malumotnoma'
 import { renderMalumotnomaJpg } from '@/lib/server/malumotnoma-rasm'
 import { academicGroups, byName, fullName, groupTitle, isAcademicLeave, isOfficialGroup, isOutside, kursOf } from '@/lib/student'
-import { loadGroupSettings, loadStaff, loadStudents, REPO_PATHS, readRepoFile, readRepoFileIn } from '@/lib/server/source'
+import { loadGroupSettings, loadStaff, loadStudents, REPO_PATHS, readRepoFile, readRepoFileIn, saveStaff, sendChange } from '@/lib/server/source'
+import { analyzeDocumentImage, parseTextData } from '@/lib/server/telegram-ai'
+import { deletePendingDraft, getPendingDraft, getUserMode, type PendingDraft, savePendingDraft, setUserMode } from '@/lib/server/telegram-session'
 import { cleanStaffPhone, type StaffMember } from '@/lib/staff'
 import { renderGroupListPng } from '@/lib/server/guruh-rasm'
 import { siteOrigin, TG_ALLOWED_IDS, TG_BOT_TOKEN, TG_CHAT_ID, TG_REPORT_KEY, TG_WEBHOOK_SECRET, tgCall, tgEsc as esc, tgSendPhoto } from '@/lib/server/telegram'
@@ -33,6 +35,7 @@ const DEFAULT_CHAT_ID = TG_CHAT_ID
 
 const BOT_KEYBOARD = {
   keyboard: [
+    [{ text: "➕ Yangi talaba" }, { text: "➕ Yangi xodim" }],
     [{ text: "🎓 Guruhlar ro'yxati" }, { text: '📈 Kontingent' }],
     [{ text: "👨‍🏫 O'qituvchilar ro'yxati" }, { text: '👔 Shtat xodimlari' }],
     [{ text: '📊 Excel hisobotlar' }, { text: '📝 Davomat jurnallari' }],
@@ -412,6 +415,112 @@ async function sendDavomatDoc(chatId: string | number, type: 'xls' | 'pdf' | 'zi
   }
 }
 
+/* ------------------------------ AI DRAFT VA TASDIQLASH KO'RINISHI ------------------------------ */
+
+function pendingDraftView(draft: PendingDraft): View {
+  const d = draft.data
+  const ismOta = `${d.ism || ''} ${d.ota || ''}`.trim()
+  const displayFish = d.fish || ismOta || '—'
+  const lines = [
+    '🤖 <b>AI HUJJAT MA\'LUMOTLARINI ANIQLADI:</b>',
+    '━━━━━━━━━━━━━━━━━━━━━━',
+    `👤 <b>F.I.SH:</b> <b>${esc(displayFish)}</b>`,
+    `🆔 <b>Pasport:</b> <code>${esc(d.pv || '—')}</code>`,
+    `🔢 <b>JSHSHIR:</b> <code>${esc(d.pinfl || '—')}</code>`,
+    `📅 <b>Tug\'ilgan sana:</b> <b>${esc(d.dob || '—')}</b>`,
+    `📞 <b>Telefon:</b> ${esc(d.tel || '—')}`,
+  ]
+  if (d.sh_doc || d.maktab) {
+    lines.push(`📜 <b>Hujjat:</b> ${esc(d.doc_tur || 'Hujjat')} ${esc(d.sh_doc || '')} ${d.maktab ? `(${esc(d.maktab)})` : ''}`)
+  }
+  if (d.mutaxassislik || d.lavozim) {
+    lines.push(`💼 <b>Soha / Fan:</b> <i>${esc(d.mutaxassislik || d.lavozim || '')}</i>`)
+  }
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━')
+  lines.push('Qaysi toifaga qo\'shishni tanlang:')
+
+  const defaultGroup = d.group || '26-02'
+  const rows: Btn[][] = []
+
+  if (draft.mode === 'add_student') {
+    rows.push([
+      { text: `🎓 Talaba (Guruh ${defaultGroup})`, callback_data: `sav_st:${draft.id}:${defaultGroup}` },
+      { text: '🔀 Boshqa guruh', callback_data: `grp_pick:${draft.id}` },
+    ])
+    rows.push([
+      { text: '👔 Xodim sifatida saqlash', callback_data: `stf_pick:${draft.id}` },
+      { text: '❌ Bekor qilish', callback_data: `cancel:${draft.id}` },
+    ])
+  } else if (draft.mode === 'add_staff') {
+    rows.push([
+      { text: "📗 Asosiy o'qituvchi", callback_data: `sav_stf:${draft.id}:asosiy` },
+      { text: "📘 O'rindosh", callback_data: `sav_stf:${draft.id}:orindosh` },
+    ])
+    rows.push([
+      { text: '👔 ShTAT - xodimlar', callback_data: `sav_stf:${draft.id}:shtat` },
+      { text: `🎓 Talaba (${defaultGroup})`, callback_data: `sav_st:${draft.id}:${defaultGroup}` },
+    ])
+    rows.push([
+      { text: '❌ Bekor qilish', callback_data: `cancel:${draft.id}` },
+    ])
+  } else {
+    rows.push([
+      { text: "🎓 Talaba sifatida qo'shish", callback_data: `grp_pick:${draft.id}` },
+      { text: "👔 Xodim sifatida qo'shish", callback_data: `stf_pick:${draft.id}` },
+    ])
+    rows.push([
+      { text: '❌ Bekor qilish', callback_data: `cancel:${draft.id}` },
+    ])
+  }
+
+  return {
+    text: lines.join('\n'),
+    markup: { inline_keyboard: rows },
+  }
+}
+
+function groupPickerForDraft(draftId: string): View {
+  const c1 = pdfGroups()
+  const rows: Btn[][] = []
+  for (let i = 0; i < c1.length; i += 3) {
+    rows.push(c1.slice(i, i + 3).map((g) => ({ text: `Guruh ${g}`, callback_data: `sav_st:${draftId}:${g}` })))
+  }
+  rows.push([
+    { text: '25-16 (2-kurs)', callback_data: `sav_st:${draftId}:25-16` },
+    { text: '24-11 (3-kurs)', callback_data: `sav_st:${draftId}:24-11` },
+  ])
+  rows.push([
+    { text: '⬅️ Ortga', callback_data: `dft_back:${draftId}` },
+    { text: '❌ Bekor qilish', callback_data: `cancel:${draftId}` },
+  ])
+
+  return {
+    text: "🎓 <b>Talaba qaysi guruhga qo'shilsin?</b>\n\nKerakli guruhni tanlang:",
+    markup: { inline_keyboard: rows },
+  }
+}
+
+function staffPickerForDraft(draftId: string): View {
+  return {
+    text: "👔 <b>Xodim qaysi toifaga qo'shilsin?</b>\n\nKerakli toifani tanlang:",
+    markup: {
+      inline_keyboard: [
+        [
+          { text: "📗 Asosiy o'qituvchilar", callback_data: `sav_stf:${draftId}:asosiy` },
+          { text: "📘 O'rindosh o'qituvchilar", callback_data: `sav_stf:${draftId}:orindosh` },
+        ],
+        [
+          { text: '👔 ShTAT - xodimlar', callback_data: `sav_stf:${draftId}:shtat` },
+        ],
+        [
+          { text: '⬅️ Ortga', callback_data: `dft_back:${draftId}` },
+          { text: '❌ Bekor qilish', callback_data: `cancel:${draftId}` },
+        ],
+      ],
+    },
+  }
+}
+
 /* ------------------------------ GURUHLAR RO'YXATI ------------------------------ */
 
 const SPECIAL_LISTS = {
@@ -628,6 +737,9 @@ export async function GET(request: NextRequest) {
       await tgCall('setMyCommands', {
         commands: [
           { command: 'start', description: 'Menyu va tugmalar' },
+          { command: 'yangi_talaba', description: 'Yangi talaba qo\'shish (AI)' },
+          { command: 'yangi_xodim', description: 'Yangi xodim qo\'shish (AI)' },
+          { command: 'bekor', description: 'Joriy amalni bekor qilish' },
           { command: 'kontingent', description: 'Guruhlar kesimida kontingent' },
           { command: 'royxat', description: "Guruhlar ro'yxati (matn + rasm)" },
           { command: 'malumotnoma', description: "O'qiyotganligi haqida ma'lumotnoma: /malumotnoma 285" },
@@ -723,8 +835,260 @@ export async function POST(request: NextRequest) {
       else if (data === 'dvm:pdf') await sendDavomatDoc(chatId, 'pdf')
       else if (data === 'dvm:zip') await sendDavomatDoc(chatId, 'zip')
       else if (data === 'dvm:doc') await sendDavomatDoc(chatId, 'doc')
+      else if (data.startsWith('sav_st:')) {
+        const [, dId, grp] = data.split(':')
+        const draft = getPendingDraft(dId)
+        if (!draft) {
+          await sendMessage(chatId, "⚠️ Hujjat ma'lumoti topilmadi yoki eskirgan. Qaytadan yuboring.")
+          return Response.json({ ok: true })
+        }
+        const d = draft.data
+        const allSt = await loadStudentsDb()
+        const nums = allSt
+          .map((s) => parseInt(String(s.shnum || '').replace(/\D/g, ''), 10))
+          .filter((n) => !isNaN(n) && n > 0 && n < 9000)
+        const nextShnum = nums.length ? Math.max(...nums) + 1 : 286
+        const ism = d.ism || d.fish || ''
+        const ota = d.ota || ''
+
+        await sendChange({
+          type: 'add_student',
+          data: {
+            ism,
+            ota,
+            dob: d.dob || '',
+            pv: d.pv || '',
+            pinfl: d.pinfl || '',
+            tel: d.tel || '',
+            mak: d.maktab || '',
+            yil: d.yil || '',
+            sh_doc: d.sh_doc || '',
+            doc_tur: d.doc_tur || 'Shahodatnoma',
+            group: grp,
+            shnum: String(nextShnum),
+            ber: d.pass_ber || '',
+            yon: d.mutaxassislik || 'Hamshiralik ishi',
+          },
+        })
+        deletePendingDraft(dId)
+        setUserMode(chatId, null)
+
+        const displayFish = d.fish || `${ism} ${ota}`.trim()
+        await sendMessage(chatId,
+          `🎉 <b>YANGI TALABA MUVAFFAQIYATLI QO\'SHILDI!</b>\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 <b>F.I.SH:</b> <b>${esc(displayFish)}</b>\n` +
+          `👥 <b>Guruh:</b> <b>${esc(grp)}</b>\n` +
+          `📄 <b>Shartnoma №:</b> <b>${nextShnum}</b>\n` +
+          `🆔 <b>Pasport:</b> <code>${esc(d.pv || '—')}</code>\n` +
+          `🔢 <b>JSHSHIR:</b> <code>${esc(d.pinfl || '—')}</code>\n` +
+          `📅 <b>Tug\'ilgan sana:</b> ${esc(d.dob || '—')}\n` +
+          `📞 <b>Telefon:</b> ${esc(d.tel || '—')}\n` +
+          `🕒 <b>Vaqt:</b> ${stamp}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `✅ <i>Baza, Supabase va Web Jurnalga avtomatik qo\'shildi!</i>`,
+          BOT_KEYBOARD)
+        return Response.json({ ok: true })
+      } else if (data.startsWith('sav_stf:')) {
+        const [, dId, cat] = data.split(':')
+        const draft = getPendingDraft(dId)
+        if (!draft) {
+          await sendMessage(chatId, "⚠️ Hujjat ma'lumoti topilmadi yoki eskirgan. Qaytadan yuboring.")
+          return Response.json({ ok: true })
+        }
+        const d = draft.data
+        const staff = await loadStaffDb()
+        const existingNums = staff
+          .map((s) => {
+            const m = s.id?.match(/(\d+)/)
+            return m ? parseInt(m[1], 10) : 0
+          })
+          .filter((n) => n > 0)
+        const nextNum = (existingNums.length ? Math.max(...existingNums) : 0) + 1
+        const newId = `X-${String(nextNum).padStart(3, '0')}`
+
+        let kategoriyaTitle = "ShTAT - xodimlar"
+        let ishTuri = 'Shtat'
+        let bolim = "Ma'muriy"
+        let lavozim = d.lavozim || 'Xodim'
+
+        if (cat === 'asosiy') {
+          kategoriyaTitle = "Asosiy o'qituvchilar"
+          ishTuri = 'Asosiy'
+          bolim = 'Pedagog'
+          lavozim = d.mutaxassislik ? `${d.mutaxassislik} o'qituvchisi` : "O'qituvchi"
+        } else if (cat === 'orindosh') {
+          kategoriyaTitle = "O'rindosh o'qituvchilar"
+          ishTuri = "O'rindosh"
+          bolim = 'Pedagog'
+          lavozim = d.mutaxassislik ? `${d.mutaxassislik} o'qituvchisi` : "O'qituvchi"
+        }
+
+        const ismOta = `${d.ism || ''} ${d.ota || ''}`.trim()
+        const newMember: StaffMember = {
+          id: newId,
+          fish: d.fish || ismOta || 'Yangi xodim',
+          lavozim,
+          kategoriya: kategoriyaTitle,
+          bolim,
+          ish_turi: ishTuri,
+          stavka: '1.0',
+          tel: d.tel || '',
+          pinfl: d.pinfl || '',
+          pv: d.pv || '',
+          dob: d.dob || '',
+          tamomlagan_otm: d.maktab || '',
+          otm_tamom_yili: d.yil || '',
+          mutaxassislik: d.mutaxassislik || '',
+          status: 'faol',
+          pasport_berilgan_joy: d.yashash_joyi || '',
+        }
+
+        staff.push(newMember)
+        await saveStaff(staff, `Telegram bot orqali yangi xodim qo'shildi: ${newMember.fish}`)
+        deletePendingDraft(dId)
+        setUserMode(chatId, null)
+
+        await sendMessage(chatId,
+          `🎉 <b>YANGI XODIM MUVAFFAQIYATLI QO\'SHILDI!</b>\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `👤 <b>F.I.SH:</b> <b>${esc(newMember.fish)}</b>\n` +
+          `🆔 <b>ID:</b> <code>${newMember.id}</code>\n` +
+          `👔 <b>Kategoriya:</b> <b>${esc(newMember.kategoriya)}</b>\n` +
+          `💼 <b>Lavozim:</b> <b>${esc(newMember.lavozim)}</b>\n` +
+          `🆔 <b>Pasport:</b> <code>${esc(newMember.pv || '—')}</code>\n` +
+          `🔢 <b>JSHSHIR:</b> <code>${esc(newMember.pinfl || '—')}</code>\n` +
+          `📅 <b>Tug\'ilgan sana:</b> ${esc(newMember.dob || '—')}\n` +
+          `📞 <b>Telefon:</b> ${esc(newMember.tel || '—')}\n` +
+          `🕒 <b>Vaqt:</b> ${stamp}\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `✅ <i>Xodimlar bazasiga muvaffaqiyatli saqlandi!</i>`,
+          BOT_KEYBOARD)
+        return Response.json({ ok: true })
+      } else if (data.startsWith('grp_pick:')) {
+        const dId = data.slice('grp_pick:'.length)
+        await showView(chatId, groupPickerForDraft(dId), msgId)
+        return Response.json({ ok: true })
+      } else if (data.startsWith('stf_pick:')) {
+        const dId = data.slice('stf_pick:'.length)
+        await showView(chatId, staffPickerForDraft(dId), msgId)
+        return Response.json({ ok: true })
+      } else if (data.startsWith('dft_back:')) {
+        const dId = data.slice('dft_back:'.length)
+        const draft = getPendingDraft(dId)
+        if (draft) await showView(chatId, pendingDraftView(draft), msgId)
+        return Response.json({ ok: true })
+      } else if (data.startsWith('cancel:')) {
+        const dId = data.slice('cancel:'.length)
+        deletePendingDraft(dId)
+        setUserMode(chatId, null)
+        await sendMessage(chatId, "❌ Qo'shish bekor qilindi.", BOT_KEYBOARD)
+        return Response.json({ ok: true })
+      }
       return Response.json({ ok: true })
     }
+    // 📸 Rasm yoki skanerlangan hujjat kelganda (AI Vision tahlili)
+    const photoList = msg.photo as Array<{ file_id: string; file_size?: number }> | undefined
+    const doc = msg.document as { file_id: string; mime_type?: string; file_name?: string } | undefined
+    let photoFileId: string | null = null
+    if (Array.isArray(photoList) && photoList.length > 0) {
+      photoFileId = photoList[photoList.length - 1].file_id
+    } else if (doc && (doc.mime_type?.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(doc.file_name || ''))) {
+      photoFileId = doc.file_id
+    }
+
+    if (photoFileId) {
+      await tgCall('sendChatAction', { chat_id: chatId, action: 'typing' })
+      await sendMessage(chatId, "🤖 <b>Hujjat rasmi qabul qilindi. AI tahlil qilmoqda...</b>\n<i>Iltimos, bir necha soniya kuting.</i>")
+
+      const fileRes = await tgCall('getFile', { file_id: photoFileId })
+      if (!fileRes.ok || !fileRes.result?.file_path) {
+        await sendMessage(chatId, "❌ Hujjat rasmini yuklab bo'lmadi.")
+        return Response.json({ ok: true })
+      }
+
+      const imgRes = await fetch(`https://api.telegram.org/file/bot${BOT_TOKEN}/${fileRes.result.file_path}`)
+      const imgBuf = Buffer.from(await imgRes.arrayBuffer())
+      const aiRes = await analyzeDocumentImage(imgBuf)
+
+      if (aiRes.success && aiRes.data && (aiRes.data.fish || aiRes.data.pv || aiRes.data.pinfl)) {
+        const curUserMode = getUserMode(chatId) || 'neutral'
+        const sessId = `d_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+        const draft: PendingDraft = {
+          id: sessId,
+          chatId: String(chatId),
+          mode: curUserMode,
+          data: aiRes.data,
+          createdAt: Date.now(),
+        }
+        savePendingDraft(draft)
+        const view = pendingDraftView(draft)
+        await sendMessage(chatId, view.text, view.markup)
+      } else {
+        const errMsg = aiRes.error || "AI hujjatdan ma'lumotlarni to'liq ajrata olmadi."
+        await sendMessage(chatId,
+          `⚠️ <b>AI tahlilida kamchilik:</b>\n<i>${esc(errMsg)}</i>\n\n` +
+          `Iltimos, ma'lumotlarni matn ko'rinishida yuboring:\n` +
+          `<code>Familiya Ism Sharif, GG.OO.YYYY, Pasport, JSHSHIR</code>`)
+      }
+      return Response.json({ ok: true })
+    }
+
+    // ✍️ Foydalanuvchi Yangi talaba yoki Yangi xodim rejimida bo'lsa va matn yozsa
+    const activeUserMode = getUserMode(chatId)
+    if (activeUserMode && text && !text.startsWith('/')) {
+      const parsed = parseTextData(text)
+      if (parsed && (parsed.fish || parsed.pv || parsed.pinfl)) {
+        const sessId = `d_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+        const draft: PendingDraft = {
+          id: sessId,
+          chatId: String(chatId),
+          mode: activeUserMode,
+          data: parsed,
+          createdAt: Date.now(),
+        }
+        savePendingDraft(draft)
+        const view = pendingDraftView(draft)
+        await sendMessage(chatId, view.text, view.markup)
+        return Response.json({ ok: true })
+      }
+    }
+
+    // ➕ Rejim buyruqlari
+    if (t.includes('yangi talaba') || t === '/yangi_talaba' || t === '/talaba_qoshish' || t === '/talaba') {
+      setUserMode(chatId, 'add_student')
+      await sendMessage(chatId,
+        `🎓 <b>Yangi talaba qo\'shish bo\'limi</b>\n\n` +
+        `📸 <b>Talabaning hujjat rasmini yuboring:</b>\n` +
+        `• Pasport yoki ID-karta rasmi\n` +
+        `• Shahodatnoma yoki Diplom rasmi\n\n` +
+        `<i>(AI avtomatik tahlil qilib, tasdiqlash uchun chiqarib beradi)</i>\n\n` +
+        `✍️ <b>Yoki ma\'lumotlarni matn shaklida yuboring:</b>\n` +
+        `<code>Aliyev Vali Olim o\'g\'li, 15.05.2007, AE1234567, 31505075590024, 26-02</code>\n\n` +
+        `❌ <i>Bekor qilish uchun:</i> /bekor`)
+      return Response.json({ ok: true })
+    }
+
+    if (t.includes('yangi xodim') || t === '/yangi_xodim' || t === '/xodim_qoshish' || t === '/xodim') {
+      setUserMode(chatId, 'add_staff')
+      await sendMessage(chatId,
+        `👔 <b>Yangi xodim qo\'shish bo\'limi</b>\n\n` +
+        `📸 <b>Xodimning hujjat rasmini yuboring:</b>\n` +
+        `• Pasport yoki ID-karta rasmi\n` +
+        `• Diplom yoki Obyektivka rasmi\n\n` +
+        `<i>(AI avtomatik tahlil qilib, tasdiqlash uchun chiqarib beradi)</i>\n\n` +
+        `✍️ <b>Yoki matn shaklida yuboring:</b>\n` +
+        `<code>Karimov Jamshid Olimovich, Hamshiralik ishi o\'qituvchisi, Asosiy, +998901234567</code>\n\n` +
+        `❌ <i>Bekor qilish uchun:</i> /bekor`)
+      return Response.json({ ok: true })
+    }
+
+    if (t === '/bekor' || t === 'bekor' || t === '/cancel') {
+      setUserMode(chatId, null)
+      await sendMessage(chatId, "✅ Joriy amal bekor qilindi.", BOT_KEYBOARD)
+      return Response.json({ ok: true })
+    }
+
     if (t.includes("guruhlar ro'yxati") || t.includes('guruhlar royxati') || t === '/guruhlar_royxati' || t === '/royxat') {
       await showView(chatId, await coursePickerView())
       return Response.json({ ok: true })

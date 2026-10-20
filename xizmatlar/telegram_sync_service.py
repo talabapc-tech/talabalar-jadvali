@@ -1433,6 +1433,7 @@ def _start_daily_backup_scheduler():
 
 BOT_KEYBOARD_MARKUP = {
     "keyboard": [
+        [{"text": "➕ Yangi talaba"}, {"text": "➕ Yangi xodim"}],
         [{"text": "🎓 Guruhlar ro'yxati"}, {"text": "📈 Kontingent"}],
         [{"text": "👨‍🏫 O'qituvchilar ro'yxati"}, {"text": "👔 Shtat xodimlari"}],
         [{"text": "📊 Excel hisobotlar"}, {"text": "📝 Davomat jurnallari"}],
@@ -1621,6 +1622,10 @@ def send_bot_welcome_menu(chat_id=None):
     text = """🤖 <b>Talabalar Bazasi va Shartnomalar Boti</b>
 
 Quyidagi guruhlangan tugmalar orqali istalgan vaqtda kerakli ma'lumotlarni olishingiz mumkin:
+
+➕ <b>Yangi Qo'shish (AI):</b>
+• <b>➕ Yangi talaba</b> — Hujjat rasmidan avto-tahlil va guruhga biriktirish
+• <b>➕ Yangi xodim</b> — Pasport/diplomdan o'qituvchi yoki shtatga qo'shish
 
 🎓 <b>O'quv va Guruhlar:</b>
 • <b>🎓 Guruhlar ro'yxati</b> — Guruhlar va rasmli jurnallar
