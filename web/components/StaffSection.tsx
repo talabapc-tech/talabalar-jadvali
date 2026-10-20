@@ -35,9 +35,13 @@ import { cx } from './ui'
 
 interface Props {
   notify: Notify
+  addOpen?: boolean
+  onCloseAdd?: () => void
+  exportOpen?: boolean
+  onCloseExport?: () => void
 }
 
-export default function StaffSection({ notify }: Props) {
+export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: propExportOpen, onCloseExport }: Props) {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
@@ -50,6 +54,9 @@ export default function StaffSection({ notify }: Props) {
   const [editMember, setEditMember] = useState<StaffMember | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+
+  const isModalOpen = modalOpen || Boolean(addOpen)
+  const isExportOpen = exportOpen || Boolean(propExportOpen)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -489,10 +496,14 @@ export default function StaffSection({ notify }: Props) {
       )}
 
       {/* Modal oynalar */}
-      {modalOpen && (
+      {isModalOpen && (
         <StaffModal
           member={editMember}
-          onClose={() => { setModalOpen(false); setEditMember(null) }}
+          onClose={() => {
+            setModalOpen(false)
+            setEditMember(null)
+            onCloseAdd?.()
+          }}
           onSave={handleSave}
         />
       )}
@@ -509,9 +520,12 @@ export default function StaffSection({ notify }: Props) {
 
       {/* Maxsus Ustun Tanlanadigan Excel Eksport Modali */}
       <StaffExportModal
-        open={exportOpen}
-        onClose={() => setExportOpen(false)}
-        staff={filtered}
+        open={isExportOpen}
+        onClose={() => {
+          setExportOpen(false)
+          onCloseExport?.()
+        }}
+        staff={staff}
         onSuccess={(msg) => notify(msg, 'success')}
       />
     </div>

@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Check, CheckSquare, Download, FileSpreadsheet, SlidersHorizontal, Square, X } from 'lucide-react'
+import { Check, Download, FileSpreadsheet, Loader2, Send, X } from 'lucide-react'
 import * as XLSX from 'xlsx-js-style'
+import { cleanXlsxBuffer, downloadBlob } from '@/lib/excel'
 import { cleanStaffPhone, type StaffMember } from '@/lib/staff'
 
 interface Props {
@@ -52,6 +53,7 @@ const AVAILABLE_COLUMNS: ColumnDef[] = [
 
 export default function StaffExportModal({ open, onClose, staff, onSuccess }: Props) {
   const [selectedCat, setSelectedCat] = useState<string>('Barchasi')
+  const [tgBusy, setTgBusy] = useState(false)
   const [selectedCols, setSelectedCols] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     AVAILABLE_COLUMNS.forEach((c) => {
@@ -90,7 +92,9 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
     else if (selectedCat.includes('Asosiy')) base = 'Asosiy oqituvchilar royxati'
     else if (selectedCat.includes("O'rindosh")) base = 'Orindosh oqituvchilar royxati'
 
-    const dateStr = new Date().toLocaleDateString('uz-UZ').replace(/\//g, '.')
+    const now = new Date()
+    const p = (n: number) => String(n).padStart(2, '0')
+    const dateStr = `${p(now.getDate())}.${p(now.getMonth() + 1)}.${now.getFullYear()}`
     return `${base} ${dateStr}`
   }, [selectedCat])
 
@@ -119,24 +123,14 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
     if (preset === 'standard') {
       ;['num', 'fish', 'lavozim', 'tel', 'pv', 'pinfl'].forEach((k) => { next[k] = true })
     } else if (preset === 'hr') {
-      ;['num', 'fish', 'lavozim', 'kategoriya', 'tel', 'dob', 'tugilgan_joy', 'pv', 'pinfl', 'tamomlagan_otm', 'otm_tamom_yili', 'mutaxassislik', 'buyruq_sana'].forEach((k) => { next[k] = true })
+      ;['num', 'fish', 'lavozim', 'kategoriya', 'tel', 'dob', 'tugilgan_joy', 'pv', 'pinfl', 'inn', 'plastik_karta', 'toifasi', 'tamomlagan_otm', 'otm_tamom_yili', 'mutaxassislik', 'buyruq_sana'].forEach((k) => { next[k] = true })
     } else if (preset === 'contact') {
       ;['num', 'fish', 'lavozim', 'tel', 'bolim'].forEach((k) => { next[k] = true })
     }
     setSelectedCols(next)
   }
 
-  const handleDownload = () => {
-    if (!activeColIds.length) {
-      alert("Kamida bitta ustunni tanlang!")
-      return
-    }
-
-    if (!filteredStaff.length) {
-      alert("Tanlangan toifada xodimlar topilmadi!")
-      return
-    }
-
+  const buildWorkbook = () => {
     const cols = AVAILABLE_COLUMNS.filter((c) => selectedCols[c.id])
     const headers = cols.map((c) => c.label)
 
@@ -225,17 +219,90 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
     const sheetName = selectedCat.replace(/[\\/?*[\]]/g, ' ').slice(0, 31) || 'Xodimlar'
     XLSX.utils.book_append_sheet(wb, ws, sheetName)
 
-    // Fayl nomida tagchiziq '_' ni bo'shliq ' ' ga almashtiramiz (User requirement!)
+    // Fayl nomida tagchiziq '_' ni bo'shliq ' ' ga almashtiramiz
     let outFileName = (customName.trim() || defaultFileName).replace(/_/g, ' ')
+    outFileName = outFileName.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()
     if (!outFileName.toLowerCase().endsWith('.xlsx')) {
       outFileName += '.xlsx'
     }
 
-    XLSX.writeFile(wb, outFileName)
-    if (onSuccess) {
-      onSuccess(`${filteredStaff.length} nafar xodim «${outFileName}» fayliga eksport qilindi`)
+    return { wb, outFileName }
+  }
+
+  const handleDownload = () => {
+    if (!activeColIds.length) {
+      alert("Kamida bitta ustunni tanlang!")
+      return
     }
-    onClose()
+
+    if (!filteredStaff.length) {
+      alert("Tanlangan toifada xodimlar topilmadi!")
+      return
+    }
+
+    try {
+      const { wb, outFileName } = buildWorkbook()
+      const raw = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true, bookSST: false })
+      const cleaned = cleanXlsxBuffer(raw)
+      downloadBlob(cleaned, outFileName)
+
+      if (onSuccess) {
+        onSuccess(`${filteredStaff.length} nafar xodim «${outFileName}» fayliga eksport qilindi`)
+      }
+      onClose()
+    } catch (err) {
+      console.error('Excel export error:', err)
+      alert(`Excel faylni yuklab olishda xatolik: ${(err as Error).message}`)
+    }
+  }
+
+  const handleSendTelegram = async () => {
+    if (!activeColIds.length) {
+      alert("Kamida bitta ustunni tanlang!")
+      return
+    }
+    if (!filteredStaff.length) {
+      alert("Tanlangan toifada xodimlar topilmadi!")
+      return
+    }
+
+    setTgBusy(true)
+    try {
+      const { wb, outFileName } = buildWorkbook()
+      const raw = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true, bookSST: false })
+      const cleaned = cleanXlsxBuffer(raw)
+      const blob = new Blob([new Uint8Array(cleaned)], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const file = new File([blob], outFileName, {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append(
+        'caption',
+        `📊 <b>${outFileName}</b>\n👥 Jami: <b>${filteredStaff.length} nafar</b> (${activeColIds.length} ta ustun)\n✅ <i>Toza probelli maxsus eksport</i>`,
+      )
+
+      const res = await fetch('/api/send_role_telegram', {
+        method: 'POST',
+        body: fd,
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok && d.ok) {
+        if (onSuccess) {
+          onSuccess(`«${outFileName}» Telegram botga muvaffaqiyatli yuborildi!`)
+        }
+        onClose()
+      } else {
+        alert(`Telegramga yuborilmadi: ${d.error || 'Server xatosi'}`)
+      }
+    } catch (err) {
+      alert(`Telegramga yuborishda xatolik: ${(err as Error).message}`)
+    } finally {
+      setTgBusy(false)
+    }
   }
 
   return (
@@ -383,7 +450,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
                 value={customName}
                 placeholder={defaultFileName}
                 onChange={(e) => setCustomName(e.target.value.replace(/_/g, ' '))}
-                className="input-text text-[13px] flex-1"
+                className="field text-[13px] flex-1 h-9"
               />
               <span className="text-[12px] font-semibold text-fg-subtle">.xlsx</span>
             </div>
@@ -400,9 +467,19 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
             <button
               type="button"
               onClick={onClose}
-              className="btn-ghost h-9 px-4 text-[12.5px]"
+              className="btn-ghost h-9 px-3.5 text-[12.5px]"
             >
               Bekor qilish
+            </button>
+            <button
+              type="button"
+              onClick={handleSendTelegram}
+              disabled={tgBusy}
+              title="Ushbu moslashtirilgan Excel faylni Telegram botga yuborish"
+              className="btn-ghost h-9 px-3.5 text-[12.5px] border border-sky/30 bg-sky/10 text-sky-soft hover:bg-sky/25"
+            >
+              {tgBusy ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+              <span>Telegramga</span>
             </button>
             <button
               type="button"

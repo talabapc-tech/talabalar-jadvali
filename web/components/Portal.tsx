@@ -46,6 +46,8 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   const [openRow, setOpenRow] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [staffAddOpen, setStaffAddOpen] = useState(false)
+  const [staffExportOpen, setStaffExportOpen] = useState(false)
   // Guruh sozlamalari (data/guruhlar.json): kurs, rahbar, yo'nalish — config.ts dagi qiymatlar ustiga
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
@@ -224,6 +226,8 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
         onRefresh={onRefresh}
         refreshing={refreshing}
         onAdd={() => setAdding(true)}
+        onAddStaff={() => setStaffAddOpen(true)}
+        onExportStaff={() => setStaffExportOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         notify={notify}
         activeTab={mainTab}
@@ -232,7 +236,13 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
 
       <main className="mx-auto max-w-[1680px] space-y-5 px-4 py-5 sm:px-6">
         {mainTab === 'staff' ? (
-          <StaffSection notify={notify} />
+          <StaffSection
+            notify={notify}
+            addOpen={staffAddOpen}
+            onCloseAdd={() => setStaffAddOpen(false)}
+            exportOpen={staffExportOpen}
+            onCloseExport={() => setStaffExportOpen(false)}
+          />
         ) : (
           <>
         {data.state === 'loading' && (

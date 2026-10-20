@@ -407,7 +407,17 @@ function ThemeButton() {
 }
 
 export default function Header({
-  students, pendingCount, onRefresh, refreshing, onAdd, onOpenSettings, notify, activeTab = 'students', onTabChange, onAddStaff,
+  students,
+  pendingCount,
+  onRefresh,
+  refreshing,
+  onAdd,
+  onOpenSettings,
+  notify,
+  activeTab = 'students',
+  onTabChange,
+  onAddStaff,
+  onExportStaff,
 }: {
   students: Student[];
   pendingCount: number;
@@ -419,6 +429,7 @@ export default function Header({
   activeTab?: 'students' | 'staff';
   onTabChange?: (tab: 'students' | 'staff') => void;
   onAddStaff?: () => void;
+  onExportStaff?: () => void;
 }) {
   return (
     <header className="z-40 border-b border-line bg-ink-950/85 backdrop-blur-md sm:sticky sm:top-0">
@@ -479,19 +490,53 @@ export default function Header({
         )}
 
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <SyncBadge pendingCount={pendingCount} notify={notify} />
           {activeTab === 'staff' ? (
-            <button type="button" className="btn-success h-9" onClick={onAddStaff || onAdd} title="Yangi xodim qo'shish">
-              <UserPlus size={15} />
-              <span>Xodim qo'shish</span>
-            </button>
+            <>
+              {onAddStaff && (
+                <button
+                  type="button"
+                  className="btn-success h-9"
+                  onClick={onAddStaff}
+                  title="Yangi xodim qo'shish"
+                >
+                  <UserPlus size={15} />
+                  <span>Xodim qo'shish</span>
+                </button>
+              )}
+              {onExportStaff && (
+                <button
+                  type="button"
+                  className="btn-primary h-9"
+                  onClick={onExportStaff}
+                  title="Xodimlarni Excelga eksport qilish"
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>Xodimlarni eksport</span>
+                </button>
+              )}
+            </>
           ) : (
-            <button type="button" className="btn-success h-9" onClick={onAdd} title="Yangi talaba qo'shish">
-              <UserPlus size={15} />
-              <span>Talaba qo'shish</span>
-            </button>
+            <>
+              <SyncBadge pendingCount={pendingCount} notify={notify} />
+              <button
+                type="button"
+                className="btn-success h-9"
+                onClick={onAdd}
+                title="Yangi talaba qo'shish"
+              >
+                <UserPlus size={15} />
+                <span>Talaba qo'shish</span>
+              </button>
+              <ExportMenu students={students} notify={notify} />
+            </>
           )}
-          <button type="button" className="btn-ghost h-9" onClick={onRefresh} disabled={refreshing} title="Serverdan eng yangi ma'lumotni olish">
+          <button
+            type="button"
+            className="btn-ghost h-9"
+            onClick={onRefresh}
+            disabled={refreshing}
+            title="Serverdan eng yangi ma'lumotni olish"
+          >
             <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
             <span className="hidden sm:inline">Yangilash</span>
           </button>
@@ -507,7 +552,6 @@ export default function Header({
             </button>
           )}
           <ThemeButton />
-          <ExportMenu students={students} notify={notify} />
           <LogoutButton />
         </div>
       </div>
