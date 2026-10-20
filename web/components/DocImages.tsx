@@ -40,7 +40,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
   const [zoom, setZoom] = useState<Record<number, number>>({})
   const [zoomReset, setZoomReset] = useState<Record<number, number>>({})
 
-  const [showUpload, setShowUpload] = useState(false)
+  const [showUpload, setShowUpload] = useState(() => !file)
   const [passFiles, setPassFiles] = useState<File[]>([])
   const [certFiles, setCertFiles] = useState<File[]>([])
   const [docxFiles, setDocxFiles] = useState<File[]>([])
@@ -105,6 +105,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
         const kinds = await Promise.all(res.images.map(classify))
         setImages(res.images.map((src, i) => ({ src, kind: kinds[i] })))
         if (file) cache.delete(file)
+        if (res.docFile) cache.set(res.docFile, res.images)
       }
       // Eski portaldagidek: o'qilgan ma'lumot darhol kartaga yoziladi. Ism va otasining
       // ismi — foydalanuvchining o'z ro'yxati, bor bo'lsa AI ularni almashtirmaydi.
@@ -112,6 +113,9 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
       delete (fields as { sh_qr?: string }).sh_qr
       if (student?.ism && !res.namesFromDoc) delete fields.ism
       if (student?.ota && !res.namesFromDoc) delete fields.ota
+      if (res.docFile) {
+        fields.doc_file = res.docFile
+      }
       if (Object.keys(fields).length && onApplyFields) {
         await onApplyFields(fields)
         setPassFiles([])
@@ -252,10 +256,45 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
           {[0, 1].map((i) => <div key={i} className="h-56 animate-pulse rounded-2xl border border-line bg-ink-850" />)}
         </div>
       ) : !images.length ? (
-        <div className="grid place-items-center gap-2 rounded-2xl border border-dashed border-line-strong bg-ink-950/40 px-6 py-12 text-center">
-          <ImageOff size={28} className="text-fg-subtle" />
-          <div className="text-[13.5px] font-semibold text-fg">{file ? "Hujjat rasmlari topilmadi" : 'Hujjat fayli biriktirilmagan'}</div>
-          <div className="text-[12px] text-fg-muted">{error || (file ? file : "Yuqoridagi «Fayl / AI Tahlil» tugmasi orqali pasport va shahodatnomani biriktiring")}</div>
+        <div
+          onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+          onDrop={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            const dropped = Array.from(e.dataTransfer.files)
+            if (!dropped.length) return
+            const docx = dropped.filter((f) => f.name.toLowerCase().endsWith('.docx'))
+            const imgs = dropped.filter((f) => f.type.startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(f.name))
+            if (docx.length) setDocxFiles(docx.slice(0, 1))
+            if (imgs.length >= 2) {
+              setPassFiles(imgs.slice(0, 1))
+              setCertFiles(imgs.slice(1, 2))
+            } else if (imgs.length === 1) {
+              setPassFiles(imgs)
+            }
+            setShowUpload(true)
+          }}
+          className="grid place-items-center gap-3 rounded-2xl border-2 border-dashed border-sky/35 bg-ink-950/40 px-6 py-10 text-center transition hover:border-sky/60"
+        >
+          <div className="grid size-13 place-items-center rounded-2xl bg-sky/10 text-sky-soft">
+            <Upload size={24} />
+          </div>
+          <div>
+            <div className="text-[14px] font-bold text-fg">{file ? "Hujjat rasmlari topilmadi" : 'Hujjat fayli biriktirilmagan'}</div>
+            <div className="mt-1 text-[12px] text-fg-muted max-w-sm">
+              {file
+                ? `«${file}» nomli fayl topilmadi. Pasport va diplom rasmlarini qayta biriktirishingiz mumkin.`
+                : "Talabaning pasport / ID-karta va diplom / shahodatnoma rasmlarini bu yerga tashlang yoki pastdagi tugmani bosing."}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowUpload((v) => !v)}
+            className="btn-primary mt-1 h-9 px-4 text-[12.5px]"
+          >
+            <Upload size={14} />
+            {showUpload ? 'Biriktirish panelini yashirish' : 'Fayl / Rasmlarni biriktirish'}
+          </button>
         </div>
       ) : (
         <div className="grid gap-3">

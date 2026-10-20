@@ -464,11 +464,11 @@ export async function analyzeAndUploadDocs(opts: {
     throw new Error("Shartnomani biriktirish uchun kompyuterdagi Python xizmati (8080) ishlab turishi kerak")
   }
 
-  // 1b. Mavjud talaba — eski portaldagi «⚡ AI Bilan Tahrir»
-  if (opts.row && opts.row >= 2 && (allFiles.length || opts.docFile)) {
+  // 1b. Mavjud yoki yangi talaba — fayllarni yuklash va tahlil qilish
+  if ((opts.row && opts.row >= 2 && (allFiles.length || opts.docFile)) || (!opts.row && allFiles.length)) {
     const res = allFiles.length
       ? await py('/api/upload_student_section_files', {
-          row: opts.row,
+          row: opts.row || 0,
           ism: opts.student?.ism || '',
           ota: opts.student?.ota || '',
           group: opts.student?.group || '',
@@ -491,7 +491,7 @@ export async function analyzeAndUploadDocs(opts: {
         message: n ? `AI ${n} ta maydonni o'qidi va Excelga saqladi${fields.sh_qr ? ' (QR-kod tasdiqlandi ✓)' : ''}` : NOTHING_READ,
       }
     }
-    if (res) throw new Error(res.error || 'Python xizmati tahlil qila olmadi')
+    if (res && opts.row) throw new Error(res.error || 'Python xizmati tahlil qila olmadi')
     // res === null: Python xizmati ishlamayapti — pastdagi zaxira yo'l
   }
 

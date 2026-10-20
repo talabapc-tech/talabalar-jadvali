@@ -1,8 +1,16 @@
 import type { NextRequest } from 'next/server'
-import { AUTH_COOKIE, authConfigured, checkCredentials, createSessionToken, SESSION_DAYS } from '@/lib/auth'
+import {
+  AUTH_COOKIE,
+  authConfigured,
+  checkCredentials,
+  createDeviceToken,
+  createSessionToken,
+  REMEMBER_SESSION_DAYS,
+  SESSION_DAYS,
+} from '@/lib/auth'
 
 /*
-  POST /api/auth/login  { login, password } → portal_session cookie (30 kun).
+  POST /api/auth/login  { login, password, rememberDevice?: boolean, deviceId?: string }
   Parolni terib ko'rishni sekinlashtirish: noto'g'ri urinishda 1 s kutish va bitta IP dan
   15 daqiqada 10 tadan ortiq xato urinish bloklanadi (funksiya nusxasi xotirasida).
 */
@@ -37,10 +45,21 @@ export async function POST(request: NextRequest) {
   }
 
   fails.delete(ip)
-  const res = Response.json({ ok: true })
+
+  const rememberDevice = Boolean(body.rememberDevice)
+  const days = rememberDevice ? REMEMBER_SESSION_DAYS : SESSION_DAYS
+  const sessionToken = await createSessionToken(now, days)
+
+  let deviceToken: string | undefined
+  if (rememberDevice) {
+    const rawDeviceId = String(body.deviceId || '').trim() || crypto.randomUUID()
+    deviceToken = await createDeviceToken(rawDeviceId, now)
+  }
+
+  const res = Response.json({ ok: true, deviceToken })
   const https = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https'
   const secure = https ? '; Secure' : ''
   res.headers.append('Set-Cookie',
-    `${AUTH_COOKIE}=${await createSessionToken()}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secure}`)
+    `${AUTH_COOKIE}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${days * 86400}${secure}`)
   return res
 }

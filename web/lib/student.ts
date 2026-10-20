@@ -316,7 +316,7 @@ export function buildAddedStudent(f: EditFields, row: number): Student {
     doc_tur: f.doc_tur || 'Shahodatnoma',
     yil: f.yil || '2024',
     tel: f.tel || '',
-    doc_file: '',
+    doc_file: f.doc_file || '',
     status: hasFull ? 'full' : (pv || f.sh_doc) ? 'chala' : 'yoq',
     pass_fish: '',
     cert_fish: '',

@@ -365,6 +365,7 @@ function LogoutButton() {
   const logout = async () => {
     if (!confirm('Tizimdan chiqasizmi?')) return
     setBusy(true)
+    try { localStorage.removeItem('portal_device_token'); } catch {}
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
     window.location.replace('/login')
   }

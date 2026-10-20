@@ -68,6 +68,7 @@ export const EDIT_FIELDS = [
   'ism', 'ota', 'group', 'pv', 'pinfl', 'dob', 'ber',
   'doc_tur', 'sh_doc', 'mak', 'yil', 'yon', 'shnum', 'tel',
   'buyruq', 'buyruq_sana', 'asl_guruh', 'chiqqan_guruh',
+  'doc_file',
 ] as const
 export type EditField = (typeof EDIT_FIELDS)[number]
 export type EditFields = Partial<Record<EditField, string>>

@@ -90,14 +90,21 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
     setAiBusy(true)
     setAiMsg('Hujjat AI va QR orqali tahlil qilinmoqda…')
     try {
-      const res = await analyzeAndUploadDocs({ generalFiles: docx, passFiles, certFiles, model })
+      const res = await analyzeAndUploadDocs({
+        generalFiles: docx,
+        passFiles,
+        certFiles,
+        student: { ism: f.ism, ota: f.ota, group: f.group },
+        model,
+      })
       setAiMsg(res.message)
-      if (Object.keys(res.fields).length > 0) {
+      if (Object.keys(res.fields).length > 0 || res.docFile) {
         setF((prev) => {
           const next = { ...prev }
           for (const [k, val] of Object.entries(res.fields)) {
             if (val && k in next) (next as Record<string, string>)[k] = String(val)
           }
+          if (res.docFile) next.doc_file = res.docFile
           if (next.pinfl && next.pinfl.length === 14 && !next.dob) {
             const d = dobFromPinfl(next.pinfl)
             if (d) next.dob = d
@@ -157,8 +164,23 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
     )) return
     submittingRef.current = true
     setSaving(true)
+    const finalFields = { ...f }
+    if (!finalFields.doc_file && (docxFiles.length || passFiles.length || certFiles.length)) {
+      try {
+        const res = await analyzeAndUploadDocs({
+          generalFiles: docxFiles,
+          passFiles,
+          certFiles,
+          student: { ism: finalFields.ism, ota: finalFields.ota, group: finalFields.group },
+          model,
+        })
+        if (res.docFile) finalFields.doc_file = res.docFile
+      } catch {
+        /* fayl biriktirish xatosi talabani kiritishni to'xtatmasin */
+      }
+    }
     try {
-      await onAdd(f, keepOpen)
+      await onAdd(finalFields, keepOpen)
       if (keepOpen) {
         setF(makeInitial(f.group))
       } else {
