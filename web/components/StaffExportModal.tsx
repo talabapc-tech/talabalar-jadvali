@@ -410,21 +410,16 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
               {AVAILABLE_COLUMNS.map((col) => {
                 const checked = !!selectedCols[col.id]
                 return (
-                  <label
+                  <button
                     key={col.id}
+                    type="button"
                     onClick={() => toggleCol(col.id)}
-                    className={`flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] transition-colors select-none ${
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-left transition-colors select-none ${
                       checked
-                        ? 'bg-emerald-500/15 text-emerald-200 font-medium'
+                        ? 'bg-emerald-500/15 text-emerald-200 font-medium ring-1 ring-emerald-500/30'
                         : 'text-fg-subtle hover:bg-ink-800 hover:text-fg'
                     }`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {}}
-                      className="sr-only"
-                    />
                     <div
                       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
                         checked ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-line bg-ink-900'
@@ -433,7 +428,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
                       {checked && <Check size={11} strokeWidth={3} />}
                     </div>
                     <span className="truncate">{col.label}</span>
-                  </label>
+                  </button>
                 )
               })}
             </div>
