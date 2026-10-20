@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "type": "add_student",
+    "data": {
+      "ism": "Xayrullayeva Asila",
+      "ota": "Azamat qizi",
+      "group": "26-01",
+      "pv": "AE6045063",
+      "pinfl": "62103095680022",
+      "dob": "21.03.2009",
+      "ber": "26.01.2026",
+      "doc_tur": "Shahodatnoma",
+      "sh_doc": "UM 03728305",
+      "mak": "Kitob tumani 9-sonli umumiy o'rta ta'lim maktabi",
+      "yil": "2026",
+      "yon": "Farmatsiya ishi",
+      "shnum": "",
+      "tel": ""
+    },
+    "id": "chg_1792478016278_0266x",
+    "created_at": "2026-10-20T06:33:36.278Z"
+  }
+]
