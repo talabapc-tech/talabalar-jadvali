@@ -19,5 +19,17 @@
     },
     "id": "chg_1792474752796_zu24c",
     "created_at": "2026-10-20T05:39:12.796Z"
+  },
+  {
+    "type": "baza_student",
+    "data": {
+      "row": 570,
+      "status": "KIRITILMAGAN",
+      "shnum": "",
+      "pinfl": "60811065680047",
+      "ism": "Karimova Umida"
+    },
+    "id": "chg_1792474786138_u22jy",
+    "created_at": "2026-10-20T05:39:46.138Z"
   }
 ]
