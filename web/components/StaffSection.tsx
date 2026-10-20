@@ -129,6 +129,11 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
     })
   }, [staff, query, category, dept, workType])
 
+  const currentStaffIndex = useMemo(() => {
+    if (!editMember) return -1
+    return filtered.findIndex((s) => s.id === editMember.id)
+  }, [editMember, filtered])
+
   // Statistika
   const stats = useMemo(() => {
     const total = staff.length
@@ -363,105 +368,75 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
             <table className="w-full text-left text-[12.5px]">
               <thead className="border-b border-line bg-ink-850/80 text-[11px] font-bold text-fg-muted uppercase tracking-wider">
                 <tr>
-                  <th className="py-3 px-3.5 w-12 text-center">№</th>
-                  <th className="py-3 px-3.5">Xodim F.I.Sh</th>
-                  <th className="py-3 px-3.5">Lavozimi & Toifasi</th>
-                  <th className="py-3 px-3.5">Telefon</th>
-                  <th className="py-3 px-3.5">Pasport & JSHSHIR</th>
-                  <th className="py-3 px-3.5">Mutaxassisligi & OTM</th>
-                  <th className="py-3 px-3.5">Buyruq sanasi</th>
-                  <th className="py-3 px-3.5">Holati</th>
-                  <th className="py-3 px-3.5 w-20 text-right">Amallar</th>
+                  <th className="py-3.5 px-4 w-12 text-center">№</th>
+                  <th className="py-3.5 px-4">Xodim F.I.Sh</th>
+                  <th className="py-3.5 px-4">Lavozimi</th>
+                  <th className="py-3.5 px-4">Telefon raqami</th>
+                  <th className="py-3.5 px-4 w-20 text-right">Amallar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line/60">
                 {filtered.map((s, idx) => (
-                  <tr key={s.id || idx} className="hover:bg-ink-800/40 transition-colors">
-                    <td className="py-3 px-3.5 text-center text-fg-subtle font-mono text-[11.5px]">
+                  <tr
+                    key={s.id || idx}
+                    onClick={() => { setEditMember(s); setModalOpen(true) }}
+                    className="cursor-pointer hover:bg-ink-800/60 transition-colors group select-none"
+                    title="To'liq ma'lumotni ko'rish va tahrirlash uchun bosing"
+                  >
+                    <td className="py-3.5 px-4 text-center text-fg-subtle font-mono text-[12px] tabular-nums">
                       {idx + 1}
                     </td>
-                    <td className="py-3 px-3.5 font-bold text-fg">
-                      <div className="flex items-center gap-2.5">
-                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-emerald-500/15 text-[11px] font-bold text-emerald-400">
-                          {s.fish.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase()}
+                    <td className="py-3.5 px-4 font-bold text-fg">
+                      <div className="flex items-center gap-3">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald/20 to-sky/20 text-[11.5px] font-bold text-emerald-400 group-hover:from-emerald/30 group-hover:to-sky/30 transition-colors">
+                          {s.fish.split(' ').filter(Boolean).map((p) => p[0]).join('').slice(0, 2).toUpperCase()}
                         </span>
-                        <div>
-                          <div className="truncate max-w-[220px]">{s.fish}</div>
-                          <div className="text-[11px] font-normal text-fg-subtle">
-                            {s.dob ? `Tug'ilgan: ${s.dob}` : `ID: ${s.id}`}
+                        <div className="min-w-0">
+                          <div className="truncate font-bold text-[13.5px] text-fg group-hover:text-emerald-300 transition-colors">
+                            {s.fish}
+                          </div>
+                          <div className="text-[11px] font-normal text-fg-subtle truncate max-w-[280px]">
+                            {s.kategoriya || s.ish_turi || 'Texnikum xodimi'}
+                            {s.bolim ? ` · ${s.bolim}` : ''}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-3.5">
-                      <div className="font-semibold text-fg-muted">{s.lavozim}</div>
-                      <div className="text-[11px] text-fg-subtle">
-                        {s.kategoriya || s.ish_turi || "ShTAT"}
-                      </div>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-fg-muted text-[13px]">{s.lavozim || '—'}</div>
                     </td>
-                    <td className="py-3 px-3.5 mono text-[12px]">
+                    <td className="py-3.5 px-4 mono text-[12.5px]">
                       {s.tel ? (
                         <a
                           href={`tel:${s.tel.replace(/\s/g, '')}`}
-                          className="flex items-center gap-1.5 text-sky-soft hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1.5 text-sky-soft hover:underline font-mono"
+                          title="Qo'ng'iroq qilish"
                         >
-                          <Phone size={12} />
+                          <Phone size={13} className="text-sky-400 shrink-0" />
                           <span>{cleanStaffPhone(s.tel)}</span>
                         </a>
                       ) : (
                         <span className="text-fg-subtle">—</span>
                       )}
                     </td>
-                    <td className="py-3 px-3.5">
-                      <div className="font-mono text-[12px] font-semibold text-fg">
-                        {s.pv || '—'}
-                      </div>
-                      <div className="font-mono text-[11px] text-fg-subtle">
-                        {s.pinfl || ''}
-                      </div>
-                    </td>
-                    <td className="py-3 px-3.5">
-                      <div className="text-[12px] text-fg-muted truncate max-w-[200px]" title={s.mutaxassislik || ''}>
-                        {s.mutaxassislik || '—'}
-                      </div>
-                      <div className="text-[11px] text-fg-subtle truncate max-w-[200px]" title={s.tamomlagan_otm || ''}>
-                        {s.tamomlagan_otm || ''}
-                      </div>
-                    </td>
-                    <td className="py-3 px-3.5 font-mono text-[11.5px] text-fg-muted">
-                      {s.buyruq_sana || s.ishga_sana || '—'}
-                    </td>
-                    <td className="py-3 px-3.5">
-                      <span
-                        className={cx(
-                          'chip text-[11px] px-2 py-0.5 rounded-md font-semibold',
-                          s.status === 'tatilda'
-                            ? 'border-amber/40 bg-amber/10 text-amber'
-                            : s.status === 'boshatilgan'
-                              ? 'border-rose/40 bg-rose/10 text-rose'
-                              : 'border-emerald/40 bg-emerald/10 text-emerald-soft'
-                        )}
-                      >
-                        {s.status === 'tatilda' ? "Ta'tilda" : s.status === 'boshatilgan' ? "Bo'shatilgan" : 'Faol'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
-                          className="grid size-7 place-items-center rounded-lg text-fg-muted hover:bg-ink-700 hover:text-fg"
+                          className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-ink-700 hover:text-fg transition-colors"
                           onClick={() => { setEditMember(s); setModalOpen(true) }}
-                          title="Tahrirlash"
+                          title="Batafsil ko'rish va tahrirlash"
                         >
-                          <Pencil size={13} />
+                          <Pencil size={14} />
                         </button>
                         <button
                           type="button"
-                          className="grid size-7 place-items-center rounded-lg text-rose hover:bg-rose/15"
+                          className="grid size-8 place-items-center rounded-lg text-rose hover:bg-rose/15 transition-colors"
                           onClick={() => void handleDelete(s.id, s.fish)}
                           title="O'chirish"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -505,6 +480,15 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
             onCloseAdd?.()
           }}
           onSave={handleSave}
+          onDelete={handleDelete}
+          hasPrev={currentStaffIndex > 0}
+          hasNext={currentStaffIndex >= 0 && currentStaffIndex < filtered.length - 1}
+          onNav={(dir) => {
+            const nextIdx = currentStaffIndex + dir
+            if (nextIdx >= 0 && nextIdx < filtered.length) {
+              setEditMember(filtered[nextIdx])
+            }
+          }}
         />
       )}
 
