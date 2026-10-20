@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-20 10:39:25",
+  "updated_at": "2026-10-20 10:40:16",
   "total_students": 565,
   "students": [
     {
@@ -2078,7 +2078,7 @@
       "name_match": "",
       "name_flag": "",
       "verified": "KUTILMOQDA",
-      "baza": "KIRITILDI",
+      "baza": "KIRITILMAGAN",
       "buyruq": "",
       "buyruq_sana": ""
     },
