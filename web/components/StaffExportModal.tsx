@@ -32,12 +32,18 @@ const AVAILABLE_COLUMNS: ColumnDef[] = [
   { id: 'tugilgan_joy', label: "Tug'ilgan joyi", defaultChecked: true, width: 30, align: 'left' },
   { id: 'pv', label: 'Pasport seriya va raqami', defaultChecked: true, width: 16, align: 'center' },
   { id: 'pinfl', label: 'JSHSHIR (PINFL)', defaultChecked: true, width: 18, align: 'center' },
+  { id: 'inn', label: 'INN (STIR)', defaultChecked: true, width: 15, align: 'center' },
+  { id: 'plastik_karta', label: 'Plastik karta raqami', defaultChecked: true, width: 22, align: 'center' },
+  { id: 'plastik_muddati', label: 'Karta muddati', defaultChecked: false, width: 14, align: 'center' },
+  { id: 'toifasi', label: 'Pedagogik toifasi', defaultChecked: true, width: 18, align: 'center' },
+  { id: 'ilmiy_unvoni', label: 'Ilmiy unvoni', defaultChecked: false, width: 18, align: 'center' },
   { id: 'tamomlagan_otm', label: "Tamomlagan OTM / Muassasa", defaultChecked: true, width: 34, align: 'left' },
   { id: 'otm_tamom_yili', label: 'OTM tamomlagan yili', defaultChecked: true, width: 16, align: 'center' },
   { id: 'mutaxassislik', label: "Diplom bo'yicha mutaxassisligi", defaultChecked: true, width: 28, align: 'left' },
   { id: 'buyruq_sana', label: 'Ishga kirgan buyruq sanasi', defaultChecked: true, width: 18, align: 'center' },
   { id: 'yashash_joyi', label: 'Doimiy yashash manzili', defaultChecked: false, width: 30, align: 'left' },
   { id: 'pasport_berilgan_joy', label: 'Pasport berilgan joyi', defaultChecked: false, width: 26, align: 'left' },
+  { id: 'obektivka_file', label: 'Obektivka hujjati', defaultChecked: false, width: 22, align: 'left' },
   { id: 'stavka', label: 'Stavka', defaultChecked: false, width: 10, align: 'center' },
   { id: 'maosh', label: 'Oylik maosh', defaultChecked: false, width: 16, align: 'right' },
   { id: 'status', label: 'Holati (Faol / Ta\'tilda)', defaultChecked: false, width: 14, align: 'center' },
@@ -159,6 +165,18 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
             return s.pv || ''
           case 'pinfl':
             return s.pinfl || ''
+          case 'inn':
+            return s.inn || ''
+          case 'plastik_karta':
+            return s.plastik_karta || ''
+          case 'plastik_muddati':
+            return s.plastik_muddati || ''
+          case 'toifasi':
+            return s.toifasi || ''
+          case 'ilmiy_unvoni':
+            return s.ilmiy_unvoni || ''
+          case 'obektivka_file':
+            return s.obektivka_file || ''
           case 'tamomlagan_otm':
             return s.tamomlagan_otm || ''
           case 'otm_tamom_yili':

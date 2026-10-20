@@ -36,7 +36,7 @@ function readPrefs(): { filters: Filters; mode: DisplayMode; view: View } | null
   return null
 }
 
-export default function Portal() {
+export default function Portal({ initialTab = 'students' }: { initialTab?: 'students' | 'staff' } = {}) {
   const data = useStudents()
   const { toasts, notify } = useToasts()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -50,7 +50,35 @@ export default function Portal() {
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [mainTab, setMainTab] = useState<'students' | 'staff'>('students')
+  const [mainTab, setMainTab] = useState<'students' | 'staff'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.includes('/xodimlar')) return 'staff'
+      if (window.location.pathname.includes('/talabalar')) return 'students'
+    }
+    return initialTab
+  })
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname.includes('/xodimlar')) {
+        setMainTab('staff')
+      } else if (window.location.pathname.includes('/talabalar')) {
+        setMainTab('students')
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  const handleTabChange = useCallback((tab: 'students' | 'staff') => {
+    setMainTab(tab)
+    if (typeof window !== 'undefined') {
+      const targetPath = tab === 'staff' ? '/xodimlar' : '/talabalar'
+      if (window.location.pathname !== targetPath) {
+        window.history.pushState(null, '', targetPath)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     fetch('/api/groups', { cache: 'no-store' })
@@ -199,7 +227,7 @@ export default function Portal() {
         onOpenSettings={() => setSettingsOpen(true)}
         notify={notify}
         activeTab={mainTab}
-        onTabChange={setMainTab}
+        onTabChange={handleTabChange}
       />
 
       <main className="mx-auto max-w-[1680px] space-y-5 px-4 py-5 sm:px-6">

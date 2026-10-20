@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { Archive, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users } from 'lucide-react'
 import { exportRole, ROLE_META, sendRoleToTelegram, type Role } from '@/lib/excel'
 import type { Student } from '@/lib/types'
@@ -438,9 +439,14 @@ export default function Header({
         {/* Asosiy bo'limlar almashgichi (Tab) */}
         {onTabChange && (
           <div className="flex items-center rounded-xl border border-line bg-ink-900/90 p-1 shadow-inner">
-            <button
-              type="button"
-              onClick={() => onTabChange('students')}
+            <Link
+              href="/talabalar"
+              onClick={(e) => {
+                if (onTabChange) {
+                  e.preventDefault()
+                  onTabChange('students')
+                }
+              }}
               className={cx(
                 'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-bold transition select-none',
                 activeTab === 'students'
@@ -450,10 +456,15 @@ export default function Header({
             >
               <GraduationCap size={15} />
               <span>Talabalar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => onTabChange('staff')}
+            </Link>
+            <Link
+              href="/xodimlar"
+              onClick={(e) => {
+                if (onTabChange) {
+                  e.preventDefault()
+                  onTabChange('staff')
+                }
+              }}
               className={cx(
                 'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-bold transition select-none',
                 activeTab === 'staff'
@@ -463,7 +474,7 @@ export default function Header({
             >
               <Users size={15} />
               <span>Xodimlar</span>
-            </button>
+            </Link>
           </div>
         )}
 

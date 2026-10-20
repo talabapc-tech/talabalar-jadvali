@@ -1,5 +1,5 @@
-import Portal from '@/components/Portal'
+import { redirect } from 'next/navigation'
 
 export default function Page() {
-  return <Portal />
+  redirect('/talabalar')
 }

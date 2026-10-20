@@ -9,6 +9,12 @@ export interface StaffMember {
   tel?: string
   pinfl?: string
   pv?: string
+  inn?: string
+  plastik_karta?: string
+  plastik_muddati?: string
+  toifasi?: string
+  ilmiy_unvoni?: string
+  obektivka_file?: string
   dob?: string
   tugilgan_joy?: string
   tamomlagan_otm?: string
