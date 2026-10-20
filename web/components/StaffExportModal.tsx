@@ -198,22 +198,80 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
     })
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-
-    // Sarlavha stillari
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: 0, c })]
-      if (cell) {
-        cell.s = {
-          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10, name: 'Calibri' },
-          fill: { fgColor: { rgb: '107C41' } },
-          alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
+
+    // Ko'k rangli sarlavha va barcha kataklar uchun aniq jadval chiziqlari (borders)
+    const headerFill = { fgColor: { rgb: '1F4E79' }, patternType: 'solid' } // Royal Navy Blue
+    const headerBorder = {
+      top: { style: 'medium', color: { rgb: '14324F' } },
+      bottom: { style: 'medium', color: { rgb: '14324F' } },
+      left: { style: 'thin', color: { rgb: '8EA9DB' } },
+      right: { style: 'thin', color: { rgb: '8EA9DB' } },
+    }
+    const cellBorder = {
+      top: { style: 'thin', color: { rgb: 'B0C4DE' } },
+      bottom: { style: 'thin', color: { rgb: 'B0C4DE' } },
+      left: { style: 'thin', color: { rgb: 'B0C4DE' } },
+      right: { style: 'thin', color: { rgb: 'B0C4DE' } },
+    }
+
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      const isHeader = r === 0
+      const isAltRow = r % 2 === 0
+
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const addr = XLSX.utils.encode_cell({ r, c })
+        const cell = ws[addr]
+        if (!cell) continue
+
+        const colDef = cols[c]
+        const align = colDef?.align || 'left'
+
+        if (isHeader) {
+          cell.s = {
+            font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11, name: 'Calibri' },
+            fill: headerFill,
+            alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
+            border: headerBorder,
+          }
+        } else {
+          // JSHSHIR, telefon va pasportni matn sifatida saqlash (eksponensial 3.12E+13 ga aylanib ketmasligi uchun)
+          if (colDef?.id === 'pinfl' || colDef?.id === 'tel' || colDef?.id === 'pv' || colDef?.id === 'inn') {
+            cell.t = 's'
+          } else if (colDef?.id === 'num' && typeof cell.v === 'number') {
+            cell.t = 'n'
+          }
+
+          cell.s = {
+            font: {
+              sz: 10.5,
+              name: 'Calibri',
+              bold: colDef?.id === 'fish' || colDef?.id === 'num',
+              color: { rgb: colDef?.id === 'num' ? '334155' : '0F172A' },
+            },
+            fill: {
+              fgColor: { rgb: isAltRow ? 'F4F8FC' : 'FFFFFF' },
+              patternType: 'solid',
+            },
+            alignment: {
+              vertical: 'center',
+              horizontal: align,
+              wrapText: false,
+            },
+            border: cellBorder,
+          }
         }
       }
     }
 
+    // Qator balandliklari (Header kengroq, ma'lumot qatorlari chiroyli bo'shliq bilan)
+    ws['!rows'] = [
+      { hpt: 30 },
+      ...filteredStaff.map(() => ({ hpt: 22 })),
+    ]
+
     // Ustun kengliklari
-    ws['!cols'] = cols.map((c) => ({ wch: c.width }))
+    ws['!cols'] = cols.map((c) => ({ wch: Math.max(c.width + 2, 10) }))
 
     const wb = XLSX.utils.book_new()
     const sheetName = selectedCat.replace(/[\\/?*[\]]/g, ' ').slice(0, 31) || 'Xodimlar'

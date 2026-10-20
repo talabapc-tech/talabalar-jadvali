@@ -1,9 +1,9 @@
 {
-  "version": "2.0.423",
-  "build": 423,
-  "commit": "e2e0de4",
-  "commitDate": "2026-10-20T12:34:25+05:00",
-  "lastPushDate": "2026-10-20T12:34:25+05:00",
-  "commitMessage": "feat(staff): simplify staff table to No, FISH, Lavozimi, Telefon with full-row click modal and previous/next navigation",
-  "generatedAt": "2026-10-20T07:53:27.324Z"
+  "version": "2.0.424",
+  "build": 424,
+  "commit": "6c4ac69",
+  "commitDate": "2026-10-20T12:53:53+05:00",
+  "lastPushDate": "2026-10-20T12:53:53+05:00",
+  "commitMessage": "feat(staff): separate staff view mode and edit mode with pencil button, exactly like students",
+  "generatedAt": "2026-10-20T08:42:44.488Z"
 }

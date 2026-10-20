@@ -388,14 +388,15 @@ def export_custom_excel(records, filename_no_underscore, title, selected_columns
 
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(cols_to_use))
     title_cell = ws.cell(1, 1, f"SHAHRISABZ TIBBIYOT TEXNIKUMI — {title.upper()}")
-    title_cell.font = Font(name='Arial', size=13, bold=True, color='107C41')
+    title_cell.font = Font(name='Arial', size=13, bold=True, color='1F4E79')
     title_cell.alignment = Alignment(horizontal='center', vertical='center')
     ws.row_dimensions[1].height = 28
 
-    header_fill = PatternFill(start_color='107C41', end_color='107C41', fill_type='solid')
+    header_fill = PatternFill(start_color='1F4E79', end_color='1F4E79', fill_type='solid')
     header_font = Font(name='Arial', size=10, bold=True, color='FFFFFF')
-    border_side = Side(border_style='thin', color='D9D9D9')
+    border_side = Side(border_style='thin', color='B0C4DE')
     cell_border = Border(left=border_side, right=border_side, top=border_side, bottom=border_side)
+    alt_fill = PatternFill(start_color='F4F8FC', end_color='F4F8FC', fill_type='solid')
     center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
     left_align = Alignment(horizontal='left', vertical='center')
 
@@ -426,6 +427,8 @@ def export_custom_excel(records, filename_no_underscore, title, selected_columns
             cell = ws.cell(r_idx, c_idx, val)
             cell.font = row_font
             cell.border = cell_border
+            if r_idx % 2 == 0:
+                cell.fill = alt_fill
             if col_key in ('num', 'dob', 'pv', 'pinfl', 'inn', 'plastik_karta', 'plastik_muddati', 'otm_tamom_yili', 'buyruq_sana', 'stavka', 'toifasi', 'status'):
                 cell.alignment = center_align
             else:
