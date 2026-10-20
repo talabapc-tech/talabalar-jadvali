@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "type": "baza_student",
+    "data": {
+      "row": 569,
+      "status": "KIRITILMAGAN",
+      "shnum": "",
+      "pinfl": "40307912640022",
+      "ism": "Temirova Yulduzxon"
+    },
+    "id": "chg_1792470690277_b0zg0",
+    "created_at": "2026-10-20T04:31:30.277Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 569,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "40307912640022",
+      "ism": "Temirova Yulduzxon"
+    },
+    "id": "chg_1792470695457_imwwl",
+    "created_at": "2026-10-20T04:31:35.457Z"
+  }
+]
