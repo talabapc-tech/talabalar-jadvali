@@ -147,3 +147,68 @@ export function triggerWebJurnalSyncInBackground(
     console.warn('[WebJurnal Background Sync Exception]', err)
   })
 }
+
+/**
+ * Talabani Web Jurnalda "Talabalar safidan chiqarilganlar" (ID: 18) guruhiga o'tkazish.
+ * MUHIM: Web Jurnalda talabaning barcha baholari va davomatlari to'liq saqlanib qoladi!
+ */
+export async function withdrawStudentFromWebJurnal(
+  fullName: string,
+  reason?: string
+): Promise<WebJurnalSyncResult> {
+  const cleanName = String(fullName || '').trim()
+  if (!cleanName) {
+    return { ok: false, error: "Talaba F.I.O si bo'sh" }
+  }
+
+  const { url, apiKey } = getWebJurnalConfig()
+
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        action: 'withdraw',
+        students: [cleanName],
+        reason: reason || 'Boshqaruv bazasidan chiqarildi',
+      }),
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+
+    clearTimeout(timeout)
+    const data = await res.json().catch(() => null)
+
+    if (!res.ok) {
+      const errMsg = data?.error || data?.message || `Server ${res.status} qaytardi`
+      console.warn(`[WebJurnal Withdraw] Xato (${res.status}): ${errMsg} (Talaba: ${cleanName})`)
+      return { ok: false, error: errMsg }
+    }
+
+    console.log(`[WebJurnal Withdraw] ✅ Muvaffaqiyatli safdan chiqarildi: ${cleanName}`)
+    return { ok: true, ...(data || {}) }
+  } catch (err) {
+    const msg = (err as Error).message || String(err)
+    console.warn(`[WebJurnal Withdraw] Tarmoq xatosi: ${msg} (Talaba: ${cleanName})`)
+    return { ok: false, error: msg }
+  }
+}
+
+/**
+ * Orqa fonda safdan chiqarish chaqirig'i (asosiy jarayonni to'xtatmaydi)
+ */
+export function triggerWebJurnalWithdrawInBackground(
+  fullName: string,
+  reason?: string
+): void {
+  void withdrawStudentFromWebJurnal(fullName, reason).catch((err) => {
+    console.warn('[WebJurnal Background Withdraw Exception]', err)
+  })
+}
+

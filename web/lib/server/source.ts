@@ -2,11 +2,11 @@ import 'server-only'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { applyGroupSettings, DEFAULT_GROUP_SETTINGS, sanitizeGroupSettings, SECRET_GROUP, type GroupSettings } from '@/lib/config'
-import { buildAddedStudent, fullName, isLeftGroup, lastMoveInto, normalizeShnum } from '@/lib/student'
+import { buildAddedStudent, fullName, isLeftGroup, lastMoveInto, normalizeShnum, isWithdrawn, isOfficialGroup } from '@/lib/student'
 import type { Change, EditFields, GroupMove, Student } from '@/lib/types'
 import type { StaffMember } from '@/lib/staff'
 import { getServiceSupabase } from '@/lib/supabase'
-import { syncStudentsToWebJurnal } from '@/lib/server/webjurnal'
+import { syncStudentsToWebJurnal, withdrawStudentFromWebJurnal } from '@/lib/server/webjurnal'
 
 /*
   Ma'lumot ikki xil yo'l bilan o'qiladi/yoziladi:
@@ -692,7 +692,7 @@ export async function sendChange(incoming: Change): Promise<void> {
     invalidateCache()
   }
 
-  // ── Web Jurnal webhook: yangi talaba muvaffaqiyatli saqlangach, Web Jurnalga avtomatik yuborish ──
+  // ── Web Jurnal avtomatik sinxronlash (qo'shish, safdan chiqarish, o'chirish) ──
   if (change.type === 'add_student') {
     const d = change.data
     const groupName = String(d.group || '26-02').trim()
@@ -702,6 +702,44 @@ export async function sendChange(incoming: Change): Promise<void> {
         await syncStudentsToWebJurnal(groupName, [studentName])
       } catch (syncErr) {
         console.warn('[WebJurnal Auto-Sync Error]', syncErr)
+      }
+    }
+  } else if (change.type === 'delete_student') {
+    const d = change.data
+    const studentName = String(d.fish || d.ism || '').trim()
+    if (studentName) {
+      try {
+        await withdrawStudentFromWebJurnal(studentName, "Talabalar bazasidan o'chirib yuborilgan")
+      } catch (withdrawErr) {
+        console.warn('[WebJurnal Auto-Withdraw Error]', withdrawErr)
+      }
+    }
+  } else if (change.type === 'update_student') {
+    const d = change.data
+    const fields = d.fields || {}
+    if (fields.group) {
+      const nextGroup = String(fields.group).trim()
+      const studentName = String(d.ism || '').trim()
+      if (isWithdrawn(nextGroup) || nextGroup.toLowerCase().includes('chiqaril')) {
+        try {
+          let fullStudentName = studentName
+          const cur = (await loadStudents()).find((s) => s.row === d.row)
+          if (cur?.fish) fullStudentName = cur.fish.trim()
+          await withdrawStudentFromWebJurnal(fullStudentName, `Talabalar safidan chiqarildi (${fields.buyruq || ''})`)
+        } catch (withdrawErr) {
+          console.warn('[WebJurnal Auto-Withdraw Error]', withdrawErr)
+        }
+      } else if (isOfficialGroup(nextGroup)) {
+        let fullStudentName = studentName
+        const cur = (await loadStudents()).find((s) => s.row === d.row)
+        if (cur?.fish) fullStudentName = cur.fish.trim()
+        if (fullStudentName) {
+          try {
+            await syncStudentsToWebJurnal(nextGroup, [fullStudentName])
+          } catch (syncErr) {
+            console.warn('[WebJurnal Auto-Sync Error]', syncErr)
+          }
+        }
       }
     }
   }

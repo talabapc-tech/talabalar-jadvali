@@ -1,9 +1,9 @@
 {
-  "version": "2.0.429",
-  "build": 429,
-  "commit": "fafb34f",
-  "commitDate": "2026-10-21T09:47:32+05:00",
-  "lastPushDate": "2026-10-21T09:47:32+05:00",
-  "commitMessage": "fix(kontingent): 5-variant uchun | belgilari 100% tekis qilindi va qolgan barcha ko'p varaqli guruh hisobotlari dinamiklashtirildi",
-  "generatedAt": "2026-10-21T04:57:19.230Z"
+  "version": "2.0.430",
+  "build": 430,
+  "commit": "89ff0a5",
+  "commitDate": "2026-10-21T09:58:11+05:00",
+  "lastPushDate": "2026-10-21T09:58:11+05:00",
+  "commitMessage": "fix(kontingent): 5-variant tekis ustunlar va qator sig'imi, webhook va avto-cronda bir xil ko'rinish",
+  "generatedAt": "2026-10-21T10:30:56.422Z"
 }
