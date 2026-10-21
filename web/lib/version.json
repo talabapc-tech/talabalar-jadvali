@@ -1,9 +1,9 @@
 {
-  "version": "2.0.426",
-  "build": 426,
-  "commit": "2e78169",
-  "commitDate": "2026-10-21T08:59:00+05:00",
-  "lastPushDate": "2026-10-21T08:59:00+05:00",
-  "commitMessage": "Auto: talaba ma'lumotlari yangilandi (2026-10-21 08:59:00)",
-  "generatedAt": "2026-10-21T04:39:38.580Z"
+  "version": "2.0.427",
+  "build": 427,
+  "commit": "58de7db",
+  "commitDate": "2026-10-21T09:40:14+05:00",
+  "lastPushDate": "2026-10-21T09:40:14+05:00",
+  "commitMessage": "fix(kontingent): 20 ta guruh hisobi, 10 xil format va 5-variant (Daraxtsimon) birlamchi qilindi",
+  "generatedAt": "2026-10-21T04:41:59.551Z"
 }

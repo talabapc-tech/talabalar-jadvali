@@ -615,7 +615,8 @@ def load_backup_config():
     allowed = {x.strip() for x in re.split(r'[\s,;]+', allowed_raw or '') if x.strip()}
     if chat_id:
         allowed.add(chat_id)
-    return {'token': token, 'chat_id': chat_id, 'channel_id': channel_id, 'allowed_ids': allowed}
+    report_variant = int(cfg.get('report_variant', 5)) if 'cfg' in locals() and cfg else 5
+    return {'token': token, 'chat_id': chat_id, 'channel_id': channel_id, 'allowed_ids': allowed, 'report_variant': report_variant}
 
 
 def send_group_lists_to_telegram(target='channel', group_filter=None):
@@ -1435,7 +1436,8 @@ def format_kontingent_variant(v_num, reason="So'rov bo'yicha"):
                 n = len([s for s in sts if str(s.get('group') or '').strip() == g])
                 m = d['meta'].get(g, {})
                 char = "└─" if (i == len(grs) - 1) else "├─"
-                lines.append(f"│  {char} <b>{g}</b>: {n} nafar │ {m.get('rahbar','—')}")
+                n_str = (" " * (2 - len(str(n)))) + str(n) if len(str(n)) < 2 else str(n)
+                lines.append(f"│  {char} <b>{g}</b>: {n_str} nafar │ {m.get('rahbar','—')}")
             lines.append("└─────────────────────────────")
         if d['bdays']:
             for b in d['bdays']: lines.append(f"🎉 <b>Tug'ilgan kun:</b> {b.get('fish','')} ({b.get('group','')})")

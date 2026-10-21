@@ -226,7 +226,8 @@ def variant_5(d):
             m = d['meta'].get(g, {})
             is_last = (i == len(grs) - 1)
             char = "└─" if is_last else "├─"
-            lines.append(f"│  {char} <b>{g}</b>: {n} nafar │ {m.get('rahbar','—')}")
+            n_str = (" " * (2 - len(str(n)))) + str(n) if len(str(n)) < 2 else str(n)
+            lines.append(f"│  {char} <b>{g}</b>: {n_str} nafar │ {m.get('rahbar','—')}")
         lines.append("└─────────────────────────────")
 
     if d['bdays']:

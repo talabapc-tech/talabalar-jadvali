@@ -154,7 +154,9 @@ async function kontingentText(reason: string) {
     kGr.forEach((g, i) => {
       const n = students.filter((s) => String(s.group || '').trim() === g).length
       const char = i === kGr.length - 1 ? '└─' : '├─'
-      lines.push(`│  ${char} <b>${esc(g)}</b>: ${n} nafar │ ${esc(GROUP_LEADERS[g] || '—')}`)
+      const nStr = String(n)
+      const nPadded = (nStr.length < 2 ? '\u2007'.repeat(2 - nStr.length) : '') + nStr
+      lines.push(`│  ${char} <b>${esc(g)}</b>: ${nPadded} nafar │ ${esc(GROUP_LEADERS[g] || '—')}`)
     })
     lines.push('└─────────────────────────────')
   })
