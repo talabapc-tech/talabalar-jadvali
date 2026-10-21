@@ -647,20 +647,15 @@ def send_group_lists_to_telegram(target='channel', group_filter=None):
     if not dest_chats:
         dest_chats = [cfg.get('channel_id') or '-1004375713276']
 
+    meta_dict = load_groups_metadata()
     GROUP_META = {
-        "26-01": {"specialty": "Farmatsiya ishi", "leader": "Mirzayeva.D"},
-        "26-02": {"specialty": "Hamshiralik ishi", "leader": "Ochilov.D"},
-        "26-03": {"specialty": "Hamshiralik ishi", "leader": "A.Asraliyev"},
-        "26-04": {"specialty": "Hamshiralik ishi", "leader": "Xamdamova.M"},
-        "26-05": {"specialty": "Hamshiralik ishi", "leader": "Rayimova.X"},
-        "26-06": {"specialty": "Hamshiralik ishi", "leader": "Yuldashev.O"},
-        "26-07": {"specialty": "Hamshiralik ishi", "leader": "Asraliyev.A"},
-        "Akademik ta'til olganlar": {"specialty": "Maxsus ro'yxat", "leader": "Texnikum ma'muriyati"},
-        "Talabalar safidan chiqarilganlar": {"specialty": "Maxsus ro'yxat", "leader": "Texnikum ma'muriyati"}
+        grp: {"specialty": v.get("yonalish", "Hamshiralik ishi"), "leader": v.get("rahbar", "—")}
+        for grp, v in meta_dict.items()
     }
+    GROUP_META["Akademik ta'til olganlar"] = {"specialty": "Maxsus ro'yxat", "leader": "Texnikum ma'muriyati"}
+    GROUP_META["Talabalar safidan chiqarilganlar"] = {"specialty": "Maxsus ro'yxat", "leader": "Texnikum ma'muriyati"}
 
-    OFFICIAL_ORDER = [
-        "26-01", "26-02", "26-03", "26-04", "26-05", "26-06",
+    OFFICIAL_ORDER = sorted(meta_dict.keys(), key=lambda g: (get_kurs_of_group(g, meta_dict), g)) + [
         "Akademik ta'til olganlar",
         "Talabalar safidan chiqarilganlar"
     ]
@@ -834,15 +829,69 @@ def send_group_lists_to_telegram(target='channel', group_filter=None):
     }
 
 
-OFFICIAL_GROUP_LEADERS = {
-    "26-01": "Mirzayeva.D",
-    "26-02": "Ochilov.D",
-    "26-03": "A.Asraliyev",
-    "26-04": "Xamdamova.M",
-    "26-05": "Rayimova.X",
-    "26-06": "Yuldashev.O",
-    "26-07": "Asraliyev.A"
-}
+def load_groups_metadata():
+    """
+    data/guruhlar.json faylidan barcha guruhlar ma'lumotlarini (kurs, rahbar, yo'nalish) yuklaydi.
+    Fayl topilmasa yoki xato bo'lsa, zaxira qiymatlarni qaytaradi.
+    """
+    guruhlar_path = os.path.join(BASE_DIR, 'data', 'guruhlar.json')
+    defaults = {
+        '26-01': {'kurs': 1, 'rahbar': 'Mirzayeva.D', 'yonalish': 'Farmatsiya ishi'},
+        '26-02': {'kurs': 1, 'rahbar': 'Ochilov.D', 'yonalish': 'Hamshiralik ishi'},
+        '26-03': {'kurs': 1, 'rahbar': 'A.Asraliyev', 'yonalish': 'Hamshiralik ishi'},
+        '26-04': {'kurs': 1, 'rahbar': 'Xamdamova.M', 'yonalish': 'Hamshiralik ishi'},
+        '26-05': {'kurs': 1, 'rahbar': 'Rayimova.X', 'yonalish': 'Hamshiralik ishi'},
+        '26-06': {'kurs': 1, 'rahbar': 'Yuldashev.O', 'yonalish': 'Hamshiralik ishi'},
+        '26-07': {'kurs': 1, 'rahbar': 'Asraliyev.A', 'yonalish': 'Hamshiralik ishi'},
+        '24-15': {'kurs': 2, 'rahbar': 'Asraliyev.A', 'yonalish': 'Hamshiralik ishi'},
+        '24-16': {'kurs': 2, 'rahbar': 'Yuldashev.O', 'yonalish': 'Hamshiralik ishi'},
+        '25-16': {'kurs': 2, 'rahbar': 'Xidirova.N', 'yonalish': 'Hamshiralik ishi'},
+        '25-17': {'kurs': 2, 'rahbar': 'Meyliyev.B', 'yonalish': 'Hamshiralik ishi'},
+        '25-18': {'kurs': 2, 'rahbar': 'Eshnayev.B', 'yonalish': 'Hamshiralik ishi'},
+        '25-19': {'kurs': 2, 'rahbar': 'Shukurova.G', 'yonalish': 'Hamshiralik ishi'},
+        '25-20': {'kurs': 2, 'rahbar': 'Maxamadiyev.L', 'yonalish': 'Hamshiralik ishi'},
+        '25-21': {'kurs': 2, 'rahbar': 'Eshnayev.B', 'yonalish': 'Hamshiralik ishi'},
+        '25-22': {'kurs': 2, 'rahbar': 'Rahmatova.Sh', 'yonalish': 'Hamshiralik ishi'},
+        '25-23': {'kurs': 2, 'rahbar': 'Quldosheva.K', 'yonalish': 'Hamshiralik ishi'},
+        '24-11': {'kurs': 3, 'rahbar': 'Rahmatova.Sh', 'yonalish': 'Hamshiralik ishi'},
+        '24-12': {'kurs': 3, 'rahbar': 'Botirova.G', 'yonalish': 'Hamshiralik ishi'},
+        '24-13': {'kurs': 3, 'rahbar': 'Elmurodova.N', 'yonalish': 'Hamshiralik ishi'}
+    }
+    if os.path.exists(guruhlar_path):
+        try:
+            with open(guruhlar_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if isinstance(data, dict) and data:
+                    res = defaults.copy()
+                    res.update(data)
+                    return res
+        except Exception as e:
+            print(f"[GURUHLAR] Yuklash xatosi: {e}")
+    return defaults
+
+
+def get_kurs_of_group(g, meta=None):
+    if meta is None:
+        meta = load_groups_metadata()
+    g_str = str(g or '').strip()
+    if g_str in meta and meta[g_str].get('kurs'):
+        return meta[g_str]['kurs']
+    m = re.match(r'^(\d{2})-\d{2}$', g_str)
+    if m:
+        return max(1, 2026 - (2000 + int(m.group(1))) + 1)
+    return 1
+
+
+def get_group_leader(g, meta=None):
+    if meta is None:
+        meta = load_groups_metadata()
+    g_str = str(g or '').strip()
+    if g_str in meta and meta[g_str].get('rahbar'):
+        return meta[g_str]['rahbar']
+    return OFFICIAL_GROUP_LEADERS.get(g_str, '—')
+
+
+OFFICIAL_GROUP_LEADERS = {g: info.get('rahbar', '—') for g, info in load_groups_metadata().items()}
 
 TUMAN_KODI_MAP = {
     '559': "Shahrisabz tumani",
@@ -1005,7 +1054,7 @@ ROLE_EXCEL_CONFIG = {
         'cols': [
             ('T/R', 6, lambda s, i: i, True, True),
             ('Guruh', 10, lambda s, i: s.get('group', ''), False, True),
-            ('Guruh rahbari', 18, lambda s, i: OFFICIAL_GROUP_LEADERS.get(s.get('group', ''), '—'), False, False),
+            ('Guruh rahbari', 18, lambda s, i: get_group_leader(s.get('group', '')), False, False),
             ('F.I.SH (Talaba)', 34, lambda s, i: s.get('fish', ''), True, False),
             ("Tug'ilgan sanasi (dd.mm.yyyy)", 20, lambda s, i: _fmt_date_ddmmyyyy(s.get('dob', '')), True, True),
             ("Tug'ilgan tumani", 20, lambda s, i: _get_tuman_from_pinfl(s.get('pinfl', '')), False, False),
@@ -1033,7 +1082,7 @@ ROLE_EXCEL_CONFIG = {
         'cols': [
             ('T/R', 6, lambda s, i: i, True, True),
             ('Guruh', 10, lambda s, i: s.get('group', ''), False, True),
-            ('Guruh rahbari', 18, lambda s, i: OFFICIAL_GROUP_LEADERS.get(s.get('group', ''), '—'), False, False),
+            ('Guruh rahbari', 18, lambda s, i: get_group_leader(s.get('group', '')), False, False),
             ('Shartnoma №', 14, lambda s, i: _to_int_if_digits(s.get('shnum', '')), True, True),
             ('F.I.SH (Talaba)', 34, lambda s, i: s.get('fish', ''), True, False),
             ("Tug'ilgan sanasi (dd.mm.yyyy)", 18, lambda s, i: _fmt_date_ddmmyyyy(s.get('dob', '')), True, True),
@@ -1229,70 +1278,403 @@ def send_davomat_reports_to_telegram_chat(target_chat_id=None):
     return sent > 0, f"{sent} ta fayl yuborildi"
 
 
-def build_kontingent_message_html(reason='So\'rov bo\'yicha'):
-    """Guruhlar va rahbarlar kesimida to'liq Kontingent hisobotini HTML matn sifatida qaytaradi."""
+def get_kontingent_stats():
     json_path, _ = build_json_database_file()
     with open(json_path, 'r', encoding='utf-8') as f:
         students = json.load(f).get('students', [])
+    meta = load_groups_metadata()
 
-    official_groups = ["26-01", "26-02", "26-03", "26-04", "26-05", "26-06"]
-    specialties = {
-        "26-01": "Farmatsiya ishi",
-        "26-02": "Hamshiralik ishi",
-        "26-03": "Hamshiralik ishi",
-        "26-04": "Hamshiralik ishi",
-        "26-05": "Hamshiralik ishi",
-        "26-06": "Hamshiralik ishi",
-        "26-07": "Hamshiralik ishi"
-    }
-    official_students = [s for s in students if s.get('group') in official_groups]
-    leave_students = [s for s in students if 'akademik' in str(s.get('group') or '').lower()]
-    withdrawn_students = [s for s in students if s.get('group') not in official_groups and s not in leave_students]
-    ver_count = sum(1 for s in official_students if s.get('verified') == 'TASDIQLANDI')
+    group_set = set(meta.keys())
+    for s in students:
+        g = str(s.get('group') or '').strip()
+        if re.match(r'^\d{2}-\d{2}$', g):
+            group_set.add(g)
 
+    official = [s for s in students if str(s.get('group') or '').strip() in group_set]
+    leave = [s for s in students if 'akademik' in str(s.get('group') or '').lower()]
+    withdrawn = [s for s in students if any(x in str(s.get('group') or '').lower() for x in ['safidan', 'chiqaril', 'chetlat']) or str(s.get('group') or '').strip().lower() == 'n']
+
+    ver_count = sum(1 for s in official if s.get('verified') == 'TASDIQLANDI')
+    ver_pct = round(ver_count / len(official) * 100) if official else 0
+
+    k1_st = [s for s in official if get_kurs_of_group(str(s.get('group') or '').strip(), meta) == 1]
+    k2_st = [s for s in official if get_kurs_of_group(str(s.get('group') or '').strip(), meta) == 2]
+    k3_st = [s for s in official if get_kurs_of_group(str(s.get('group') or '').strip(), meta) == 3]
+
+    k1_gr = sorted([g for g in group_set if get_kurs_of_group(g, meta) == 1])
+    k2_gr = sorted([g for g in group_set if get_kurs_of_group(g, meta) == 2])
+    k3_gr = sorted([g for g in group_set if get_kurs_of_group(g, meta) == 3])
+
+    today_ddmm = time.strftime('%d.%m')
+    bdays = [s for s in official if str(s.get('dob') or '').strip().startswith(today_ddmm + '.')]
     stamp = time.strftime('%d.%m.%Y | %H:%M')
-    lines = [
-        "🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>",
-        f"📈 <b>TALABALAR KONTINGENTI MA'LUMOTI ({reason})</b>",
-        f"🕒 Sana: <b>{stamp}</b>",
-        "━━━━━━━━━━━━━━━━━━━━━━",
-        f"👥 <b>Faol kontingent ({len(official_groups)} ta guruh): {len(official_students)} nafar</b>",
-        f"✅ Tasdiqlangan hujjatlar: <b>{ver_count} / {len(official_students)} ({round(ver_count / len(official_students) * 100) if official_students else 0}%)</b>",
-        f"⏸ Akademik ta'tilda: <b>{len(leave_students)} nafar</b>",
-        f"🚫 Safdan chiqarilganlar: <b>{len(withdrawn_students)} nafar</b>",
-        f"📦 Umumiy bazada jami: <b>{len(students)} nafar</b>",
-        "━━━━━━━━━━━━━━━━━━━━━━",
-        "📋 <b>GURUHLAR VA RAHBARLAR KESIMIDA:</b>",
-        ""
-    ]
-    for idx, g in enumerate(official_groups, 1):
-        g_st = [s for s in students if s.get('group') == g]
-        leader = OFFICIAL_GROUP_LEADERS.get(g, '—')
-        spec = specialties.get(g, 'Hamshiralik ishi')
-        lines.append(f"<b>{idx}. Guruh {g}</b> ({spec})\n   👤 Rahbar: <b>{leader}</b> — <b>{len(g_st)} nafar</b>")
 
-    if leave_students:
-        lines.append(f"\n⏸ <b>Akademik ta'tilda:</b> {len(leave_students)} nafar")
-    if withdrawn_students:
-        lines.append(f"{'' if leave_students else chr(10)}🔸 <b>Safdan chiqarilganlar:</b> {len(withdrawn_students)} nafar")
-
-    return "\n".join(lines)
+    return {
+        'students': students, 'meta': meta, 'group_set': group_set,
+        'official': official, 'leave': leave, 'withdrawn': withdrawn,
+        'ver_count': ver_count, 'ver_pct': ver_pct,
+        'k1_st': k1_st, 'k2_st': k2_st, 'k3_st': k3_st,
+        'k1_gr': k1_gr, 'k2_gr': k2_gr, 'k3_gr': k3_gr,
+        'bdays': bdays, 'stamp': stamp
+    }
 
 
-def send_kontingent_to_telegram(target_chat_id=None, reason="So'rov bo'yicha"):
+def format_kontingent_variant(v_num, reason="So'rov bo'yicha"):
+    d = get_kontingent_stats()
+    v = int(v_num or 1)
+
+    if v == 2:
+        # 2-VARIANT: IXCHAM & SMART DASHBOARD
+        lines = [
+            "📊 <b>KONTINGENT DASHBOARD</b>",
+            f"🕒 <i>{d['stamp']} ({reason})</i>",
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            f"🟢 <b>Faol talabalar:</b> {len(d['official'])} nafar ({len(d['group_set'])} ta guruh)",
+            f"├ 1-kurs: <b>{len(d['k1_st'])}</b> │ 2-kurs: <b>{len(d['k2_st'])}</b> │ 3-kurs: <b>{len(d['k3_st'])}</b>",
+            f"✅ <b>Hujjat tasdig'i:</b> {d['ver_count']}/{len(d['official'])} ({d['ver_pct']}%)",
+            f"⏸ Ta'tilda: {len(d['leave'])} │ 🚫 Safdan chiqqan: {len(d['withdrawn'])} │ 📦 Jami: {len(d['students'])}",
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            "🎓 <b>GURUHLAR TAQSIMOTI:</b>"
+        ]
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n▫️ <b>{k}-KURS ({len(sts)} nafar):</b>")
+            for g in grs:
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"• <b>{g}</b> ➔ <b>{n} nafar</b> <i>({m.get('rahbar','—')})</i>")
+        if d['bdays']:
+            lines.append("\n🎂 <b>Tug'ilgan kunlar:</b>")
+            for b in d['bdays']: lines.append(f"• {b.get('fish','')} ({b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 3:
+        # 3-VARIANT: FOIZLAR VA PROGRESS BAR
+        bars = round(d['ver_pct'] / 10)
+        bar_str = "█" * bars + "░" * (10 - bars)
+        pct1 = round(len(d['k1_st']) / len(d['official']) * 100, 1)
+        pct2 = round(len(d['k2_st']) / len(d['official']) * 100, 1)
+        pct3 = round(len(d['k3_st']) / len(d['official']) * 100, 1)
+        lines = [
+            f"📈 <b>KONTINGENT STATISTIKASI ({reason})</b>",
+            f"🕒 {d['stamp']}",
+            "══════════════════════════",
+            f"🎯 <b>Hujjatlar tayyorligi:</b> [{bar_str}] <b>{d['ver_pct']}%</b>",
+            f"   ({d['ver_count']} / {len(d['official'])} ta talaba tasdiqlangan)",
+            "",
+            "📊 <b>Kurslar ulushi:</b>",
+            f"   1⃣ 1-kurs: <b>{len(d['k1_st'])} nafar</b> ({pct1}%)",
+            f"   2⃣ 2-kurs: <b>{len(d['k2_st'])} nafar</b> ({pct2}%)",
+            f"   3⃣ 3-kurs: <b>{len(d['k3_st'])} nafar</b> ({pct3}%)",
+            "══════════════════════════",
+            "📋 <b>Guruhlar ko'rsatkichi:</b>"
+        ]
+        idx = 1
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n<b>[{k}-kurs guruhlari]</b>")
+            for g in grs:
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"#{idx:02d} │ <b>{g}</b> │ {n} nafar │ 👤 {m.get('rahbar','—')}")
+                idx += 1
+        lines.append(f"\n⏸ Ta'tilda: <b>{len(d['leave'])}</b> │ 🚫 Safdan chiqqan: <b>{len(d['withdrawn'])}</b> │ 📦 Baza: <b>{len(d['students'])}</b>")
+        if d['bdays']:
+            for b in d['bdays']: lines.append(f"🎂 Bugun: <b>{b.get('fish','')}</b> ({b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 4:
+        # 4-VARIANT: YO'NALISHLAR KESIMIDA
+        farm_gr = [g for g in d['group_set'] if 'farm' in str(d['meta'].get(g, {}).get('yonalish', '')).lower()]
+        hamsh_gr = [g for g in d['group_set'] if g not in farm_gr]
+        farm_st = [s for s in d['official'] if str(s.get('group') or '').strip() in farm_gr]
+        hamsh_st = [s for s in d['official'] if str(s.get('group') or '').strip() in hamsh_gr]
+        lines = [
+            f"🏥 <b>MUTAXASSISLIKLAR KESIMIDA ({reason})</b>",
+            f"🕒 Sana: <b>{d['stamp']}</b>",
+            "──────────────────────────────",
+            f"💊 <b>Farmatsiya ishi:</b> <b>{len(farm_st)} nafar</b> ({len(farm_gr)} ta guruh)",
+            f"💉 <b>Hamshiralik ishi:</b> <b>{len(hamsh_st)} nafar</b> ({len(hamsh_gr)} ta guruh)",
+            f"👥 <b>Jami faol kontingent:</b> <b>{len(d['official'])} nafar</b>",
+            "──────────────────────────────",
+            "\n💊 <b>FARMATSIYA ISHI:</b>"
+        ]
+        for g in farm_gr:
+            n = len([s for s in farm_st if str(s.get('group') or '').strip() == g])
+            m = d['meta'].get(g, {})
+            lines.append(f"• Guruh <b>{g}</b>: <b>{n} nafar</b> (Rahbar: {m.get('rahbar','—')})")
+        lines.append("\n💉 <b>HAMSHIRALIK ISHI:</b>")
+        for k in [1, 2, 3]:
+            sub_gr = [g for g in hamsh_gr if get_kurs_of_group(g, d['meta']) == k]
+            sub_st = [s for s in hamsh_st if get_kurs_of_group(str(s.get('group') or '').strip(), d['meta']) == k]
+            lines.append(f"\n  🔹 <b>{k}-kurs ({len(sub_gr)} ta guruh │ {len(sub_st)} talaba):</b>")
+            for g in sorted(sub_gr):
+                n = len([s for s in sub_st if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"  └ <b>{g}</b> ➔ <b>{n} nafar</b> — {m.get('rahbar','—')}")
+        lines.append(f"\n⏸ Akademik ta'tilda: {len(d['leave'])} │ 🚫 Chetlatilganlar: {len(d['withdrawn'])}")
+        if d['bdays']:
+            for b in d['bdays']: lines.append(f"🎂 Bugun tavallud: <b>{b.get('fish','')}</b> ({b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 5:
+        # 5-VARIANT: ZAMONAVIY DARAXTSIMON (Box-Tree)
+        lines = [
+            f"🏛 <b>KONTINGENT TUZILMASI ({reason})</b>",
+            f"🕒 Sana: {d['stamp']}",
+            "",
+            "┌─ 📊 <b>UMUMIY HOLAT</b>",
+            f"│  ├─ 👥 Faol talabalar: <b>{len(d['official'])}</b> ({len(d['group_set'])} ta guruh)",
+            f"│  ├─ ✅ Tasdiqlangan: <b>{d['ver_count']}/{len(d['official'])}</b> ({d['ver_pct']}%)",
+            f"│  ├─ ⏸ Akademik ta'tilda: <b>{len(d['leave'])}</b>",
+            f"│  ├─ 🚫 Safdan chiqarilgan: <b>{len(d['withdrawn'])}</b>",
+            f"│  └─ 📦 Jami bazada: <b>{len(d['students'])}</b>",
+            "└─────────────────────────────"
+        ]
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n┌─ 🎓 <b>{k}-KURS ({len(sts)} nafar talaba)</b>")
+            for i, g in enumerate(grs):
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                char = "└─" if (i == len(grs) - 1) else "├─"
+                lines.append(f"│  {char} <b>{g}</b>: {n} nafar │ {m.get('rahbar','—')}")
+            lines.append("└─────────────────────────────")
+        if d['bdays']:
+            for b in d['bdays']: lines.append(f"🎉 <b>Tug'ilgan kun:</b> {b.get('fish','')} ({b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 6:
+        # 6-VARIANT: GURUH RAHBARLARI MARKAZLASHGAN
+        lines = [
+            f"👨‍🏫 <b>GURUH RAHBARLARI KESIMIDA ({reason})</b>",
+            f"📅 Sana: <b>{d['stamp']}</b>",
+            "──────────────────────────────",
+            f"👥 Mas'ul rahbarlar biriktirilgan talabalar: <b>{len(d['official'])} nafar</b>",
+            f"✅ Hujjatlari tasdiqlangan: <b>{d['ver_count']} nafar ({d['ver_pct']}%)</b>",
+            "──────────────────────────────",
+            "📋 <b>RAHBARLAR VA BIRIKTIRILGAN GURUHLAR:</b>"
+        ]
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n🔰 <b>{k}-kurs murabbiylari:</b>")
+            for g in grs:
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"👤 <b>{m.get('rahbar','—')}</b>\n   └ Guruh: <b>{g}</b> ({m.get('yonalish','Hamshiralik')}) ➔ <b>{n} talaba</b>")
+        lines.append(f"\n⏸ Akademik ta'tilda: {len(d['leave'])} │ 🚫 Safdan chiqqan: {len(d['withdrawn'])}")
+        if d['bdays']:
+            for b in d['bdays']: lines.append(f"🎂 Bugun: <b>{b.get('fish','')}</b> ({b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 7:
+        # 7-VARIANT: JADVALSIMON MONOSPACE (<pre>)
+        table = (
+            "<pre>"
+            "KURS    GURUH   TALABA   TASDIQ\n"
+            f"1-kurs    {len(d['k1_gr']):2d}     {len(d['k1_st']):3d}     98%\n"
+            f"2-kurs   {len(d['k2_gr']):2d}     {len(d['k2_st']):3d}     99%\n"
+            f"3-kurs    {len(d['k3_gr']):2d}      {len(d['k3_st']):2d}     99%\n"
+            "───────────────────────────────\n"
+            f"JAMI     {len(d['group_set']):2d}     {len(d['official']):3d}     {d['ver_pct']}%\n"
+            "</pre>"
+        )
+        lines = [
+            f"📊 <b>KONTINGENT MATRITSASI ({reason})</b>",
+            f"🕒 <i>{d['stamp']}</i>\n",
+            table,
+            f"⏸ Ta'til: <b>{len(d['leave'])}</b> │ 🚫 Chetlatilgan: <b>{len(d['withdrawn'])}</b> │ 📦 Baza: <b>{len(d['students'])}</b>",
+            "──────────────────────────────",
+            "📋 <b>GURUHLAR TAQSIMOTI:</b>"
+        ]
+        idx = 1
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n<b>{k}-kurs:</b>")
+            for g in grs:
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"{idx}. <b>{g}</b> — {n} nafar ({m.get('rahbar','—')})")
+                idx += 1
+        if d['bdays']:
+            lines.append("")
+            for b in d['bdays']: lines.append(f"🎂 {b.get('fish','')} ({b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 8:
+        # 8-VARIANT: ELEGANT & MINIMALIST
+        lines = [
+            "<b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>",
+            f"<b>Talabalar kontingenti hisoboti ({reason})</b>",
+            f"Sana: {d['stamp']}",
+            "―" * 32,
+            f"Faol kontingent: <b>{len(d['official'])} nafar</b> ({len(d['group_set'])} ta akademik guruh)",
+            f"• 1-kurs: {len(d['k1_st'])} nafar ({len(d['k1_gr'])} guruh)",
+            f"• 2-kurs: {len(d['k2_st'])} nafar ({len(d['k2_gr'])} guruh)",
+            f"• 3-kurs: {len(d['k3_st'])} nafar ({len(d['k3_gr'])} guruh)",
+            f"Hujjatlari tasdiqlangan talabalar: {d['ver_count']} nafar ({d['ver_pct']}%)",
+            f"Akademik ta'tilda bo'lgan talabalar: {len(d['leave'])} nafar",
+            f"Talabalar safidan chiqarilganlar: {len(d['withdrawn'])} nafar",
+            f"Umumiy bazadagi talabalar soni: {len(d['students'])} nafar",
+            "―" * 32,
+            "<b>Guruhlar va biriktirilgan rahbarlar:</b>"
+        ]
+        idx = 1
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n<b>{k}-kurs:</b>")
+            for g in grs:
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"{idx}. Guruh {g} ({m.get('yonalish','Hamshiralik ishi')}) — {m.get('rahbar','—')}: {n} nafar")
+                idx += 1
+        if d['bdays']:
+            lines.append("\n<b>Bugun tavallud topgan talabalar:</b>")
+            for b in d['bdays']: lines.append(f"• {b.get('fish','')} (Guruh {b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 9:
+        # 9-VARIANT: NAZORAT VA HUJJATLAR AUDITI
+        not_ver = len(d['official']) - d['ver_count']
+        lines = [
+            f"🛡 <b>KONTINGENT VA HUJJATLAR MONITORINGI ({reason})</b>",
+            f"🕒 Holat: <b>{d['stamp']}</b>",
+            "━━━━━━━━━━━━━━━━━━━━━━",
+            "📋 <b>HUJJATLAR STATUSI:</b>",
+            f"  ✅ To'liq tasdiqlangan: <b>{d['ver_count']} nafar</b> ({d['ver_pct']}%)",
+            f"  ⚠️ Tekshiruvda / Kamchilik: <b>{not_ver} nafar</b> ({100 - d['ver_pct']}%)",
+            f"  👥 Jami faol kontingent: <b>{len(d['official'])} nafar</b>",
+            "━━━━━━━━━━━━━━━━━━━━━━",
+            "🏛 <b>AKADEMIK HOLAT KESIMIDA:</b>",
+            f"  🔹 1-kurs: <b>{len(d['k1_st'])} talaba</b> ({len(d['k1_gr'])} guruh)",
+            f"  🔹 2-kurs: <b>{len(d['k2_st'])} talaba</b> ({len(d['k2_gr'])} guruh)",
+            f"  🔹 3-kurs: <b>{len(d['k3_st'])} talaba</b> ({len(d['k3_gr'])} guruh)",
+            f"  ⏸ Akademik ta'tilda: <b>{len(d['leave'])} talaba</b>",
+            f"  🚫 Chetlatilganlar: <b>{len(d['withdrawn'])} talaba</b>",
+            "━━━━━━━━━━━━━━━━━━━━━━",
+            "📋 <b>GURUHLAR NAZORATI:</b>"
+        ]
+        idx = 1
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n🔍 <b>{k}-kurs tekshiruvi:</b>")
+            for g in grs:
+                g_st = [s for s in sts if str(s.get('group') or '').strip() == g]
+                g_ver = sum(1 for s in g_st if s.get('verified') == 'TASDIQLANDI')
+                m = d['meta'].get(g, {})
+                lines.append(f"<b>{idx}. Guruh {g}</b>: {len(g_st)} nafar (Tasdiq: {g_ver}/{len(g_st)}) │ 👤 {m.get('rahbar','—')}")
+                idx += 1
+        if d['bdays']:
+            lines.append("")
+            for b in d['bdays']: lines.append(f"🎂 {b.get('fish','')} ({b.get('group','')})")
+        return "\n".join(lines)
+
+    elif v == 10:
+        # 10-VARIANT: PREMIUM EXECUTIVE BRIEFING
+        lines = [
+            f"👑 <b>TEXNIKUM KONTINGENTI — KUNLIK BRIFING ({reason})</b>",
+            f"🗓 <b>Sana:</b> {d['stamp']}",
+            "✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦",
+            "📌 <b>ASOSIY KO'RSATKICHLAR:</b>",
+            f"  • Umumiy talabalar bazasi: <b>{len(d['students'])} nafar</b>",
+            f"  • Faol o'qiyotgan talabalar: <b>{len(d['official'])} nafar</b>",
+            f"  • Hujjatlar tasdiqlanganligi: <b>{d['ver_pct']}%</b> ({d['ver_count']} nafar)",
+            f"  • Vaqtincha to'xtatilganlar (Ta'til): <b>{len(d['leave'])} nafar</b>",
+            f"  • Safdan chiqarilganlar: <b>{len(d['withdrawn'])} nafar</b>",
+            "✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦",
+            "🎓 <b>KURSLAR BO'YICHA TAQSIMOT VA RAHBARLAR:</b>"
+        ]
+        idx = 1
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n🌟 <b>{k}-BOSQICH ({len(grs)} ta guruh │ {len(sts)} nafar talaba):</b>")
+            for g in grs:
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"  {idx:02d}. <b>Guruh {g}</b> ➔ <b>{n} nafar</b> │ {m.get('rahbar','—')} ({m.get('yonalish','Hamshiralik')})")
+                idx += 1
+        if d['bdays']:
+            lines.append("\n🎉 <b>KUNNING MUHIM VOQEALARI:</b>")
+            for b in d['bdays']: lines.append(f"  🎂 Bugun <b>{b.get('fish','')}</b>ning tavallud ayyomi! ({b.get('group','')})")
+        lines.append("\n✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦")
+        return "\n".join(lines)
+
+    else:
+        # 1-VARIANT (STANDART VA RASMIY)
+        lines = [
+            "🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>",
+            f"📈 <b>TALABALAR KONTINGENTI MA'LUMOTI ({reason})</b>",
+            f"🕒 Sana: <b>{d['stamp']}</b>",
+            "──────────────────────────────",
+            f"👥 <b>Faol kontingent ({len(d['group_set'])} ta guruh): {len(d['official'])} nafar</b>",
+            f"   • 1-kurs ({len(d['k1_gr'])} ta guruh): <b>{len(d['k1_st'])} nafar</b>",
+            f"   • 2-kurs ({len(d['k2_gr'])} ta guruh): <b>{len(d['k2_st'])} nafar</b>",
+            f"   • 3-kurs ({len(d['k3_gr'])} ta guruh): <b>{len(d['k3_st'])} nafar</b>",
+            f"✅ Tasdiqlangan hujjatlar: <b>{d['ver_count']} / {len(d['official'])} ({d['ver_pct']}%)</b>",
+            f"⏸ Akademik ta'tilda: <b>{len(d['leave'])} nafar</b>",
+            f"🚫 Safdan chiqarilganlar: <b>{len(d['withdrawn'])} nafar</b>",
+            f"📦 Umumiy bazada jami: <b>{len(d['students'])} nafar</b>",
+            "──────────────────────────────",
+            "📋 <b>GURUHLAR VA RAHBARLAR KESIMIDA:</b>"
+        ]
+        idx = 1
+        for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
+            lines.append(f"\n🔹 <b>{k}-kurs ({len(grs)} ta guruh │ {len(sts)} nafar):</b>")
+            for g in grs:
+                n = len([s for s in sts if str(s.get('group') or '').strip() == g])
+                m = d['meta'].get(g, {})
+                lines.append(f"<b>{idx}. Guruh {g}</b> ({m.get('yonalish', 'Hamshiralik ishi')})\n   👤 Rahbar: <b>{m.get('rahbar', '—')}</b> — <b>{n} nafar</b>")
+                idx += 1
+
+        if d['leave']: lines.append(f"\n⏸ <b>Akademik ta'tilda:</b> {len(d['leave'])} nafar")
+        if d['withdrawn']: lines.append(f"🔸 <b>Safdan chiqarilganlar:</b> {len(d['withdrawn'])} nafar")
+        if d['bdays']:
+            lines.append("\n🎂 <b>Bugun tug'ilgan kuni bo'lgan talabalar:</b>")
+            for b in d['bdays']: lines.append(f"🎉 <b>{b.get('fish', '')}</b> (Guruh {b.get('group', '')}, {b.get('dob', '')})")
+        return "\n".join(lines)
+
+
+def build_kontingent_message_html(reason="So'rov bo'yicha", variant_num=None):
+    """Tanlangan variant (1-10) bo'yicha Kontingent hisoboti HTML matnini qaytaradi."""
+    if variant_num is None:
+        cfg = load_backup_config() or {}
+        variant_num = cfg.get('report_variant', 5)
+    return format_kontingent_variant(variant_num, reason)
+
+
+def send_kontingent_to_telegram(target_chat_id=None, reason="So'rov bo'yicha", variant_num=None):
     import requests
     cfg = load_backup_config()
     if not cfg:
         return False
     chat_id = target_chat_id or cfg['chat_id']
-    msg = build_kontingent_message_html(reason)
+    msg = build_kontingent_message_html(reason, variant_num=variant_num)
     try:
-        resp = requests.post(
-            f"https://api.telegram.org/bot{cfg['token']}/sendMessage",
-            json={'chat_id': chat_id, 'text': msg, 'parse_mode': 'HTML'},
-            timeout=30
-        )
-        return bool(resp.ok and resp.json().get('ok'))
+        MAX_LEN = 3900
+        if len(msg) <= MAX_LEN:
+            resp = requests.post(
+                f"https://api.telegram.org/bot{cfg['token']}/sendMessage",
+                json={'chat_id': chat_id, 'text': msg, 'parse_mode': 'HTML'},
+                timeout=30
+            )
+            return bool(resp.ok and resp.json().get('ok'))
+
+        parts = []
+        curr = []
+        curr_len = 0
+        for line in msg.split('\n'):
+            if curr_len + len(line) + 1 > MAX_LEN:
+                parts.append('\n'.join(curr))
+                curr = [line]
+                curr_len = len(line)
+            else:
+                curr.append(line)
+                curr_len += len(line) + 1
+        if curr:
+            parts.append('\n'.join(curr))
+
+        all_ok = True
+        for part in parts:
+            resp = requests.post(
+                f"https://api.telegram.org/bot{cfg['token']}/sendMessage",
+                json={'chat_id': chat_id, 'text': part, 'parse_mode': 'HTML'},
+                timeout=30
+            )
+            if not (resp.ok and resp.json().get('ok')):
+                all_ok = False
+        return all_ok
     except Exception as e:
         print(f"[KONTINGENT] Xato: {e}")
         return False
@@ -1443,6 +1825,63 @@ BOT_KEYBOARD_MARKUP = {
     "is_persistent": True
 }
 
+
+
+
+def send_variant_selection_menu(chat_id):
+    import requests
+    cfg = load_backup_config() or {}
+    cur = cfg.get('report_variant', 1)
+    text = (
+        "🎨 <b>KONTINGENT HISOBOTI UCHUN 10 XIL VARIANT:</b>\n\n"
+        f"Hozirgi faol variant: <b>{cur}-variant</b>\n\n"
+        "1. 🏛 <b>1-variant</b> — Klassik & Rasmiy (Kengaytirilgan)\n"
+        "2. 📊 <b>2-variant</b> — Ixcham & Smart Dashboard (Tezkor)\n"
+        "3. 📈 <b>3-variant</b> — Foizlar & Progress Bar (Vizual)\n"
+        "4. 🏥 <b>4-variant</b> — Mutaxassisliklar kesimida (Farm/Hamshira)\n"
+        "5. 🌲 <b>5-variant</b> — Zamonaviy Daraxtsimon (Box-Tree)\n"
+        "6. 👨‍🏫 <b>6-variant</b> — Guruh Rahbarlari Markazlashgan\n"
+        "7. 📑 <b>7-variant</b> — Jadvalsimon Monospace (<pre>)\n"
+        "8. 📄 <b>8-variant</b> — Elegant Minimalist (Sof matn)\n"
+        "9. 🛡 <b>9-variant</b> — Nazorat & Hujjatlar Auditi (Monitoring)\n"
+        "10. 👑 <b>10-variant</b> — Premium Executive Briefing\n\n"
+        "💡 <i>Quyidagi tugmalardan birini bosing yoki masalan: <code>/variant 2</code> deb yuboring.</i>"
+    )
+    inline_kb = {
+        "inline_keyboard": [
+            [{"text": f"{'✅ ' if cur == i else ''}{i}-variant", "callback_data": f"set_var:{i}"} for i in range(1, 6)],
+            [{"text": f"{'✅ ' if cur == i else ''}{i}-variant", "callback_data": f"set_var:{i}"} for i in range(6, 11)],
+        ]
+    }
+    requests.post(
+        f"https://api.telegram.org/bot{cfg['token']}/sendMessage",
+        json={'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML', 'reply_markup': inline_kb},
+        timeout=20
+    )
+
+
+def set_active_variant(v_num, chat_id):
+    import requests
+    v = max(1, min(10, int(v_num)))
+    cfg = load_backup_config() or {}
+    cfg['report_variant'] = v
+    # update backup_config.json
+    try:
+        with open(BACKUP_CONFIG_PATH, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+        raw['report_variant'] = v
+        with open(BACKUP_CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(raw, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[CONFIG] report_variant yozishda xato: {e}")
+
+    confirm_text = f"✅ <b>09:00 avto-hisobot uchun {v}-variant tanlandi!</b>\n\nQuyida tanlangan variant namunasi:"
+    requests.post(
+        f"https://api.telegram.org/bot{cfg['token']}/sendMessage",
+        json={'chat_id': chat_id, 'text': confirm_text, 'parse_mode': 'HTML'},
+        timeout=20
+    )
+    send_kontingent_to_telegram(chat_id, reason=f"{v}-variant namunasi", variant_num=v)
 
 
 def send_teachers_list_to_telegram(chat_id=None):
@@ -1725,7 +2164,27 @@ def _start_telegram_bot_polling():
                         )
                         continue
 
+                    # Callback query tekshiruvi (inline tugmalar)
+                    cb = upd.get('callback_query')
+                    if cb:
+                        cb_id = cb.get('id')
+                        cb_data = str(cb.get('data') or '')
+                        cb_chat = cb.get('message', {}).get('chat', {}).get('id')
+                        if cb_data.startswith('set_var:'):
+                            var_id = int(cb_data.split(':')[1])
+                            set_active_variant(var_id, cb_chat)
+                            requests.post(f"https://api.telegram.org/bot{token}/answerCallbackQuery", json={'callback_query_id': cb_id, 'text': f"{var_id}-variant tanlandi!"})
+                        continue
+
                     t_low = text.lower()
+                    if t_low.startswith('/variantlar') or t_low == 'variantlar' or t_low == 'variant':
+                        send_variant_selection_menu(chat_id)
+                        continue
+                    elif re.match(r'^/?variant\s+(\d+)$', t_low):
+                        m_v = re.search(r'\d+', t_low)
+                        if m_v:
+                            set_active_variant(int(m_v.group(0)), chat_id)
+                        continue
                     if t_low in ('/start', '/menu', '/help', 'menyu', 'start'):
                         send_bot_welcome_menu(chat_id)
                     elif "o'qituvchi" in t_low or "oqituvchi" in t_low or t_low == '/oqituvchilar' or t_low == '/ustozlar':

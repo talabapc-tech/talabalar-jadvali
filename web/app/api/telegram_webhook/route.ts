@@ -135,30 +135,33 @@ async function kontingentText(reason: string) {
   const ver = official.filter((s) => s.verified === 'TASDIQLANDI').length
   const { stamp, ddmm } = tashkentStamp()
   const lines = [
-    '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
-    `📈 <b>TALABALAR KONTINGENTI MA'LUMOTI (${reason})</b>`,
+    `🏛 <b>KONTINGENT TUZILMASI (${reason})</b>`,
     `🕒 Sana: <b>${stamp}</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    `👥 <b>Faol kontingent (${groups.length} ta guruh): ${official.length} nafar</b>`,
-    ...COURSES.map((c) => `   • ${c.kurs}-kurs: <b>${official.filter((s) => kursOf(s.group) === c.kurs).length} nafar</b>`),
-    `✅ Tasdiqlangan hujjatlar: <b>${ver} / ${official.length} (${official.length ? Math.round((ver / official.length) * 100) : 0}%)</b>`,
-    `⏸ Akademik ta'tilda: <b>${leave.length} nafar</b>`,
-    `🚫 Safdan chiqarilganlar: <b>${withdrawn.length} nafar</b>`,
-    `📦 Umumiy bazada jami: <b>${students.length} nafar</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    '📋 <b>GURUHLAR VA RAHBARLAR KESIMIDA:</b>',
     '',
+    '┌─ 📊 <b>UMUMIY HOLAT</b>',
+    `│  ├─ 👥 Faol talabalar: <b>${official.length} nafar</b> (${groups.length} ta guruh)`,
+    `│  ├─ ✅ Tasdiqlangan: <b>${ver}/${official.length}</b> (${official.length ? Math.round((ver / official.length) * 100) : 0}%)`,
+    `│  ├─ ⏸ Akademik ta'tilda: <b>${leave.length} nafar</b>`,
+    `│  ├─ 🚫 Safdan chiqarilgan: <b>${withdrawn.length} nafar</b>`,
+    `│  └─ 📦 Jami bazada: <b>${students.length} nafar</b>`,
+    '└─────────────────────────────',
   ]
-  groups.forEach((g, i) => {
-    const n = students.filter((s) => String(s.group || '').trim() === g).length
-    lines.push(`<b>${i + 1}. Guruh ${esc(g)}</b> (${kursOf(g)}-kurs, ${esc(groupTitle(g))})\n   👤 Rahbar: <b>${esc(GROUP_LEADERS[g] || '—')}</b> — <b>${n} nafar</b>`)
+  COURSES.forEach((c) => {
+    const kGr = groups.filter((g) => kursOf(g) === c.kurs)
+    if (!kGr.length) return
+    const kSt = official.filter((s) => kursOf(s.group) === c.kurs)
+    lines.push(`\n┌─ 🎓 <b>${c.kurs}-KURS (${kSt.length} nafar talaba)</b>`)
+    kGr.forEach((g, i) => {
+      const n = students.filter((s) => String(s.group || '').trim() === g).length
+      const char = i === kGr.length - 1 ? '└─' : '├─'
+      lines.push(`│  ${char} <b>${esc(g)}</b>: ${n} nafar │ ${esc(GROUP_LEADERS[g] || '—')}`)
+    })
+    lines.push('└─────────────────────────────')
   })
-  if (leave.length) lines.push(`\n⏸ <b>Akademik ta'tilda:</b> ${leave.length} nafar`)
-  if (withdrawn.length) lines.push(`${leave.length ? '' : '\n'}🔸 <b>Safdan chiqarilganlar:</b> ${withdrawn.length} nafar`)
   const bdays = official.filter((s) => String(s.dob || '').startsWith(`${ddmm}.`))
   if (bdays.length) {
-    lines.push("\n🎂 <b>Bugun tug'ilgan kuni bo'lgan talabalar:</b>")
-    for (const b of bdays) lines.push(`🎉 <b>${esc(b.fish)}</b> (Guruh ${esc(b.group)}, ${esc(b.dob)})`)
+    lines.push("\n🎉 <b>Tug'ilgan kunlar:</b>")
+    for (const b of bdays) lines.push(`• <b>${esc(b.fish)}</b> (Guruh ${esc(b.group)}, ${esc(b.dob)})`)
   }
   return lines.join('\n')
 }

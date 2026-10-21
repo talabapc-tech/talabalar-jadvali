@@ -39,7 +39,12 @@ export function kursOf(g: string | undefined): number | null {
 export function academicGroups(students: Student[], kurs?: number | null): string[] {
   const set = new Set<string>(GROUPS)
   for (const s of students) if (isOfficialGroup(s.group)) set.add(s.group.trim())
-  return [...set].filter((g) => !kurs || kursOf(g) === kurs).sort()
+  return [...set].filter((g) => !kurs || kursOf(g) === kurs).sort((a, b) => {
+    const ka = kursOf(a) ?? 99
+    const kb = kursOf(b) ?? 99
+    if (ka !== kb) return ka - kb
+    return a.localeCompare(b, undefined, { numeric: true })
+  })
 }
 
 export function groupTitle(g: string): string {

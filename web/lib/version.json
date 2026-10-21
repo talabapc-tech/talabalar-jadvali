@@ -1,9 +1,9 @@
 {
-  "version": "2.0.424",
-  "build": 424,
-  "commit": "6c4ac69",
-  "commitDate": "2026-10-20T12:53:53+05:00",
-  "lastPushDate": "2026-10-20T12:53:53+05:00",
-  "commitMessage": "feat(staff): separate staff view mode and edit mode with pencil button, exactly like students",
-  "generatedAt": "2026-10-20T08:42:44.488Z"
+  "version": "2.0.426",
+  "build": 426,
+  "commit": "2e78169",
+  "commitDate": "2026-10-21T08:59:00+05:00",
+  "lastPushDate": "2026-10-21T08:59:00+05:00",
+  "commitMessage": "Auto: talaba ma'lumotlari yangilandi (2026-10-21 08:59:00)",
+  "generatedAt": "2026-10-21T04:39:38.580Z"
 }
