@@ -134,32 +134,39 @@ async function kontingentText(reason: string) {
   const withdrawn = students.filter((s) => isOutside(s.group))
   const ver = official.filter((s) => s.verified === 'TASDIQLANDI').length
   const { stamp, ddmm } = tashkentStamp()
+  const p = (n: number, w: number) => String(n).padStart(w, ' ')
+
   const lines = [
     `🏛 <b>KONTINGENT TUZILMASI (${reason})</b>`,
     `🕒 Sana: <b>${stamp}</b>`,
     '',
     '┌─ 📊 <b>UMUMIY HOLAT</b>',
-    `│  ├─ 👥 Faol talabalar: <b>${official.length} nafar</b> (${groups.length} ta guruh)`,
-    `│  ├─ ✅ Tasdiqlangan: <b>${ver}/${official.length}</b> (${official.length ? Math.round((ver / official.length) * 100) : 0}%)`,
-    `│  ├─ ⏸ Akademik ta'tilda: <b>${leave.length} nafar</b>`,
-    `│  ├─ 🚫 Safdan chiqarilgan: <b>${withdrawn.length} nafar</b>`,
-    `│  └─ 📦 Jami bazada: <b>${students.length} nafar</b>`,
-    '└─────────────────────────────',
+    '<pre>',
+    `├─ Faol talabalar    | ${p(official.length, 3)} nafar (${groups.length} guruh)`,
+    `├─ Tasdiqlangan      | ${p(ver, 3)}/${official.length} (${official.length ? Math.round((ver / official.length) * 100) : 0}%)`,
+    `├─ Akademik ta'tilda | ${p(leave.length, 3)} nafar`,
+    `├─ Safdan chiqqan    | ${p(withdrawn.length, 3)} nafar`,
+    `└─ Jami bazada       | ${p(students.length, 3)} nafar`,
+    '</pre>',
   ]
+
   COURSES.forEach((c) => {
     const kGr = groups.filter((g) => kursOf(g) === c.kurs)
     if (!kGr.length) return
     const kSt = official.filter((s) => kursOf(s.group) === c.kurs)
     lines.push(`\n┌─ 🎓 <b>${c.kurs}-KURS (${kSt.length} nafar talaba)</b>`)
+    lines.push('<pre>')
     kGr.forEach((g, i) => {
       const n = students.filter((s) => String(s.group || '').trim() === g).length
       const char = i === kGr.length - 1 ? '└─' : '├─'
-      const nStr = String(n)
-      const nPadded = (nStr.length < 2 ? '\u2007'.repeat(2 - nStr.length) : '') + nStr
-      lines.push(`│  ${char} <b>${esc(g)}</b>: ${nPadded} nafar │ ${esc(GROUP_LEADERS[g] || '—')}`)
+      const r = GROUP_LEADERS[g] || '—'
+      const title = groupTitle(g)
+      const spec = title.toLowerCase().includes('farm') ? ' (Farm)' : ''
+      lines.push(`${char} ${g} | ${p(n, 2)} nafar | ${r}${spec}`)
     })
-    lines.push('└─────────────────────────────')
+    lines.push('</pre>')
   })
+
   const bdays = official.filter((s) => String(s.dob || '').startsWith(`${ddmm}.`))
   if (bdays.length) {
     lines.push("\n🎉 <b>Tug'ilgan kunlar:</b>")

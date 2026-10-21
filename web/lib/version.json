@@ -1,9 +1,9 @@
 {
-  "version": "2.0.427",
-  "build": 427,
-  "commit": "58de7db",
-  "commitDate": "2026-10-21T09:40:14+05:00",
-  "lastPushDate": "2026-10-21T09:40:14+05:00",
-  "commitMessage": "fix(kontingent): 20 ta guruh hisobi, 10 xil format va 5-variant (Daraxtsimon) birlamchi qilindi",
-  "generatedAt": "2026-10-21T04:41:59.551Z"
+  "version": "2.0.428",
+  "build": 428,
+  "commit": "21f31cf",
+  "commitDate": "2026-10-21T09:42:41+05:00",
+  "lastPushDate": "2026-10-21T09:42:41+05:00",
+  "commitMessage": "fix(telegram): 5-variant kontingent hisobotida | ajratuvchi chiziqlarni tekis qilib tekislash",
+  "generatedAt": "2026-10-21T04:46:30.663Z"
 }

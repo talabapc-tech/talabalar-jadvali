@@ -1417,30 +1417,36 @@ def format_kontingent_variant(v_num, reason="So'rov bo'yicha"):
         return "\n".join(lines)
 
     elif v == 5:
-        # 5-VARIANT: ZAMONAVIY DARAXTSIMON (Box-Tree)
+        # 5-VARIANT: ZAMONAVIY DARAXTSIMON (Box-Tree & 100% tekis | ustunlari)
         lines = [
             f"🏛 <b>KONTINGENT TUZILMASI ({reason})</b>",
-            f"🕒 Sana: {d['stamp']}",
+            f"🕒 Sana: <b>{d['stamp']}</b>",
             "",
             "┌─ 📊 <b>UMUMIY HOLAT</b>",
-            f"│  ├─ 👥 Faol talabalar: <b>{len(d['official'])}</b> ({len(d['group_set'])} ta guruh)",
-            f"│  ├─ ✅ Tasdiqlangan: <b>{d['ver_count']}/{len(d['official'])}</b> ({d['ver_pct']}%)",
-            f"│  ├─ ⏸ Akademik ta'tilda: <b>{len(d['leave'])}</b>",
-            f"│  ├─ 🚫 Safdan chiqarilgan: <b>{len(d['withdrawn'])}</b>",
-            f"│  └─ 📦 Jami bazada: <b>{len(d['students'])}</b>",
-            "└─────────────────────────────"
+            "<pre>",
+            f"├─ Faol talabalar    | {len(d['official']):3d} nafar ({len(d['group_set'])} guruh)",
+            f"├─ Tasdiqlangan      | {d['ver_count']:3d}/{len(d['official'])} ({d['ver_pct']}%)",
+            f"├─ Akademik ta'tilda | {len(d['leave']):3d} nafar",
+            f"├─ Safdan chiqqan    | {len(d['withdrawn']):3d} nafar",
+            f"└─ Jami bazada       | {len(d['students']):3d} nafar",
+            "</pre>"
         ]
         for k, grs, sts in [(1, d['k1_gr'], d['k1_st']), (2, d['k2_gr'], d['k2_st']), (3, d['k3_gr'], d['k3_st'])]:
             lines.append(f"\n┌─ 🎓 <b>{k}-KURS ({len(sts)} nafar talaba)</b>")
+            lines.append("<pre>")
             for i, g in enumerate(grs):
                 n = len([s for s in sts if str(s.get('group') or '').strip() == g])
                 m = d['meta'].get(g, {})
                 char = "└─" if (i == len(grs) - 1) else "├─"
-                n_str = (" " * (2 - len(str(n)))) + str(n) if len(str(n)) < 2 else str(n)
-                lines.append(f"│  {char} <b>{g}</b>: {n_str} nafar │ {m.get('rahbar','—')}")
-            lines.append("└─────────────────────────────")
+                rahbar = m.get('rahbar', '—')
+                spec = " (Farm)" if 'farm' in str(m.get('yonalish', '')).lower() else ""
+                lines.append(f"{char} {g} | {n:2d} nafar | {rahbar}{spec}")
+            lines.append("</pre>")
+
         if d['bdays']:
-            for b in d['bdays']: lines.append(f"🎉 <b>Tug'ilgan kun:</b> {b.get('fish','')} ({b.get('group','')})")
+            lines.append("\n🎉 <b>Tug'ilgan kunlar:</b>")
+            for b in d['bdays']:
+                lines.append(f"• <b>{b.get('fish', '')}</b> (Guruh {b.get('group', '')}, {b.get('dob', '')})")
         return "\n".join(lines)
 
     elif v == 6:
@@ -2196,7 +2202,7 @@ def _start_telegram_bot_polling():
                     elif 'excel hisobot' in t_low or t_low == '/hisobotlar' or t_low == 'excel hisobotlar':
                         send_excel_reports_menu(chat_id)
                     elif 'kontingent' in t_low or 'kontengent' in t_low or t_low == '/kontingent':
-                        send_kontingent_to_telegram(chat_id, reason="Bot tugmasi orqali")
+                        send_kontingent_to_telegram(chat_id, reason="Bot tugmasi orqali", variant_num=5)
                     elif 'buxgalter' in t_low or '1. buxgalter' in t_low or t_low == '/buxgalteriya':
                         send_role_excel_to_telegram_chat('buxgalteriya', chat_id)
                     elif 'baza admin' in t_low or '2. baza' in t_low or t_low == '/admin':
@@ -3477,16 +3483,12 @@ def build_full_multisheet_excel(source_ws, filter_status=None):
     out_wb = openpyxl.Workbook()
     default_sheet = out_wb.active
 
-    GROUPS_CONFIG = [
-        ("Jami", None),
-        ("26-01 (Mirzayeva.D)", "26-01"),
-        ("26-02 (Ochilov.D)", "26-02"),
-        ("26-03 (To'rayeva.S)", "26-03"),
-        ("26-04 (Hamdamova.M)", "26-04"),
-        ("26-05 (Rayimova.X)", "26-05"),
-        ("26-06 (Yuldashev.O)", "26-06"),
-        ("Safdan chiqarilganlar", "WITHDRAWN")
-    ]
+    meta_dyn = load_groups_metadata()
+    GROUPS_CONFIG = [("Jami", None)]
+    for g_code in sorted(meta_dyn.keys(), key=lambda x: (get_kurs_of_group(x, meta_dyn), x)):
+        g_ldr = meta_dyn[g_code].get('rahbar', '—')
+        GROUPS_CONFIG.append((f"{g_code} ({g_ldr})", g_code))
+    GROUPS_CONFIG.append(("Safdan chiqarilganlar", "WITHDRAWN"))
 
     NEW_HEADERS = [
         "T/R",
@@ -4848,7 +4850,8 @@ Aniq JSON formatda qaytar:
                     full_fio = fish or f"{ism} {ota}".strip()
                     students.append({'ism': ism, 'fio': full_fio, 'dob': dob, 'group': group})
 
-                GROUPS = ["26-01", "26-02", "26-03", "26-04", "26-05", "26-06"]
+                meta_dyn2 = load_groups_metadata()
+                GROUPS = sorted(meta_dyn2.keys(), key=lambda x: (get_kurs_of_group(x, meta_dyn2), x))
                 students.sort(key=lambda x: (GROUPS.index(x['group']) if x['group'] in GROUPS else 99, x['ism'].lower()))
 
                 out_wb = openpyxl.Workbook()
