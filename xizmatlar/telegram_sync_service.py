@@ -19,6 +19,7 @@ import urllib.request
 import urllib.parse
 from urllib.parse import unquote
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+import html
 import subprocess
 import mimetypes
 import webbrowser
@@ -1322,7 +1323,7 @@ def get_kontingent_stats():
 
 def format_kontingent_variant(v_num, reason="So'rov bo'yicha"):
     d = get_kontingent_stats()
-    v = int(v_num or 1)
+    v = int(v_num or 5)
 
     if v == 2:
         # 2-VARIANT: IXCHAM & SMART DASHBOARD
@@ -1424,8 +1425,9 @@ def format_kontingent_variant(v_num, reason="So'rov bo'yicha"):
             "",
             "┌─ 📊 <b>UMUMIY HOLAT</b>",
             "<pre>",
-            f"├─ Faol talabalar    | {len(d['official']):3d} nafar ({len(d['group_set'])} guruh)",
-            f"├─ Tasdiqlangan      | {d['ver_count']:3d}/{len(d['official'])} ({d['ver_pct']}%)",
+            f"├─ Faol kontingent   | {len(d['official']):3d} nafar",
+            f"├─ Guruhlar soni     | {len(d['group_set']):3d} ta guruh",
+            f"├─ Hujjat tasdig'i   | {d['ver_count']:3d}/{len(d['official'])} ({d['ver_pct']}%)",
             f"├─ Akademik ta'tilda | {len(d['leave']):3d} nafar",
             f"├─ Safdan chiqqan    | {len(d['withdrawn']):3d} nafar",
             f"└─ Jami bazada       | {len(d['students']):3d} nafar",
@@ -1440,13 +1442,16 @@ def format_kontingent_variant(v_num, reason="So'rov bo'yicha"):
                 char = "└─" if (i == len(grs) - 1) else "├─"
                 rahbar = m.get('rahbar', '—')
                 spec = " (Farm)" if 'farm' in str(m.get('yonalish', '')).lower() else ""
-                lines.append(f"{char} {g} | {n:2d} nafar | {rahbar}{spec}")
+                lines.append(f"{char} {g.ljust(5)} | {n:2d} nafar | {rahbar}{spec}")
             lines.append("</pre>")
 
         if d['bdays']:
             lines.append("\n🎉 <b>Tug'ilgan kunlar:</b>")
             for b in d['bdays']:
-                lines.append(f"• <b>{b.get('fish', '')}</b> (Guruh {b.get('group', '')}, {b.get('dob', '')})")
+                fish = html.escape(str(b.get('fish', '')))
+                grp = html.escape(str(b.get('group', '')))
+                dob = html.escape(str(b.get('dob', '')))
+                lines.append(f"• <b>{fish}</b> (Guruh {grp}, {dob})")
         return "\n".join(lines)
 
     elif v == 6:
@@ -2202,7 +2207,9 @@ def _start_telegram_bot_polling():
                     elif 'excel hisobot' in t_low or t_low == '/hisobotlar' or t_low == 'excel hisobotlar':
                         send_excel_reports_menu(chat_id)
                     elif 'kontingent' in t_low or 'kontengent' in t_low or t_low == '/kontingent':
-                        send_kontingent_to_telegram(chat_id, reason="Bot tugmasi orqali", variant_num=5)
+                        send_kontingent_to_telegram(chat_id, reason="So'rov bo'yicha", variant_num=5)
+                    elif 'davomat' in t_low or t_low == '/davomat':
+                        send_davomat_reports_to_telegram_chat(chat_id)
                     elif 'buxgalter' in t_low or '1. buxgalter' in t_low or t_low == '/buxgalteriya':
                         send_role_excel_to_telegram_chat('buxgalteriya', chat_id)
                     elif 'baza admin' in t_low or '2. baza' in t_low or t_low == '/admin':

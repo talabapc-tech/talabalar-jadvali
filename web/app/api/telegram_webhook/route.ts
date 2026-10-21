@@ -142,8 +142,9 @@ async function kontingentText(reason: string) {
     '',
     '┌─ 📊 <b>UMUMIY HOLAT</b>',
     '<pre>',
-    `├─ Faol talabalar    | ${p(official.length, 3)} nafar (${groups.length} guruh)`,
-    `├─ Tasdiqlangan      | ${p(ver, 3)}/${official.length} (${official.length ? Math.round((ver / official.length) * 100) : 0}%)`,
+    `├─ Faol kontingent   | ${p(official.length, 3)} nafar`,
+    `├─ Guruhlar soni     | ${p(groups.length, 3)} ta guruh`,
+    `├─ Hujjat tasdig'i   | ${p(ver, 3)}/${official.length} (${official.length ? Math.round((ver / official.length) * 100) : 0}%)`,
     `├─ Akademik ta'tilda | ${p(leave.length, 3)} nafar`,
     `├─ Safdan chiqqan    | ${p(withdrawn.length, 3)} nafar`,
     `└─ Jami bazada       | ${p(students.length, 3)} nafar`,
@@ -162,7 +163,7 @@ async function kontingentText(reason: string) {
       const r = GROUP_LEADERS[g] || '—'
       const title = groupTitle(g)
       const spec = title.toLowerCase().includes('farm') ? ' (Farm)' : ''
-      lines.push(`${char} ${g} | ${p(n, 2)} nafar | ${r}${spec}`)
+      lines.push(`${char} ${g.padEnd(5, ' ')} | ${p(n, 2)} nafar | ${r}${spec}`)
     })
     lines.push('</pre>')
   })
@@ -1182,7 +1183,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (t.includes('kontingent') || t.includes('kontengent')) {
-      await sendMessage(chatId, await kontingentText('Bot tugmasi orqali'))
+      await sendMessage(chatId, await kontingentText("So'rov bo'yicha"))
       return Response.json({ ok: true })
     }
     if (t.includes('kamchilik')) {

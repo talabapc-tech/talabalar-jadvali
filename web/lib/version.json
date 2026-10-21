@@ -1,9 +1,9 @@
 {
-  "version": "2.0.428",
-  "build": 428,
-  "commit": "21f31cf",
-  "commitDate": "2026-10-21T09:42:41+05:00",
-  "lastPushDate": "2026-10-21T09:42:41+05:00",
-  "commitMessage": "fix(telegram): 5-variant kontingent hisobotida | ajratuvchi chiziqlarni tekis qilib tekislash",
-  "generatedAt": "2026-10-21T04:46:30.663Z"
+  "version": "2.0.429",
+  "build": 429,
+  "commit": "fafb34f",
+  "commitDate": "2026-10-21T09:47:32+05:00",
+  "lastPushDate": "2026-10-21T09:47:32+05:00",
+  "commitMessage": "fix(kontingent): 5-variant uchun | belgilari 100% tekis qilindi va qolgan barcha ko'p varaqli guruh hisobotlari dinamiklashtirildi",
+  "generatedAt": "2026-10-21T04:57:19.230Z"
 }
