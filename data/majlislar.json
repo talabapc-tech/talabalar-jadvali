@@ -127,5 +127,39 @@
       "faol": true
     }
   ],
-  "majlislar": []
+  "majlislar": [
+    {
+      "id": "mmvjtzkt2k7xj",
+      "sana": "2026-10-22",
+      "vaqt": "22:44",
+      "mavzu": "",
+      "qatnashchilar": "hammasi",
+      "tarkib": [
+        "o01",
+        "o02",
+        "o03",
+        "o04",
+        "o05",
+        "o06",
+        "o07",
+        "o08",
+        "o09",
+        "o10",
+        "o11",
+        "o12",
+        "o13",
+        "o14",
+        "o15",
+        "o16",
+        "o17",
+        "o18",
+        "o19",
+        "o20",
+        "o21"
+      ],
+      "davomat": {},
+      "izoh": {},
+      "yangilangan": "2026-10-22T17:44:51.794Z"
+    }
+  ]
 }
