@@ -1,15 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { AUTH_COOKIE, isLocalRequest, verifySessionToken } from '@/lib/auth'
+import { AUTH_COOKIE, isLocalRequest, TG_INIT_HEADER, verifySessionToken, verifyTelegramInitData } from '@/lib/auth'
 
 /*
   Portalga kirish nazorati: login qilinmagan so'rov sahifada /login ga yo'naltiriladi, API'da 401.
   Kompyuterda localhost orqali ochilgan portal — loginsiz (lib/auth.ts → isLocalRequest).
   Ochiq yo'llar (o'z himoyasi bor): Telegram webhook (maxfiy kalit / &key=), MyTest (Bearer token),
   kirish sahifasi va kirish API'si. Statik fayllar matcher'da chiqarib tashlangan.
+  /majlis — faqat sahifa qobig'i (ma'lumotsiz): Telegram Mini App sifatida ham ochiladi. Uning API'si
+  (/api/majlislar) cookie YOKI imzolangan Telegram initData bilan ochiladi — initData boshqa API'larga o'tmaydi.
 */
 
-const PUBLIC_PATHS = new Set(['/login', '/api/telegram_webhook', '/api/mytest-roster'])
+const PUBLIC_PATHS = new Set(['/login', '/majlis', '/api/telegram_webhook', '/api/mytest-roster'])
 const isPublic = (p: string) => PUBLIC_PATHS.has(p) || p.startsWith('/api/auth/')
+const isMajlisApi = (p: string) => p === '/api/majlislar' || p.startsWith('/api/majlislar/')
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl
@@ -21,6 +24,9 @@ export async function proxy(request: NextRequest) {
   }
   if (isPublic(pathname)) return NextResponse.next()
   if (await verifySessionToken(request.cookies.get(AUTH_COOKIE)?.value)) {
+    return NextResponse.next()
+  }
+  if (isMajlisApi(pathname) && await verifyTelegramInitData(request.headers.get(TG_INIT_HEADER))) {
     return NextResponse.next()
   }
   if (pathname.startsWith('/api/')) {

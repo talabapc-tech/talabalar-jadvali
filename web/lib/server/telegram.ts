@@ -1,17 +1,16 @@
 import 'server-only'
 import { createHash } from 'node:crypto'
+import { tgAllowedIds, tgChatId } from '@/lib/tg-ids'
 
 /** Bot tokeni va hisobot chati — rasmiy bot: @new_students_shtt_bot.
  *  Token faqat muhit o'zgaruvchisidan (Netlify → Environment variables yoki .env.local) — kodga yozilmaydi, repo ommaviy. */
 export const TG_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim() || ''
-export const TG_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.trim() || '8135594558'
+export const TG_CHAT_ID = tgChatId()
 export const TG_CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID?.trim() || '-1004375713276'
 
 /** Botdan foydalanishga ruxsat berilgan chatlar: TELEGRAM_CHAT_ID + TELEGRAM_ALLOWED_IDS (vergul bilan).
  *  Bot pasport, JSHSHIR va telefonlarni beradi — begona odamga javob bermasligi shart. */
-export const TG_ALLOWED_IDS = new Set(
-  [TG_CHAT_ID, ...(process.env.TELEGRAM_ALLOWED_IDS || '').split(/[\s,;]+/)].map((s) => s.trim()).filter(Boolean),
-)
+export const TG_ALLOWED_IDS = tgAllowedIds()
 
 /** Webhook maxfiy kaliti: Telegram har so'rovda X-Telegram-Bot-Api-Secret-Token sarlavhasida yuboradi.
  *  Alohida o'rnatilmasa tokendan hosil qilinadi — yangi token qo'yilganda o'zi yangilanadi. */

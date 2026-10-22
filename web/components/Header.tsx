@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Archive, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users } from 'lucide-react'
+import { Archive, CalendarCheck, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users } from 'lucide-react'
 import { exportRole, ROLE_META, sendRoleToTelegram, type Role } from '@/lib/excel'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
@@ -540,6 +540,10 @@ export default function Header({
             <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
             <span className="hidden sm:inline">Yangilash</span>
           </button>
+          <a href="/majlis" className="btn-ghost h-9" title="O'qituvchilar majlisi davomati (asosiy va o'rindosh)">
+            <CalendarCheck size={15} className="text-sky-soft" />
+            <span className="hidden sm:inline">Majlislar</span>
+          </a>
           {onOpenSettings && (
             <button
               type="button"

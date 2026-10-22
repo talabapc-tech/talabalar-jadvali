@@ -7,8 +7,11 @@
   Qurilmani tanib olish (Ishonchli qurilma):
     deviceToken "<tugash_vaqti>.<deviceId>.<HMAC-SHA256>". Brauzer localStorage'ida saqlanadi,
     cookie muddati tugasa ham foydalanuvchini qayta login kiritmasdan tanib oladi.
+  Telegram Mini App (/majlis) — cookie o'rniga imzolangan initData (verifyTelegramInitData).
   Web Crypto ishlatiladi — proxy va route handler'larda bir xil ishlaydi.
 */
+
+import { tgAllowedIds } from './tg-ids'
 
 export const AUTH_COOKIE = 'portal_session'
 export const SESSION_DAYS = 30
@@ -67,6 +70,47 @@ export async function checkCredentials(login: string, password: string): Promise
 export async function createSessionToken(now = Date.now(), days = SESSION_DAYS): Promise<string> {
   const exp = now + days * 24 * 3600 * 1000
   return `${exp}.${await hmacHex(secret(), `portal:${exp}`)}`
+}
+
+/* ---------------------------- Telegram Mini App ---------------------------- */
+
+/** Mini App so'rovlari initData'ni shu sarlavhada yuboradi (cookie Telegram Desktop/Web iframe'ida ishlamaydi) */
+export const TG_INIT_HEADER = 'x-telegram-init-data'
+/** initData shu muddatdan eski bo'lsa qabul qilinmaydi — Mini App'ni qayta ochish kerak */
+const TG_INIT_MAX_AGE_S = 24 * 3600
+
+async function hmacRaw(key: Uint8Array, data: string): Promise<Uint8Array> {
+  const k = await crypto.subtle.importKey('raw', key as BufferSource, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, enc.encode(data)))
+}
+
+export interface TelegramUser { id: number; first_name?: string; last_name?: string; username?: string }
+
+/**
+ * Telegram Mini App initData imzosini tekshirish (core.telegram.org/bots/webapps#validating-data):
+ *   secret = HMAC_SHA256(key="WebAppData", bot_token); hash = HMAC_SHA256(key=secret, "k=v\n..." saralangan)
+ * Foydalanuvchi bot ruxsat bergan chatlardan (TELEGRAM_CHAT_ID + TELEGRAM_ALLOWED_IDS) bo'lishi shart.
+ */
+export async function verifyTelegramInitData(initData: string | null | undefined, now = Date.now()): Promise<TelegramUser | null> {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
+  if (!initData || !token) return null
+  const params = new URLSearchParams(initData)
+  const hash = params.get('hash')
+  if (!hash) return null
+  params.delete('hash')
+  const checkString = [...params.entries()].map(([k, v]) => `${k}=${v}`).sort().join('\n')
+  const secretKey = await hmacRaw(enc.encode('WebAppData'), token)
+  const sig = Array.from(await hmacRaw(secretKey, checkString), (b) => b.toString(16).padStart(2, '0')).join('')
+  if (!safeEqual(sig, hash)) return null
+  const authDate = Number(params.get('auth_date'))
+  if (!Number.isFinite(authDate) || now / 1000 - authDate > TG_INIT_MAX_AGE_S) return null
+  try {
+    const user = JSON.parse(params.get('user') || 'null') as TelegramUser | null
+    if (!user?.id || !tgAllowedIds().has(String(user.id))) return null
+    return user
+  } catch {
+    return null
+  }
 }
 
 export async function verifySessionToken(token: string | undefined, now = Date.now()): Promise<boolean> {

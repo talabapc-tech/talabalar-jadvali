@@ -10,6 +10,8 @@ import { cleanStaffPhone, type StaffMember } from '@/lib/staff'
 import { renderGroupListPng } from '@/lib/server/guruh-rasm'
 import { siteOrigin, TG_ALLOWED_IDS, TG_BOT_TOKEN, TG_CHAT_ID, TG_REPORT_KEY, TG_WEBHOOK_SECRET, tgCall, tgEsc as esc, tgSendPhoto } from '@/lib/server/telegram'
 import type { Student } from '@/lib/types'
+import { majlisMatni } from '@/lib/majlis'
+import { loadMajlisDb } from '@/lib/server/majlis-store'
 
 /*
   24/7 Telegram bot webhook va kunlik hisobotlar (eski api/telegram_webhook.js dan ko'chirilgan).
@@ -19,7 +21,8 @@ import type { Student } from '@/lib/types'
   GET  ?action=setup        — webhookni shu sayt manziliga ulash (maxfiy kalit bilan)
   GET  ?action=status       — bot va webhook holati (oxirgi xato, navbatdagi xabarlar)
   POST callback_query       — "👥 Guruhlar ro'yxati": gl → kurslar, k:<kurs> → guruhlar, g:<guruh> → matn + rasm
-  POST                      — Telegram'dan kelgan xabar (bot tugmalari, talaba/guruh qidiruvi,
+  POST "🗓 Majlis davomati" / /majlis — o'qituvchilar majlisi davomati Mini App'ini (/majlis) ochish tugmasi
+  POST               — Telegram'dan kelgan xabar (bot tugmalari, talaba/guruh qidiruvi,
                               /malumotnoma <shartnoma № yoki F.I.SH>)
 
   Bot faqat TELEGRAM_CHAT_ID va TELEGRAM_ALLOWED_IDS dagi chatlarga javob beradi; begona
@@ -730,6 +733,17 @@ async function botStatus(expectedUrl: string) {
   }
 }
 
+/** Majlis davomati: Mini App tugmasi + oxirgi majlis natijasi */
+async function majlisCommand(chatId: string | number, origin: string) {
+  const db = await loadMajlisDb().catch(() => null)
+  const last = db?.majlislar[0]
+  const text = (last && db ? `${majlisMatni(last, db.oqituvchilar)}\n\n` : '') +
+    "🗓 <b>O'qituvchilar majlisi davomati</b>\nYangi majlis ochish, asosiy va o'rindosh o'qituvchilarni belgilash, Excel hisobot — pastdagi tugma orqali."
+  return sendMessage(chatId, text, {
+    inline_keyboard: [[{ text: '📋 Davomatni ochish', web_app: { url: `${origin}/majlis` } }]],
+  })
+}
+
 export async function GET(request: NextRequest) {
   const action = (request.nextUrl.searchParams.get('action') || '').toLowerCase()
   if (!action) return Response.json({ ok: true, configured: !!(BOT_TOKEN && DEFAULT_CHAT_ID), hint: 'Holat: ?action=status, ulash: ?action=setup' })
@@ -757,9 +771,13 @@ export async function GET(request: NextRequest) {
           { command: 'royxat', description: "Guruhlar ro'yxati (matn + rasm)" },
           { command: 'malumotnoma', description: "O'qiyotganligi haqida ma'lumotnoma: /malumotnoma 285" },
           { command: 'davomat', description: 'Davomat jurnallari: /davomat 26-03 yoki /davomat barcha' },
+          { command: 'majlis', description: "O'qituvchilar majlisi davomati (Mini App)" },
           { command: 'id', description: 'Chat ID raqamim' },
         ],
       })
+      // Ruxsat berilgan xodimlarda chap pastdagi menyu tugmasi "Majlis" Mini App'ini ochadi
+      const menu = { type: 'web_app', text: 'Majlis', web_app: { url: `${siteOrigin(request.nextUrl.origin)}/majlis` } }
+      await Promise.all([...TG_ALLOWED_IDS].map((id) => tgCall('setChatMenuButton', { chat_id: id, menu_button: menu })))
     }
     // Bot tokeni hech qachon javobda qaytarilmaydi
     const status = await botStatus(webhookUrl)
@@ -1107,7 +1125,13 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: true })
     }
 
-        if (['/start', '/menu', '/help', 'menyu', 'start'].includes(t)) {
+    // "davomat" tekshiruvidan oldin — "Majlis davomati" Davomat jurnaliga tushib qolmasin
+    if (t.includes('majlis')) {
+      await majlisCommand(chatId, siteOrigin(request.nextUrl.origin))
+      return Response.json({ ok: true })
+    }
+
+    if (['/start', '/menu', '/help', 'menyu', 'start'].includes(t)) {
       await sendMessage(chatId,
         `🤖 <b>Talabalar Bazasi va Shartnomalar Boti</b>
 

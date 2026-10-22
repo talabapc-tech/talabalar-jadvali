@@ -1,0 +1,131 @@
+{
+  "oqituvchilar": [
+    {
+      "id": "o01",
+      "fish": "Meyliyev Bekmurod Orifovich",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o02",
+      "fish": "Muhammadiyev Laziz Mansurovich",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o03",
+      "fish": "Shukurova Gulnora Ubaydullayevna",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o04",
+      "fish": "Xidirova Nargiza Bahirovna",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o05",
+      "fish": "Ochilov Dilshod Hamroqulovich",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o06",
+      "fish": "Raxmatova Shahlo Samirjon qizi",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o07",
+      "fish": "Botirova Gulandon Shokirovna",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o08",
+      "fish": "Yo'ldoshev Oybek Alikulovich",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o09",
+      "fish": "Elmurodova Nilufar Abdurazzoqovna",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o10",
+      "fish": "Rayimova Xurshida Mahmanazar qizi",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o11",
+      "fish": "Xamdamova Maxliyo Abdusoat qizi",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o12",
+      "fish": "Quldosheva Kumush Jo'ra qizi",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o13",
+      "fish": "Mirzayeva Dilnavoz Quchkarovna",
+      "tur": "asosiy",
+      "faol": true
+    },
+    {
+      "id": "o14",
+      "fish": "Axmedova Roxila Umarxojayevna",
+      "tur": "orindosh",
+      "faol": true
+    },
+    {
+      "id": "o15",
+      "fish": "Maxkamova Mukarram Kamolovna",
+      "tur": "orindosh",
+      "faol": true
+    },
+    {
+      "id": "o16",
+      "fish": "Xalilova Nilufar Erkinovna",
+      "tur": "orindosh",
+      "faol": true
+    },
+    {
+      "id": "o17",
+      "fish": "Sattorov Nodir Ibodulloevich",
+      "tur": "orindosh",
+      "faol": true
+    },
+    {
+      "id": "o18",
+      "fish": "Sattorova Dilafro'z Olimovna",
+      "tur": "orindosh",
+      "faol": true
+    },
+    {
+      "id": "o19",
+      "fish": "Jurayeva Maftuna Abdurahim qizi",
+      "tur": "orindosh",
+      "faol": true
+    },
+    {
+      "id": "o20",
+      "fish": "Rasulov O'tkir Abdixomidovich",
+      "tur": "orindosh",
+      "faol": true
+    },
+    {
+      "id": "o21",
+      "fish": "Narzullayeva Iroda Nasriddin qizi",
+      "tur": "orindosh",
+      "faol": true
+    }
+  ],
+  "majlislar": []
+}
