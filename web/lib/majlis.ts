@@ -194,19 +194,21 @@ export function majlisMatni(m: Majlis, oqituvchilar: Oqituvchi[]): string {
   const lines = [
     `📋 <b>Majlis davomati</b> — ${sanaUz(m.sana)}${m.vaqt ? ` ${m.vaqt}` : ''} (${haftaKuni(m.sana)})`,
   ]
-  if (m.mavzu) lines.push(`📝 ${esc(m.mavzu)}`)
+  if (m.mavzu) lines.push(`📝 <i>${esc(m.mavzu)}</i>`)
   for (const tur of TURLAR) {
     const list = majlisOqituvchilari(m, oqituvchilar, tur)
     if (!list.length) continue
     const h = hisobla(list, m.davomat)
-    lines.push('', `<b>${tur === 'asosiy' ? '👔' : '🕐'} ${TUR_TOLIQ[tur]}</b> — ${h.keldi}/${h.jami} keldi`)
-    for (const holat of ['sababli', 'kelmadi'] as const) {
-      const who = list.filter((o) => m.davomat[o.id] === holat)
-      if (!who.length) continue
-      const names = who.map((o) => esc(o.fish) + (m.izoh[o.id] ? ` (${esc(m.izoh[o.id])})` : '')).join(', ')
-      lines.push(`${holat === 'kelmadi' ? '❌' : '📄'} ${HOLAT_META[holat].nomi} (${who.length}): ${names}`)
+    lines.push('', `<b>${tur === 'asosiy' ? '📗' : '📘'} ${TUR_TOLIQ[tur]}</b> — ${h.keldi}/${h.jami} keldi`)
+    // Kelmaganlar va sababchilar — Telegram iqtibosi ichida, har biri alohida qatorda
+    const rows: string[] = []
+    for (const holat of ['kelmadi', 'sababli'] as const) {
+      for (const o of list.filter((x) => m.davomat[x.id] === holat)) {
+        rows.push(`${holat === 'kelmadi' ? '❌' : '📄'} ${esc(o.fish)}${m.izoh[o.id] ? ` — <i>${esc(m.izoh[o.id])}</i>` : ''}`)
+      }
     }
-    if (h.belgilanmagan) lines.push(`⚪ Belgilanmagan: ${h.belgilanmagan}`)
+    if (h.belgilanmagan) rows.push(`⚪ Belgilanmagan: ${h.belgilanmagan}`)
+    lines.push(rows.length ? `<blockquote>${rows.join('\n')}</blockquote>` : '✅ Hammasi keldi')
   }
   return lines.join('\n')
 }

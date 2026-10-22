@@ -294,6 +294,15 @@ function ThemeButton() {
 
 type MainTab = 'students' | 'staff'
 
+function SettingsButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="btn-ghost size-9 shrink-0 p-0 xl:w-auto xl:px-2.5" onClick={onClick} title="Sozlamalar (API kalitlar, AI modellar)" aria-label="Sozlamalar">
+      <Settings size={15} />
+      <span className="hidden xl:inline">Sozlamalar</span>
+    </button>
+  )
+}
+
 /** Talabalar / Xodimlar almashgichi */
 function TabSwitch({ activeTab, onTabChange }: { activeTab: MainTab; onTabChange: (t: MainTab) => void }) {
   const tabs = [
@@ -355,6 +364,7 @@ export default function Header({
             </h1>
           </div>
           <div className="flex items-center gap-1.5 sm:hidden">
+            {onOpenSettings && <SettingsButton onClick={onOpenSettings} />}
             <ThemeButton />
             <LogoutButton />
           </div>
@@ -395,12 +405,7 @@ export default function Header({
             <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
             <span className="hidden xl:inline">Yangilash</span>
           </button>
-          {onOpenSettings && (
-            <button type="button" className="btn-ghost h-9 shrink-0 px-2.5" onClick={onOpenSettings} title="Sozlamalar (API kalitlar, AI modellar)" aria-label="Sozlamalar">
-              <Settings size={15} />
-              <span className="hidden xl:inline">Sozlamalar</span>
-            </button>
-          )}
+          {onOpenSettings && <span className="hidden sm:contents"><SettingsButton onClick={onOpenSettings} /></span>}
           <span className="hidden sm:contents"><ThemeButton /></span>
           {!staff && <ExportMenu students={students} notify={notify} />}
           <span className="hidden sm:contents"><LogoutButton /></span>

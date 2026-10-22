@@ -37,15 +37,23 @@ function formatTimeAgo(isoDate?: string): string {
     }
     if (diffDay === 1) return 'kecha'
     if (diffDay < 30) return `${diffDay} kun oldin`
-    return new Date(isoDate).toLocaleDateString('uz-UZ')
+    return formatTashkent(isoDate).slice(0, 10)
   } catch {
     return 'hozirgina'
   }
 }
 
+/** Toshkent vaqti, qat'iy format (DD.MM.YYYY HH:MM) — server va brauzerda bir xil chiqadi */
+function formatTashkent(isoDate: string): string {
+  const d = new Date(new Date(isoDate).getTime() + 5 * 3600_000)
+  if (Number.isNaN(d.getTime())) return '—'
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`
+}
+
 export default function VersionBadge() {
   const [data, setData] = useState<VersionData>(defaultVersion)
-  const [timeAgo, setTimeAgo] = useState(() => formatTimeAgo(defaultVersion.commitDate || defaultVersion.lastPushDate))
+  const [timeAgo, setTimeAgo] = useState('')
   const [open, setOpen] = useState(false)
   const [checking, setChecking] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -70,6 +78,7 @@ export default function VersionBadge() {
   // 1. Dastlab yuklanganda va har 30 soniyada daqiqalarni avtomatik yangilash
   useEffect(() => {
     void checkVersion()
+    setTimeAgo(formatTimeAgo(data.lastPushDate || data.commitDate))
     const timer = setInterval(() => {
       setTimeAgo(formatTimeAgo(data.lastPushDate || data.commitDate))
     }, 30_000)
@@ -89,13 +98,7 @@ export default function VersionBadge() {
   }, [open])
 
   const dateStr = (data.lastPushDate || data.commitDate)
-    ? new Date(data.lastPushDate || data.commitDate!).toLocaleString('uz-UZ', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+    ? formatTashkent(data.lastPushDate || data.commitDate!)
     : '—'
 
   return (

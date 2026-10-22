@@ -20,8 +20,13 @@ import { loadMajlisDb } from '@/lib/server/majlis-store'
   GET  ?action=backup_json  — 18:00 JSON baza + 4-Excel zahirasi (&key= bilan)
   GET  ?action=setup        — webhookni shu sayt manziliga ulash (maxfiy kalit bilan)
   GET  ?action=status       — bot va webhook holati (oxirgi xato, navbatdagi xabarlar)
-  POST callback_query       — "👥 Guruhlar ro'yxati": gl → kurslar, k:<kurs> → guruhlar, g:<guruh> → matn + rasm
-  POST "🗓 Majlis davomati" / /majlis — o'qituvchilar majlisi davomati Mini App'ini (/majlis) ochish tugmasi
+  POST callback_query       — ichma-ich menyular: m:st (Talabalar), m:xd (Xodimlar), m:rep (Hisobotlar);
+                              gl → kurslar, k:<kurs> → guruhlar, g:<guruh> → matn + rasm
+  POST "🗓 Majlis" / /majlis — o'qituvchilar majlisi davomati Mini App'ini (/majlis) ochish tugmasi
+
+  Asosiy klaviatura atigi 4 bo'lim; har biri o'z menyusini ochadi va tugma bosilganda xabarning
+  o'zi almashadi (chat to'lib ketmaydi). Ro'yxatlar Telegram iqtibosi (<blockquote>) ichida —
+  uzunlari yig'iq (expandable) holda keladi.
   POST               — Telegram'dan kelgan xabar (bot tugmalari, talaba/guruh qidiruvi,
                               /malumotnoma <shartnoma № yoki F.I.SH>)
 
@@ -36,17 +41,31 @@ const BOT_TOKEN = TG_BOT_TOKEN
 const BOT_CACHE = { maxAgeMs: 60_000 }
 const DEFAULT_CHAT_ID = TG_CHAT_ID
 
+/** Asosiy menyu — 4 ta bo'lim. Qolgan hamma narsa shu bo'limlar ichida (inline tugmalar). */
+const MENU = {
+  talabalar: '🎓 Talabalar',
+  xodimlar: '👨‍🏫 Xodimlar',
+  hisobotlar: '📊 Hisobotlar',
+  majlis: '🗓 Majlis',
+} as const
+
 const BOT_KEYBOARD = {
   keyboard: [
-    [{ text: "➕ Yangi talaba" }, { text: "➕ Yangi xodim" }],
-    [{ text: "🎓 Guruhlar ro'yxati" }, { text: '📈 Kontingent' }],
-    [{ text: "👨‍🏫 O'qituvchilar ro'yxati" }, { text: '👔 Shtat xodimlari' }],
-    [{ text: '📊 Excel hisobotlar' }, { text: '📝 Davomat jurnallari' }],
-    [{ text: '📦 JSON Baza (.json)' }, { text: "⚠️ Kamchiliklar ro'yxati" }],
+    [{ text: MENU.talabalar }, { text: MENU.xodimlar }],
+    [{ text: MENU.hisobotlar }, { text: MENU.majlis }],
   ],
   resize_keyboard: true,
   is_persistent: true,
+  input_field_placeholder: 'Talaba ismi, shartnoma № yoki JSHSHIR…',
 }
+
+/** Ro'yxat — Telegram iqtibosi ichida; uzun bo'lsa yig'iq (bosilganda ochiladi) */
+function quote(lines: string[], expandable = lines.length > 12) {
+  return lines.length ? `<blockquote${expandable ? ' expandable' : ''}>${lines.join('\n')}</blockquote>` : ''
+}
+
+/** Menyu tugmasi matnidan emoji va bo'shliqlarni olib tashlash: "🎓 Talabalar" → "talabalar" */
+const plainText = (t: string) => t.replace(/^[^\p{L}\d/]+/u, '').trim()
 
 const ROLE_FILES = [
   { match: ['buxgalter', '1. buxgalter', '/buxgalteriya'], file: '1_Buxgalteriya_Shartnoma_va_Pasport.xlsx', title: '1. Buxgalteriya (Shartnoma № va Pasport)' },
@@ -84,19 +103,23 @@ const MAX_MESSAGE = 3900
 function splitMessage(text: string): string[] {
   const parts: string[] = []
   let cur = ''
-  // Qatorlar ichidagi <b>…</b> teglari o'sha qatorda yopiladi, shuning uchun qator chegarasida bo'lish xavfsiz
+  // Ochiq turgan <blockquote …> yoki <pre> — bo'linish shu teg ichiga to'g'ri kelsa, yopib, keyingi bo'lakda qayta ochamiz
+  let open: string | null = null
   for (const block of text.split('\n')) {
     const line = block.length > MAX_MESSAGE ? block.slice(0, MAX_MESSAGE) : block
-    if (cur && cur.length + line.length + 1 > MAX_MESSAGE) {
-      parts.push(cur)
-      cur = line
+    if (cur && cur.length + line.length + 20 > MAX_MESSAGE) {
+      parts.push(open ? `${cur}${closeTag(open)}` : cur)
+      cur = open ? `${open}${line}` : line
     } else {
       cur = cur ? `${cur}\n${line}` : line
     }
+    for (const m of line.matchAll(/<(\/?)(blockquote|pre)\b[^>]*>/g)) open = m[1] ? null : m[0]
   }
   if (cur) parts.push(cur)
   return parts
 }
+
+const closeTag = (open: string) => (open.startsWith('<pre') ? '</pre>' : '</blockquote>')
 
 async function sendMessage(chatId: string | number, text: string, markup: unknown = BOT_KEYBOARD) {
   let last: { ok?: boolean; description?: string } = { ok: false }
@@ -173,8 +196,8 @@ async function kontingentText(reason: string) {
 
   const bdays = official.filter((s) => String(s.dob || '').startsWith(`${ddmm}.`))
   if (bdays.length) {
-    lines.push("\n🎉 <b>Tug'ilgan kunlar:</b>")
-    for (const b of bdays) lines.push(`• <b>${esc(b.fish)}</b> (Guruh ${esc(b.group)}, ${esc(b.dob)})`)
+    lines.push("\n🎉 <b>Bugun tug'ilgan kunlar:</b>")
+    lines.push(quote(bdays.map((b) => `• <b>${esc(b.fish)}</b> — ${esc(b.group)}, ${esc(b.dob)}`)))
   }
   return lines.join('\n')
 }
@@ -182,33 +205,48 @@ async function kontingentText(reason: string) {
 async function kamchiliklarText() {
   const students = (await loadStudentsDb()).filter((s) => isOfficialGroup(s.group))
   const lines = [
-    '⚠️ <b>HUJJATIDA KAMCHILIGI BOR TALABALAR HISOBOTI</b>',
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    `• Pasport seriyasi yo'q: <b>${students.filter((s) => !s.pv).length} nafar</b>`,
-    `• JSHSHIR (PINFL) yo'q: <b>${students.filter((s) => !s.pinfl).length} nafar</b>`,
-    `• Shahodatnoma/Diplom raqami yo'q: <b>${students.filter((s) => !s.sh_doc).length} nafar</b>`,
-    `• Shartnoma № yo'q: <b>${students.filter((s) => !s.shnum).length} nafar</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
+    "⚠️ <b>Hujjatida kamchiligi bor talabalar</b>",
+    quote([
+      `Pasport seriyasi yo'q: <b>${students.filter((s) => !s.pv).length}</b>`,
+      `JSHSHIR yo'q: <b>${students.filter((s) => !s.pinfl).length}</b>`,
+      `Shahodatnoma / diplom № yo'q: <b>${students.filter((s) => !s.sh_doc).length}</b>`,
+      `Shartnoma № yo'q: <b>${students.filter((s) => !s.shnum).length}</b>`,
+    ], false),
   ]
-  students
-    .filter((s) => !s.pv || !s.pinfl || !s.sh_doc || !s.shnum)
-    .forEach((s, i) => {
-      const miss = [!s.pv && 'Pasport', !s.pinfl && 'JSHSHIR', !s.sh_doc && 'Shahodatnoma/Diplom', !s.shnum && 'Shartnoma №'].filter(Boolean)
-      lines.push(`${i + 1}. <b>${esc(s.fish)}</b> (Guruh ${esc(s.group)}, ${esc(GROUP_LEADERS[s.group] || '—')})\n   ❌ <i>Yo'q: ${miss.join(', ')}</i>`)
-    })
+  // Hujjat kamchiligi (pasport, JSHSHIR, shahodatnoma) — ismma-ism
+  const docGaps = students.filter((s) => !s.pv || !s.pinfl || !s.sh_doc)
+  if (docGaps.length) {
+    lines.push(`📋 <b>Hujjati to'liq emas — ${docGaps.length} nafar</b>`)
+    lines.push(quote(docGaps.map((s, i) => {
+      const miss = [!s.pv && 'pasport', !s.pinfl && 'JSHSHIR', !s.sh_doc && 'shahodatnoma', !s.shnum && 'shartnoma №'].filter(Boolean)
+      return `${i + 1}. <b>${esc(s.fish)}</b> — ${esc(s.group)}\n      ❌ <i>${miss.join(', ')}</i>`
+    })))
+  }
+  // Shartnoma raqami yo'qlar ko'p bo'ladi (2–3-kurs) — guruhlar kesimida soni bilan
+  const noShnum = students.filter((s) => !s.shnum)
+  if (noShnum.length) {
+    const byGroup = new Map<string, number>()
+    for (const s of noShnum) byGroup.set(s.group, (byGroup.get(s.group) ?? 0) + 1)
+    lines.push(`📄 <b>Shartnoma № yo'q — guruhlar kesimida</b>`)
+    lines.push(quote([...byGroup.entries()].sort(([a], [b]) => a.localeCompare(b))
+      .map(([g, n]) => `${esc(g)} — <b>${n}</b> nafar${GROUP_LEADERS[g] ? ` · ${esc(GROUP_LEADERS[g])}` : ''}`)))
+    lines.push("<i>Ismma-ism ro'yxat: 📊 Hisobotlar → Excel → 4. To'liq baza</i>")
+  }
+  if (!docGaps.length && !noShnum.length) lines.push("✅ Barcha talabalarning hujjatlari to'liq.")
   return lines.join('\n')
 }
 
 function studentCard(s: Student, i: number) {
-  return `<b>${i + 1}. ${esc(s.fish)}</b>\n` +
-    `   • Guruh: <b>${esc(s.group || '—')}</b> (Rahbar: ${esc(GROUP_LEADERS[s.group] || '—')})\n` +
-    `   • Shartnoma №: <b>${esc(s.shnum || '—')}</b>\n` +
-    `   • Tug'ilgan sana: <b>${esc(s.dob || '—')}</b>\n` +
-    `   • Pasport: <b>${esc(s.pv || '—')}</b> (Berilgan: ${esc(s.ber || '—')})\n` +
-    `   • JSHSHIR: <code>${esc(s.pinfl || '—')}</code>\n` +
-    `   • Hujjat (${esc(s.doc_tur || 'Shahodatnoma')}): <b>${esc(s.sh_doc || '—')}</b>\n` +
-    `   • Muassasa: ${esc(s.mak || '—')} (${esc(s.yil || '—')}-yil)\n` +
-    `   • Tel: ${esc(s.tel || '—')}`
+  return `<b>${i + 1}. ${esc(s.fish)}</b>\n` + quote([
+    `👥 Guruh: <b>${esc(s.group || '—')}</b>${GROUP_LEADERS[s.group] ? ` · ${esc(GROUP_LEADERS[s.group])}` : ''}`,
+    `📄 Shartnoma №: <b>${esc(s.shnum || '—')}</b>`,
+    `📅 Tug'ilgan: <b>${esc(s.dob || '—')}</b>`,
+    `🪪 Pasport: <code>${esc(s.pv || '—')}</code>${s.ber ? ` (${esc(s.ber)})` : ''}`,
+    `🔢 JSHSHIR: <code>${esc(s.pinfl || '—')}</code>`,
+    `📜 ${esc(s.doc_tur || 'Shahodatnoma')}: <code>${esc(s.sh_doc || '—')}</code>`,
+    `🏫 ${esc(s.mak || '—')}${s.yil ? ` (${esc(s.yil)})` : ''}`,
+    `📞 ${esc(s.tel || '—')}`,
+  ], false)
 }
 
 
@@ -225,112 +263,154 @@ async function loadStaffDb(): Promise<StaffMember[]> {
   return []
 }
 
-function teachersSummaryText(staff: StaffMember[], filter: 'all' | 'asosiy' | 'orindosh' = 'all') {
+/** Xodimlarni toifalarga ajratish: asosiy va o'rindosh o'qituvchilar, shtat */
+function staffGroups(staff: StaffMember[]) {
   const asosiy = staff.filter((s) => s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy'))
   const orindosh = staff.filter((s) => s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh"))
+  const shtat = staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat' ||
+    (!s.kategoriya?.includes("o'qituvchi") && !s.ish_turi?.includes("o'qituvchi") && s.bolim !== 'Pedagog'))
+  return { asosiy, orindosh, shtat }
+}
+
+const teacherLine = (t: StaffMember, i: number) =>
+  `${i + 1}. <b>${esc(t.fish)}</b>\n      <i>${esc(t.mutaxassislik || "O'qituvchi")}</i> · 📞 ${esc(cleanStaffPhone(t.tel))}`
+
+function teachersSummaryText(staff: StaffMember[], filter: 'all' | 'asosiy' | 'orindosh' = 'all') {
+  const { asosiy, orindosh } = staffGroups(staff)
   const { stamp } = tashkentStamp()
-
-  if (filter === 'asosiy') {
-    const lines = [
-      '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
-      `📗 <b>ASOSIY O'QITUVCHILAR (${asosiy.length} nafar)</b>`,
-      `🕒 Sana: <b>${stamp}</b>`,
-      '━━━━━━━━━━━━━━━━━━━━━━',
-    ]
-    asosiy.forEach((t, i) => {
-      lines.push(`${i + 1}. <b>${esc(t.fish)}</b>\n   • Fani: <i>${esc(t.mutaxassislik || "O'qituvchi")}</i>\n   • OTM: ${esc(t.tamomlagan_otm || '—')}\n   • Tel: ${esc(cleanStaffPhone(t.tel))}`)
-    })
-    return lines.join('\n')
+  if (filter !== 'all') {
+    const list = filter === 'asosiy' ? asosiy : orindosh
+    return [
+      `${filter === 'asosiy' ? '📗' : '📘'} <b>${filter === 'asosiy' ? 'Asosiy' : "O'rindosh"} o'qituvchilar</b> — ${list.length} nafar`,
+      `🕒 ${stamp}`,
+      list.length ? quote(list.map(teacherLine)) : "<i>Ro'yxat bo'sh</i>",
+    ].join('\n')
   }
-
-  if (filter === 'orindosh') {
-    const lines = [
-      '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
-      `📘 <b>O'RINDOSH O'QITUVCHILAR (${orindosh.length} nafar)</b>`,
-      `🕒 Sana: <b>${stamp}</b>`,
-      '━━━━━━━━━━━━━━━━━━━━━━',
-    ]
-    orindosh.forEach((t, i) => {
-      lines.push(`${i + 1}. <b>${esc(t.fish)}</b>\n   • Fani: <i>${esc(t.mutaxassislik || "O'qituvchi")}</i>\n   • OTM: ${esc(t.tamomlagan_otm || '—')}\n   • Tel: ${esc(cleanStaffPhone(t.tel))}`)
-    })
-    return lines.join('\n')
-  }
-
-  const lines = [
-    '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
-    "👨‍🏫 <b>O'QITUVCHILAR VA PEDAGOGLAR RO'YXATI</b>",
-    `🕒 Sana: <b>${stamp}</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    `📊 <b>Jami pedagoglar: ${asosiy.length + orindosh.length} nafar</b>`,
-    `• 📗 Asosiy o'qituvchilar: <b>${asosiy.length} nafar</b>`,
-    `• 📘 O'rindosh o'qituvchilar: <b>${orindosh.length} nafar</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    `📗 <b>ASOSIY O'QITUVCHILAR (${asosiy.length} nafar):</b>`,
-  ]
-  asosiy.forEach((t, i) => {
-    lines.push(`${i + 1}. <b>${esc(t.fish)}</b> — <i>${esc(t.mutaxassislik || "O'qituvchi")}</i> (📞 ${esc(cleanStaffPhone(t.tel))})`)
-  })
-
-  lines.push('', `📘 <b>O'RINDOSH O'QITUVCHILAR (${orindosh.length} nafar):</b>`)
-  orindosh.forEach((t, i) => {
-    lines.push(`${i + 1}. <b>${esc(t.fish)}</b> — <i>${esc(t.mutaxassislik || "O'qituvchi")}</i> (📞 ${esc(cleanStaffPhone(t.tel))})`)
-  })
-
-  return lines.join('\n')
+  return [
+    `👨‍🏫 <b>O'qituvchilar</b> — ${asosiy.length + orindosh.length} nafar`,
+    `🕒 ${stamp}`,
+    '',
+    `📗 <b>Asosiy</b> — ${asosiy.length} nafar`,
+    quote(asosiy.map(teacherLine)),
+    '',
+    `📘 <b>O'rindosh</b> — ${orindosh.length} nafar`,
+    quote(orindosh.map(teacherLine)),
+  ].join('\n')
 }
 
 function shtatStaffSummaryText(staff: StaffMember[]) {
-  const shtat = staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat' || (!s.kategoriya?.includes('o\'qituvchi') && !s.ish_turi?.includes('o\'qituvchi') && s.bolim !== 'Pedagog'))
+  const { shtat } = staffGroups(staff)
   const { stamp } = tashkentStamp()
-
-  const lines = [
-    '🏛 <b>SHAHRISABZ TIBBIYOT TEXNIKUMI</b>',
-    "👔 <b>SHTAT XODIMLARI RO'YXATI</b>",
-    `🕒 Sana: <b>${stamp}</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    `👥 <b>Jami shtat birligi: ${shtat.length} nafar</b>`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
-  ]
-  shtat.forEach((s, i) => {
-    lines.push(`${i + 1}. <b>${esc(s.fish)}</b> — <b>${esc(s.lavozim)}</b>\n   • Bo'limi: ${esc(s.bolim || "Ma'muriy")}\n   • Pasport: <code>${esc(s.pv || '—')}</code> · Tel: ${esc(cleanStaffPhone(s.tel))}`)
-  })
-  return lines.join('\n')
+  return [
+    `👔 <b>Shtat xodimlari</b> — ${shtat.length} nafar`,
+    `🕒 ${stamp}`,
+    shtat.length ? quote(shtat.map((s, i) =>
+      `${i + 1}. <b>${esc(s.fish)}</b> — ${esc(s.lavozim || 'Xodim')}\n      ${esc(s.bolim || "Ma'muriy")} · 📞 ${esc(cleanStaffPhone(s.tel))}${s.pv ? ` · <code>${esc(s.pv)}</code>` : ''}`))
+      : "<i>Ro'yxat bo'sh</i>",
+  ].join('\n')
 }
 
 function teachersListView(staff: StaffMember[], filter: 'all' | 'asosiy' | 'orindosh' = 'all'): View {
-  const text = teachersSummaryText(staff, filter)
+  const { asosiy, orindosh } = staffGroups(staff)
+  // Tanlangan tugmada belgi o'rniga ✅
+  const mark = (f: typeof filter, icon: string, label: string) => `${filter === f ? '✅' : icon} ${label}`
   return {
-    text,
+    text: teachersSummaryText(staff, filter),
     markup: {
       inline_keyboard: [
         [
-          { text: filter === 'asosiy' ? '✅ Asosiy (13)' : '📗 Asosiy (13)', callback_data: 'tch:asosiy' },
-          { text: filter === 'orindosh' ? '✅ O\'rindosh (8)' : '📘 O\'rindosh (8)', callback_data: 'tch:orindosh' },
-          { text: filter === 'all' ? '✅ Barchasi (21)' : '🌐 Barchasi', callback_data: 'tch:all' },
+          { text: mark('asosiy', '📗', `Asosiy · ${asosiy.length}`), callback_data: 'tch:asosiy' },
+          { text: mark('orindosh', '📘', `O'rindosh · ${orindosh.length}`), callback_data: 'tch:orindosh' },
+          { text: mark('all', '🌐', 'Hammasi'), callback_data: 'tch:all' },
         ],
-        [
-          { text: '📥 Excel ro\'yxatni olish (.xlsx)', callback_data: 'doc:tch' },
-        ],
-        [
-          { text: '👔 Shtat xodimlari ro\'yxati', callback_data: 'stf:shtat' },
-        ],
+        [{ text: "📥 Excel (o'qituvchilar)", callback_data: 'doc:tch' }],
+        [{ text: '⬅️ Xodimlar menyusi', callback_data: 'm:xd' }],
       ],
     },
   }
 }
 
 function shtatStaffView(staff: StaffMember[]): View {
-  const text = shtatStaffSummaryText(staff)
   return {
-    text,
+    text: shtatStaffSummaryText(staff),
     markup: {
       inline_keyboard: [
-        [
-          { text: '📥 Shtat ro\'yxatini olish (.xlsx)', callback_data: 'doc:stf' },
-        ],
-        [
-          { text: '👨‍🏫 O\'qituvchilar ro\'yxati', callback_data: 'tch:all' },
-        ],
+        [{ text: '📥 Excel (shtat)', callback_data: 'doc:stf' }],
+        [{ text: '⬅️ Xodimlar menyusi', callback_data: 'm:xd' }],
+      ],
+    },
+  }
+}
+
+/* ------------------------------ BO'LIM MENYULARI ------------------------------ */
+
+const backTo = (to: 'm:st' | 'm:xd' | 'm:rep', label: string): Btn[] => [{ text: `⬅️ ${label}`, callback_data: to }]
+
+/** 🎓 Talabalar — guruhlar, kontingent, kamchiliklar, ma'lumotnoma, yangi talaba */
+async function studentsMenuView(): Promise<View> {
+  const students = await loadStudentsDb()
+  const official = students.filter((s) => isOfficialGroup(s.group))
+  const ver = official.filter((s) => s.verified === 'TASDIQLANDI').length
+  return {
+    text: [
+      '🎓 <b>Talabalar</b>',
+      quote([
+        `Faol kontingent: <b>${official.length}</b> nafar · ${academicGroups(students).length} guruh`,
+        `Tasdiqlangan: <b>${ver}</b> · kutilmoqda: <b>${official.length - ver}</b>`,
+        `Akademik ta'til: <b>${students.filter((s) => isAcademicLeave(s.group)).length}</b> · safdan chiqqan: <b>${students.filter((s) => isOutside(s.group)).length}</b>`,
+      ], false),
+      "<i>Bo'limni tanlang yoki talaba ismi, shartnoma № yoki JSHSHIR ni yozib yuboring.</i>",
+    ].join('\n'),
+    markup: {
+      inline_keyboard: [
+        [{ text: "👥 Guruhlar ro'yxati", callback_data: 'gl' }, { text: '📈 Kontingent', callback_data: 'st:kont' }],
+        [{ text: '⚠️ Kamchiliklar', callback_data: 'st:kam' }, { text: "📄 Ma'lumotnoma", callback_data: 'st:mal' }],
+        [{ text: '➕ Yangi talaba qo\'shish', callback_data: 'add:st' }],
+      ],
+    },
+  }
+}
+
+/** 👨‍🏫 Xodimlar — o'qituvchilar (asosiy / o'rindosh), shtat, Excel, yangi xodim */
+async function staffMenuView(): Promise<View> {
+  const { asosiy, orindosh, shtat } = staffGroups(await loadStaffDb())
+  return {
+    text: [
+      '👨‍🏫 <b>Xodimlar</b>',
+      quote([
+        `📗 Asosiy o'qituvchilar: <b>${asosiy.length}</b>`,
+        `📘 O'rindosh o'qituvchilar: <b>${orindosh.length}</b>`,
+        `👔 Shtat xodimlari: <b>${shtat.length}</b>`,
+      ], false),
+      "<i>Ro'yxatni tanlang:</i>",
+    ].join('\n'),
+    markup: {
+      inline_keyboard: [
+        [{ text: `📗 Asosiy · ${asosiy.length}`, callback_data: 'tch:asosiy' }, { text: `📘 O'rindosh · ${orindosh.length}`, callback_data: 'tch:orindosh' }],
+        [{ text: `👔 Shtat · ${shtat.length}`, callback_data: 'stf:shtat' }, { text: '🌐 Hamma o\'qituvchilar', callback_data: 'tch:all' }],
+        [{ text: "📥 Excel: o'qituvchilar", callback_data: 'doc:tch' }, { text: '📥 Excel: shtat', callback_data: 'doc:stf' }],
+        [{ text: '📥 Excel: barcha xodimlar', callback_data: 'doc:all_stf' }],
+        [{ text: '➕ Yangi xodim qo\'shish', callback_data: 'add:xd' }],
+      ],
+    },
+  }
+}
+
+/** 📊 Hisobotlar — Excel, davomat jurnallari, JSON baza */
+function reportsMenuView(): View {
+  return {
+    text: [
+      '📊 <b>Hisobotlar</b>',
+      quote([
+        "📑 <b>Excel hisobotlar</b> — buxgalteriya, baza admin, guruh rahbarlari, to'liq baza, so'rovnoma",
+        '📝 <b>Davomat jurnallari</b> — Excel andoza, PDF va Word',
+        "📦 <b>JSON baza</b> — to'liq zaxira nusxa",
+      ], false),
+    ].join('\n'),
+    markup: {
+      inline_keyboard: [
+        [{ text: '📑 Excel hisobotlar', callback_data: 'rep:excel' }, { text: '📝 Davomat jurnallari', callback_data: 'rep:davomat' }],
+        [{ text: '📦 JSON baza', callback_data: 'rep:json' }, { text: '📈 Kontingent', callback_data: 'st:kont' }],
       ],
     },
   }
@@ -338,25 +418,23 @@ function shtatStaffView(staff: StaffMember[]): View {
 
 function excelReportsView(): View {
   return {
-    text: "📊 <b>Excel Hisobotlar Bo'limi</b>\n\nKerakli Excel (.xlsx) hisobotni tanlang. Hujjat darhol Telegram orqali yuboriladi:\n\n• <b>1. Buxgalteriya</b> — Shartnoma raqamlari va Pasport\n• <b>2. Baza Administratori</b> — Pasport va Diplomlar\n• <b>3. Guruh Rahbarlari</b> — Tug'ilgan sana va shahodatnomalar\n• <b>4. To'liq Baza</b> — Barcha ustunlar jamlangan baza\n• <b>1-kurs So'rovnoma</b> — Manzillar va ota-onalar\n• <b>O'qituvchilar</b> — Asosiy va O'rindosh pedagoglar\n• <b>Shtat xodimlari</b> — Barcha shtat birliklari",
+    text: [
+      '📑 <b>Excel hisobotlar</b>',
+      quote([
+        '1️⃣ <b>Buxgalteriya</b> — shartnoma № va pasport',
+        '2️⃣ <b>Baza administratori</b> — pasport va shahodatnoma / diplom',
+        "3️⃣ <b>Guruh rahbarlari</b> — tug'ilgan sana, pasport, shahodatnoma",
+        "4️⃣ <b>To'liq baza</b> — barcha ustunlar",
+        "📋 <b>1-kurs so'rovnoma</b> — manzil, ota-ona, telefonlar",
+      ], false),
+      '<i>Fayl darhol shu chatga yuboriladi.</i>',
+    ].join('\n'),
     markup: {
       inline_keyboard: [
-        [
-          { text: '📊 1. Buxgalteriya', callback_data: 'doc:bux' },
-          { text: '🗂 2. Baza Admin', callback_data: 'doc:adm' },
-        ],
-        [
-          { text: '👥 3. Guruh Rahbarlari', callback_data: 'doc:grh' },
-          { text: '📋 4. To\'liq Baza', callback_data: 'doc:tol' },
-        ],
-        [
-          { text: '👨‍🏫 O\'qituvchilar', callback_data: 'doc:tch' },
-          { text: '👔 Shtat xodimlari', callback_data: 'doc:stf' },
-        ],
-        [
-          { text: '📋 1-kurs So\'rovnoma', callback_data: 'doc:sor' },
-          { text: '🌐 Barcha xodimlar', callback_data: 'doc:all_stf' },
-        ],
+        [{ text: '1️⃣ Buxgalteriya', callback_data: 'doc:bux' }, { text: '2️⃣ Baza admin', callback_data: 'doc:adm' }],
+        [{ text: '3️⃣ Guruh rahbarlari', callback_data: 'doc:grh' }, { text: "4️⃣ To'liq baza", callback_data: 'doc:tol' }],
+        [{ text: "📋 1-kurs so'rovnoma", callback_data: 'doc:sor' }],
+        backTo('m:rep', 'Hisobotlar'),
       ],
     },
   }
@@ -364,17 +442,21 @@ function excelReportsView(): View {
 
 function davomatReportsView(): View {
   return {
-    text: "📝 <b>Davomat Jurnallari Bo'limi</b>\n\nKerakli jurnal formatini tanlang:\n\n• <b>Davomat Jurnali (.xlsx)</b> — 1-kurs andoza jadvallari\n• <b>Guruh Jurnallari (PDF)</b> — A4 chop etish uchun jurnallar\n• <b>1-kurs Word Jurnallar (ZIP)</b> — Barcha 6 ta guruh Word fayllari\n• <b>Namunaviy 26-02 Word</b> — To'liq to'ldirilgan namunaviy jurnal\n\n💡 <i>Alohida guruh:</i> <code>/davomat 26-03</code>\n💡 <i>Barcha 19 ta guruh:</i> <code>/davomat barcha</code>",
+    text: [
+      '📝 <b>Davomat jurnallari</b>',
+      quote([
+        '📝 <b>Excel andoza</b> — barcha guruhlar uchun',
+        '📑 <b>PDF jurnallar</b> — A4, chop etishga tayyor',
+        '📦 <b>1-kurs Word (ZIP)</b> — guruhlarning Word fayllari',
+        "📄 <b>26-02 namuna</b> — to'ldirilgan Word jurnal",
+      ], false),
+      '💡 <i>Bitta guruh:</i> <code>/davomat 26-03</code> · <i>hammasi:</i> <code>/davomat barcha</code>',
+    ].join('\n'),
     markup: {
       inline_keyboard: [
-        [
-          { text: '📝 Davomat Jurnali (.xlsx)', callback_data: 'dvm:xls' },
-          { text: '📑 Guruh Jurnallari (PDF)', callback_data: 'dvm:pdf' },
-        ],
-        [
-          { text: '📦 1-kurs Word ZIP', callback_data: 'dvm:zip' },
-          { text: '📄 Namunaviy 26-02 Word', callback_data: 'dvm:doc' },
-        ],
+        [{ text: '📝 Excel andoza', callback_data: 'dvm:xls' }, { text: '📑 PDF jurnallar', callback_data: 'dvm:pdf' }],
+        [{ text: '📦 1-kurs Word ZIP', callback_data: 'dvm:zip' }, { text: '📄 26-02 namuna', callback_data: 'dvm:doc' }],
+        backTo('m:rep', 'Hisobotlar'),
       ],
     },
   }
@@ -437,23 +519,18 @@ function pendingDraftView(draft: PendingDraft): View {
   const d = draft.data
   const ismOta = `${d.ism || ''} ${d.ota || ''}`.trim()
   const displayFish = d.fish || ismOta || '—'
-  const lines = [
-    '🤖 <b>AI HUJJAT MA\'LUMOTLARINI ANIQLADI:</b>',
-    '━━━━━━━━━━━━━━━━━━━━━━',
-    `👤 <b>F.I.SH:</b> <b>${esc(displayFish)}</b>`,
-    `🆔 <b>Pasport:</b> <code>${esc(d.pv || '—')}</code>`,
-    `🔢 <b>JSHSHIR:</b> <code>${esc(d.pinfl || '—')}</code>`,
-    `📅 <b>Tug\'ilgan sana:</b> <b>${esc(d.dob || '—')}</b>`,
-    `📞 <b>Telefon:</b> ${esc(d.tel || '—')}`,
+  const info = [
+    `👤 <b>${esc(displayFish)}</b>`,
+    `🪪 Pasport: <code>${esc(d.pv || '—')}</code>`,
+    `🔢 JSHSHIR: <code>${esc(d.pinfl || '—')}</code>`,
+    `📅 Tug'ilgan: <b>${esc(d.dob || '—')}</b>`,
+    `📞 ${esc(d.tel || '—')}`,
   ]
   if (d.sh_doc || d.maktab) {
-    lines.push(`📜 <b>Hujjat:</b> ${esc(d.doc_tur || 'Hujjat')} ${esc(d.sh_doc || '')} ${d.maktab ? `(${esc(d.maktab)})` : ''}`)
+    info.push(`📜 ${esc(d.doc_tur || 'Hujjat')} ${esc(d.sh_doc || '')}${d.maktab ? ` · ${esc(d.maktab)}` : ''}`)
   }
-  if (d.mutaxassislik || d.lavozim) {
-    lines.push(`💼 <b>Soha / Fan:</b> <i>${esc(d.mutaxassislik || d.lavozim || '')}</i>`)
-  }
-  lines.push('━━━━━━━━━━━━━━━━━━━━━━')
-  lines.push('Qaysi toifaga qo\'shishni tanlang:')
+  if (d.mutaxassislik || d.lavozim) info.push(`💼 <i>${esc(d.mutaxassislik || d.lavozim || '')}</i>`)
+  const lines = ["🤖 <b>AI hujjatdan o'qidi:</b>", quote(info, false), "Qaysi toifaga qo'shilsin?"]
 
   const defaultGroup = d.group || '26-02'
   const rows: Btn[][] = []
@@ -568,8 +645,9 @@ async function coursePickerView(): Promise<View> {
     text: `${k === 'akademik' ? "⏸ Akademik ta'til" : '🚫 Safdan chiqarilgan'} · ${count(SPECIAL_LISTS[k].pick)}`,
     callback_data: `g:${k}`,
   })))
+  rows.push(backTo('m:st', 'Talabalar menyusi'))
   return {
-    text: `👥 <b>Guruhlar ro'yxati</b>\n\n${lines.join('\n')}\n\n<b>Kursni tanlang</b> — keyin guruhini tanlaysiz.\nRo'yxat <b>matn</b> va <b>rasm</b> ko'rinishida keladi.`,
+    text: `👥 <b>Guruhlar ro'yxati</b>\n${quote(lines, false)}\n<b>Kursni tanlang</b>, keyin guruhni — ro'yxat matn va rasm bo'lib keladi.`,
     markup: { inline_keyboard: rows },
   }
 }
@@ -580,10 +658,10 @@ async function courseGroupsView(kurs: number): Promise<View> {
   const groups = academicGroups(students, kurs)
   const lines = groups.map((g) => {
     const leader = GROUP_LEADERS[g]
-    return `• <b>${esc(g)}</b> — ${students.filter(inGroup(g)).length} nafar${leader ? ` · ${esc(leader)}` : ''}`
+    return `<b>${esc(g)}</b> — ${students.filter(inGroup(g)).length} nafar${leader ? ` · ${esc(leader)}` : ''}`
   })
   return {
-    text: `🎓 <b>${kurs}-kurs guruhlari</b>\n\n${lines.join('\n')}\n\n<b>Guruhni tanlang:</b>`,
+    text: `🎓 <b>${kurs}-kurs guruhlari</b>\n${quote(lines, false)}\n<b>Guruhni tanlang:</b>`,
     markup: {
       inline_keyboard: [
         ...chunk(groups.map((g) => ({ text: `${g} · ${students.filter(inGroup(g)).length}`, callback_data: `g:${g}` })), 3),
@@ -632,15 +710,15 @@ async function sendGroupList(chatId: string | number, key: string) {
   const { stamp } = tashkentStamp()
 
   const head = [
-    `👥 <b>${esc(title)}</b>`,
-    special ? `<i>${esc(subtitle)}</i>` : `📚 ${esc(subtitle)}${leader ? `\n👤 Rahbar: <b>${esc(leader)}</b>` : ''}`,
-    `👨‍🎓 Talabalar: <b>${list.length} nafar</b>  ·  🕒 ${stamp}`,
-    '━━━━━━━━━━━━━━━━━━━━━━',
+    `👥 <b>${esc(title)}</b> — ${list.length} nafar`,
+    special ? `<i>${esc(subtitle)}</i>` : `📚 ${esc(subtitle)}${leader ? ` · 👤 <b>${esc(leader)}</b>` : ''}`,
+    `🕒 ${stamp}`,
   ]
   const rows = list.map((s, i) => special
     ? `${i + 1}. ${esc(fullName(s))} — ${s.chiqqan_guruh ? `<b>${esc(s.chiqqan_guruh)}</b> dan` : 'guruhi ?'}${s.buyruq_sana ? `, ${esc(s.buyruq_sana)}` : ''}`
     : `${i + 1}. ${esc(fullName(s))} — №${esc(s.shnum || '—')}${s.verified === 'TASDIQLANDI' ? ' ✅' : ''}`)
-  await sendMessage(chatId, [...head, ...rows].join('\n'))
+  // Guruh ro'yxati o'qish uchun so'raladi — yig'iq emas, ochiq iqtibos
+  await sendMessage(chatId, [...head, quote(rows, false)].join('\n'))
 
   try {
     const png = await renderGroupListPng({ title, subtitle, leader, stamp, students: list, special: !!special })
@@ -661,10 +739,10 @@ async function searchText(query: string) {
     (q.length >= 4 && norm(s.pv).replace(/\s/g, '').includes(digits)) ||
     (/^\d{4,}$/.test(digits) && String(s.pinfl || '').includes(digits)))
   if (!matches.length) return null
-  const lines = [`🔍 <b>Qidiruv natijasi (${matches.length} ta topildi):</b>\n`]
+  const lines = [`🔍 <b>Topildi: ${matches.length} ta</b>`]
   matches.slice(0, 8).forEach((s, i) => lines.push(studentCard(s, i)))
-  if (matches.length > 8) lines.push(`\n<i>...va yana ${matches.length - 8} nafar talaba. Aniqroq yozing.</i>`)
-  return lines.join('\n\n')
+  if (matches.length > 8) lines.push(`<i>…va yana ${matches.length - 8} nafar. Aniqroq yozing.</i>`)
+  return lines.join('\n')
 }
 
 /** /malumotnoma 285 — bitta talaba topilsa ma'lumotnoma rasmini (JPG) yuboradi */
@@ -684,11 +762,11 @@ async function malumotnomaCommand(chatId: string | number, query: string) {
   if (found.length > 1) {
     // Shartnoma raqami bir nechta talabada bo'lsa (turli kurslar) — F.I.SH bilan so'rash taklif qilinadi
     const shnumCount = (sh: string) => students.filter((x) => norm(x.shnum) === norm(sh)).length
-    await sendMessage(chatId, `🔍 ${found.length} ta talaba topildi — quyidagilardan birini yuboring:\n\n` +
-      found.slice(0, 10).map((s) => {
+    await sendMessage(chatId, `🔍 <b>${found.length} ta talaba topildi</b> — keraklisining buyrug'ini bosib nusxalang:\n` +
+      quote(found.slice(0, 10).map((s) => {
         const arg = s.shnum && shnumCount(s.shnum) === 1 ? s.shnum : s.fish
-        return `• ${esc(s.fish)} (Guruh ${esc(s.group || '—')}) — <code>/malumotnoma ${esc(arg)}</code>`
-      }).join('\n'))
+        return `${esc(s.fish)} — ${esc(s.group || '—')}\n<code>/malumotnoma ${esc(arg)}</code>`
+      }), false))
     return
   }
   const s = found[0]
@@ -731,6 +809,49 @@ async function botStatus(expectedUrl: string) {
     } : null,
     allowed_chats: TG_ALLOWED_IDS.size,
   }
+}
+
+/** ➕ Yangi talaba — hujjat rasmini yoki matnni kutish rejimi */
+async function startAddStudent(chatId: string | number) {
+  setUserMode(chatId, 'add_student')
+  await sendMessage(chatId, [
+    "🎓 <b>Yangi talaba qo'shish</b>",
+    quote([
+      "📸 <b>Hujjat rasmini yuboring</b> — pasport / ID-karta yoki shahodatnoma / diplom",
+      "🤖 AI o'qib, tasdiqlash uchun ko'rsatadi",
+      "✍️ Yoki matn: <code>Aliyev Vali Olim o'g'li, 15.05.2007, AE1234567, 31505075590024, 26-02</code>",
+    ], false),
+    '❌ Bekor qilish: /bekor',
+  ].join('\n'))
+}
+
+/** ➕ Yangi xodim — hujjat rasmini yoki matnni kutish rejimi */
+async function startAddStaff(chatId: string | number) {
+  setUserMode(chatId, 'add_staff')
+  await sendMessage(chatId, [
+    "👔 <b>Yangi xodim qo'shish</b>",
+    quote([
+      '📸 <b>Hujjat rasmini yuboring</b> — pasport / ID-karta, diplom yoki obyektivka',
+      "🤖 AI o'qib, tasdiqlash uchun ko'rsatadi",
+      "✍️ Yoki matn: <code>Karimov Jamshid Olimovich, Hamshiralik ishi o'qituvchisi, Asosiy, +998901234567</code>",
+    ], false),
+    '❌ Bekor qilish: /bekor',
+  ].join('\n'))
+}
+
+/** /start va 🏠 — bo'limlar haqida qisqacha */
+function startText() {
+  return [
+    '🏛 <b>Shahrisabz Tibbiyot Texnikumi</b> — talabalar va xodimlar boti',
+    quote([
+      `${MENU.talabalar} — guruhlar, kontingent, kamchiliklar, yangi talaba`,
+      `${MENU.xodimlar} — asosiy va o'rindosh o'qituvchilar, shtat, yangi xodim`,
+      `${MENU.hisobotlar} — Excel, davomat jurnallari, JSON baza`,
+      `${MENU.majlis} — o'qituvchilar majlisi davomati`,
+    ], false),
+    "🔍 <b>Qidiruv:</b> talaba ismi, shartnoma №, pasport yoki JSHSHIR ni yozing.",
+    "📄 <code>/malumotnoma 285</code> — o'qiyotganligi haqida ma'lumotnoma",
+  ].join('\n')
 }
 
 /** Majlis davomati: Mini App tugmasi + oxirgi majlis natijasi */
@@ -845,7 +966,25 @@ export async function POST(request: NextRequest) {
     if (cq) {
       const data = String(cq.data || '')
       const msgId = Number(cq.message?.message_id) || undefined
-            if (data === 'gl') await showView(chatId, await coursePickerView(), msgId)
+      // Bo'lim menyulari va ularning amallari
+      if (data === 'm:st') await showView(chatId, await studentsMenuView(), msgId)
+      else if (data === 'm:xd') await showView(chatId, await staffMenuView(), msgId)
+      else if (data === 'm:rep') await showView(chatId, reportsMenuView(), msgId)
+      else if (data === 'st:kont') await sendMessage(chatId, await kontingentText("So'rov bo'yicha"))
+      else if (data === 'st:kam') await sendMessage(chatId, await kamchiliklarText())
+      else if (data === 'st:mal') await sendMessage(chatId, "📄 <b>Ma'lumotnoma</b>\n" + quote([
+        "Shartnoma raqami yoki F.I.SH bilan yozing:",
+        '<code>/malumotnoma 285</code>',
+        '<code>/malumotnoma Aliyeva Malika</code>',
+      ], false))
+      else if (data === 'add:st') await startAddStudent(chatId)
+      else if (data === 'add:xd') await startAddStaff(chatId)
+      else if (data === 'rep:json') {
+        const buf = await readRepoFile(REPO_PATHS.baza, BOT_CACHE)
+        if (buf) await sendDocument(chatId, buf, 'talabalar_bazasi.json', `📦 <b>talabalar_bazasi.json</b> — to'liq baza\n🕒 ${stamp}`)
+        else await sendMessage(chatId, '❌ JSON baza fayli topilmadi.')
+      }
+      else if (data === 'gl') await showView(chatId, await coursePickerView(), msgId)
       else if (data.startsWith('k:')) await showView(chatId, await courseGroupsView(Number(data.slice(2))), msgId)
       else if (data.startsWith('g:')) await sendGroupList(chatId, data.slice(2))
       else if (data === 'rep:excel') await showView(chatId, excelReportsView(), msgId)
@@ -905,20 +1044,17 @@ export async function POST(request: NextRequest) {
         setUserMode(chatId, null)
 
         const displayFish = d.fish || `${ism} ${ota}`.trim()
-        await sendMessage(chatId,
-          `🎉 <b>YANGI TALABA MUVAFFAQIYATLI QO\'SHILDI!</b>\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 <b>F.I.SH:</b> <b>${esc(displayFish)}</b>\n` +
-          `👥 <b>Guruh:</b> <b>${esc(grp)}</b>\n` +
-          `📄 <b>Shartnoma №:</b> <b>${nextShnum}</b>\n` +
-          `🆔 <b>Pasport:</b> <code>${esc(d.pv || '—')}</code>\n` +
-          `🔢 <b>JSHSHIR:</b> <code>${esc(d.pinfl || '—')}</code>\n` +
-          `📅 <b>Tug\'ilgan sana:</b> ${esc(d.dob || '—')}\n` +
-          `📞 <b>Telefon:</b> ${esc(d.tel || '—')}\n` +
-          `🕒 <b>Vaqt:</b> ${stamp}\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `✅ <i>Baza, Supabase va Web Jurnalga avtomatik qo\'shildi!</i>`,
-          BOT_KEYBOARD)
+        await sendMessage(chatId, [
+          "🎉 <b>Yangi talaba qo'shildi</b>",
+          quote([
+            `👤 <b>${esc(displayFish)}</b>`,
+            `👥 Guruh: <b>${esc(grp)}</b> · 📄 Shartnoma №<b>${nextShnum}</b>`,
+            `🪪 Pasport: <code>${esc(d.pv || '—')}</code>`,
+            `🔢 JSHSHIR: <code>${esc(d.pinfl || '—')}</code>`,
+            `📅 Tug'ilgan: ${esc(d.dob || '—')} · 📞 ${esc(d.tel || '—')}`,
+          ], false),
+          `✅ <i>Baza, Supabase va Web Jurnalga qo'shildi · ${stamp}</i>`,
+        ].join('\n'), BOT_KEYBOARD)
         return Response.json({ ok: true })
       } else if (data.startsWith('sav_stf:')) {
         const [, dId, cat] = data.split(':')
@@ -980,21 +1116,17 @@ export async function POST(request: NextRequest) {
         deletePendingDraft(dId)
         setUserMode(chatId, null)
 
-        await sendMessage(chatId,
-          `🎉 <b>YANGI XODIM MUVAFFAQIYATLI QO\'SHILDI!</b>\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `👤 <b>F.I.SH:</b> <b>${esc(newMember.fish)}</b>\n` +
-          `🆔 <b>ID:</b> <code>${newMember.id}</code>\n` +
-          `👔 <b>Kategoriya:</b> <b>${esc(newMember.kategoriya)}</b>\n` +
-          `💼 <b>Lavozim:</b> <b>${esc(newMember.lavozim)}</b>\n` +
-          `🆔 <b>Pasport:</b> <code>${esc(newMember.pv || '—')}</code>\n` +
-          `🔢 <b>JSHSHIR:</b> <code>${esc(newMember.pinfl || '—')}</code>\n` +
-          `📅 <b>Tug\'ilgan sana:</b> ${esc(newMember.dob || '—')}\n` +
-          `📞 <b>Telefon:</b> ${esc(newMember.tel || '—')}\n` +
-          `🕒 <b>Vaqt:</b> ${stamp}\n` +
-          `━━━━━━━━━━━━━━━━━━━━━━\n` +
-          `✅ <i>Xodimlar bazasiga muvaffaqiyatli saqlandi!</i>`,
-          BOT_KEYBOARD)
+        await sendMessage(chatId, [
+          "🎉 <b>Yangi xodim qo'shildi</b>",
+          quote([
+            `👤 <b>${esc(newMember.fish)}</b> · <code>${newMember.id}</code>`,
+            `👔 ${esc(newMember.kategoriya)} · 💼 ${esc(newMember.lavozim)}`,
+            `🪪 Pasport: <code>${esc(newMember.pv || '—')}</code>`,
+            `🔢 JSHSHIR: <code>${esc(newMember.pinfl || '—')}</code>`,
+            `📅 Tug'ilgan: ${esc(newMember.dob || '—')} · 📞 ${esc(newMember.tel || '—')}`,
+          ], false),
+          `✅ <i>Xodimlar bazasiga saqlandi · ${stamp}</i>`,
+        ].join('\n'), BOT_KEYBOARD)
         return Response.json({ ok: true })
       } else if (data.startsWith('grp_pick:')) {
         const dId = data.slice('grp_pick:'.length)
@@ -1065,6 +1197,25 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: true })
     }
 
+    // Asosiy menyu tugmalari — "yangi talaba/xodim" rejimini ham yopadi (tugma matni ism deb o'qilmasin).
+    // Eski klaviaturadagi yozuvlar (Kontingent, Excel hisobotlar…) pastda ham ishlayveradi.
+    const menuKey = plainText(t)
+    const menuView =
+      menuKey === 'talabalar' || t === '/talabalar' ? () => studentsMenuView()
+      : menuKey === 'xodimlar' || t === '/xodimlar' ? () => staffMenuView()
+      : menuKey === 'hisobotlar' || t === '/hisobotlar' ? async () => reportsMenuView()
+      : null
+    if (menuView) {
+      setUserMode(chatId, null)
+      await showView(chatId, await menuView())
+      return Response.json({ ok: true })
+    }
+    if (menuKey === 'majlis' || t === '/majlis') {
+      setUserMode(chatId, null)
+      await majlisCommand(chatId, siteOrigin(request.nextUrl.origin))
+      return Response.json({ ok: true })
+    }
+
     // ✍️ Foydalanuvchi Yangi talaba yoki Yangi xodim rejimida bo'lsa va matn yozsa
     const activeUserMode = getUserMode(chatId)
     if (activeUserMode && text && !text.startsWith('/')) {
@@ -1087,30 +1238,11 @@ export async function POST(request: NextRequest) {
 
     // ➕ Rejim buyruqlari
     if (t.includes('yangi talaba') || t === '/yangi_talaba' || t === '/talaba_qoshish' || t === '/talaba') {
-      setUserMode(chatId, 'add_student')
-      await sendMessage(chatId,
-        `🎓 <b>Yangi talaba qo\'shish bo\'limi</b>\n\n` +
-        `📸 <b>Talabaning hujjat rasmini yuboring:</b>\n` +
-        `• Pasport yoki ID-karta rasmi\n` +
-        `• Shahodatnoma yoki Diplom rasmi\n\n` +
-        `<i>(AI avtomatik tahlil qilib, tasdiqlash uchun chiqarib beradi)</i>\n\n` +
-        `✍️ <b>Yoki ma\'lumotlarni matn shaklida yuboring:</b>\n` +
-        `<code>Aliyev Vali Olim o\'g\'li, 15.05.2007, AE1234567, 31505075590024, 26-02</code>\n\n` +
-        `❌ <i>Bekor qilish uchun:</i> /bekor`)
+      await startAddStudent(chatId)
       return Response.json({ ok: true })
     }
-
     if (t.includes('yangi xodim') || t === '/yangi_xodim' || t === '/xodim_qoshish' || t === '/xodim') {
-      setUserMode(chatId, 'add_staff')
-      await sendMessage(chatId,
-        `👔 <b>Yangi xodim qo\'shish bo\'limi</b>\n\n` +
-        `📸 <b>Xodimning hujjat rasmini yuboring:</b>\n` +
-        `• Pasport yoki ID-karta rasmi\n` +
-        `• Diplom yoki Obyektivka rasmi\n\n` +
-        `<i>(AI avtomatik tahlil qilib, tasdiqlash uchun chiqarib beradi)</i>\n\n` +
-        `✍️ <b>Yoki matn shaklida yuboring:</b>\n` +
-        `<code>Karimov Jamshid Olimovich, Hamshiralik ishi o\'qituvchisi, Asosiy, +998901234567</code>\n\n` +
-        `❌ <i>Bekor qilish uchun:</i> /bekor`)
+      await startAddStaff(chatId)
       return Response.json({ ok: true })
     }
 
@@ -1132,44 +1264,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (['/start', '/menu', '/help', 'menyu', 'start'].includes(t)) {
-      await sendMessage(chatId,
-        `🤖 <b>Talabalar Bazasi va Shartnomalar Boti</b>
-
-` +
-        `Quyidagi guruhlangan bo'limlar orqali ma'lumotlarni olishingiz mumkin:
-
-` +
-        `🎓 <b>O'quv va Guruhlar:</b>
-` +
-        `• <b>🎓 Guruhlar ro'yxati</b> — Guruhlar va rasmli jurnallar
-` +
-        `• <b>📈 Kontingent</b> — Talabalar umumiy kontingenti
-
-` +
-        `👨‍🏫 <b>Pedagog va Xodimlar:</b>
-` +
-        `• <b>👨‍🏫 O'qituvchilar ro'yxati</b> — Asosiy va O'rindosh pedagoglar (.xlsx)
-` +
-        `• <b>👔 Shtat xodimlari</b> — Ma'muriy va xo'jalik shtat birliklari (.xlsx)
-
-` +
-        `📊 <b>Hisobot va Hujjatlar:</b>
-` +
-        `• <b>📊 Excel hisobotlar</b> — 1-Buxgalteriya, 2-Admin, 3-Guruh rahbarlari, 4-To'liq
-` +
-        `• <b>📝 Davomat jurnallari</b> — Excel andoza, PDF va Word jurnallari
-
-` +
-        `📦 <b>Baza va Nazorat:</b>
-` +
-        `• <b>📦 JSON Baza (.json)</b> — To'liq JSON ma'lumotlar bazasi
-` +
-        `• <b>⚠️ Kamchiliklar ro'yxati</b> — Hujjati to'liq bo'lmagan talabalar
-
-` +
-        `📄 <b>/malumotnoma 285</b> — Talabaning o'qiyotganligi haqida ma'lumotnoma (rasm)
-` +
-        `🔍 <i>Tezkor qidiruv:</i> Istalgan talabaning <b>Ism-familiyasi</b>, <b>Shartnoma №</b>, <b>Pasport</b> yoki <b>JSHSHIR</b>ini yozing!`)
+      await sendMessage(chatId, startText())
       return Response.json({ ok: true })
     }
     const cert = /^\/?ma['‘’`]?lumotnoma(?:@\w+)?(?:\s+(.*))?$/i.exec(text)
