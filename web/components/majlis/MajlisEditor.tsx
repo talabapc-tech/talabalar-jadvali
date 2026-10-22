@@ -92,10 +92,9 @@ export default function MajlisEditor({ majlis: m, oqituvchilar, onChange, onDele
   const sendTelegram = async () => {
     setBusy('tg')
     try {
-      const file = await majlisWorkbook(m, oqituvchilar)
+      // Telegramga Excel emas — kontingent hisobotidek matn (jadval); Excel kerak bo'lsa "Excel" tugmasi
       const fd = new FormData()
       fd.append('text', majlisMatni(m, oqituvchilar))
-      fd.append('file', new Blob([file.data as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), file.fileName)
       const res = await tgFetch('/api/majlislar/telegram', { method: 'POST', body: fd })
       const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.ok) throw new Error(d.error || `Server ${res.status}`)

@@ -188,27 +188,87 @@ export function hisobla(list: Oqituvchi[], davomat: Record<string, Holat>): Hiso
   return h
 }
 
-/** Telegram uchun qisqa matn (HTML) — kelmaganlar va sababchilar nomi bilan */
+/* ------------------------------------------------ Telegram matnlari (kontingent uslubida) */
+
+const escHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/** "Botirova Gulandon Shokirovna" → "Botirova G.Sh." — jadvalda ustunlar tekis tursin */
+export function qisqaFish(fish: string) {
+  const [fam, ...rest] = fish.replace(/\s+/g, ' ').trim().split(' ')
+  const ini = rest
+    .filter((p) => !/^(qizi|o['‘’`]?g['‘’`]?li|ugli|ogli)$/i.test(p))
+    .map((p) => (/^(sh|ch)/i.test(p) ? p.slice(0, 2) : p.slice(0, 1)).replace(/^./, (c) => c.toUpperCase()) + '.')
+    .join('')
+  return ini ? `${fam} ${ini}` : fam
+}
+
+/** Daraxt qatorlari: ├─ … / oxirgisi └─ … (monospace <pre> ichida) */
+const tree = (rows: string[]) => rows.map((r, i) => `${i === rows.length - 1 ? '└─' : '├─'} ${r}`)
+const pre = (rows: string[]) => ['<pre>', ...rows, '</pre>']
+const num = (n: number, w = 2) => String(n).padStart(w, ' ')
+
+/** Bitta majlis davomati — Telegram uchun (kontingent hisobotidek daraxtsimon jadval) */
 export function majlisMatni(m: Majlis, oqituvchilar: Oqituvchi[]): string {
-  const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const parts = TURLAR.map((tur) => ({ tur, list: majlisOqituvchilari(m, oqituvchilar, tur) })).filter((x) => x.list.length)
+  const all = hisobla(parts.flatMap((x) => x.list), m.davomat)
   const lines = [
-    `📋 <b>Majlis davomati</b> — ${sanaUz(m.sana)}${m.vaqt ? ` ${m.vaqt}` : ''} (${haftaKuni(m.sana)})`,
+    `📋 <b>MAJLIS DAVOMATI</b>`,
+    `🕒 Sana: <b>${sanaUz(m.sana)}${m.vaqt ? ` | ${m.vaqt}` : ''}</b> (${haftaKuni(m.sana)})`,
   ]
-  if (m.mavzu) lines.push(`📝 <i>${esc(m.mavzu)}</i>`)
-  for (const tur of TURLAR) {
-    const list = majlisOqituvchilari(m, oqituvchilar, tur)
-    if (!list.length) continue
+  if (m.mavzu) lines.push(`📝 Mavzu: <i>${escHtml(m.mavzu)}</i>`)
+  lines.push('', '┌─ 📊 <b>UMUMIY HOLAT</b>', ...pre(tree([
+    `Chaqirilgan    | ${num(all.jami)} nafar`,
+    `Keldi          | ${num(all.keldi)} nafar`,
+    `Sababli        | ${num(all.sababli)} nafar`,
+    `Kelmadi        | ${num(all.kelmadi)} nafar`,
+    ...(all.belgilanmagan ? [`Belgilanmagan  | ${num(all.belgilanmagan)} nafar`] : []),
+    `Qatnashish     | ${num(all.foiz, 3)} %`,
+  ])))
+  for (const { tur, list } of parts) {
     const h = hisobla(list, m.davomat)
-    lines.push('', `<b>${tur === 'asosiy' ? '📗' : '📘'} ${TUR_TOLIQ[tur]}</b> — ${h.keldi}/${h.jami} keldi`)
-    // Kelmaganlar va sababchilar — Telegram iqtibosi ichida, har biri alohida qatorda
-    const rows: string[] = []
-    for (const holat of ['kelmadi', 'sababli'] as const) {
-      for (const o of list.filter((x) => m.davomat[x.id] === holat)) {
-        rows.push(`${holat === 'kelmadi' ? '❌' : '📄'} ${esc(o.fish)}${m.izoh[o.id] ? ` — <i>${esc(m.izoh[o.id])}</i>` : ''}`)
+    const w = Math.max(...list.map((o) => qisqaFish(o.fish).length))
+    lines.push('', `┌─ ${tur === 'asosiy' ? '📗' : '📘'} <b>${TUR_TOLIQ[tur].toUpperCase()} (${h.keldi}/${h.jami} keldi)</b>`)
+    lines.push(...pre(tree(list.map((o) => {
+      const s = m.davomat[o.id]
+      const holat = s === 'kelmadi' ? 'KELMADI' : s === 'sababli' ? 'sababli' : s === 'keldi' ? 'keldi' : '—'
+      const izoh = m.izoh[o.id] ? ` (${m.izoh[o.id]})` : ''
+      return escHtml(`${qisqaFish(o.fish).padEnd(w, ' ')} | ${holat}${izoh}`)
+    }))))
+  }
+  return lines.join('\n')
+}
+
+/** Davr hisoboti (bir necha majlis) — har o'qituvchi: keldi / sababli / kelmadi va foiz */
+export function majlisHisobotMatni(majlislar: Majlis[], oqituvchilar: Oqituvchi[], davr: string): string {
+  const lines = [
+    `📊 <b>MAJLISLAR DAVOMATI</b>`,
+    `🗓 Davr: <b>${escHtml(davr)}</b> · ${majlislar.length} ta majlis`,
+    '<i>Ustunlar: keldi / sababli / kelmadi · qatnashish %</i>',
+  ]
+  const byId = new Map(oqituvchilar.map((o) => [o.id, o]))
+  for (const tur of TURLAR) {
+    const stat = new Map<string, { o: Oqituvchi; keldi: number; sababli: number; kelmadi: number }>()
+    for (const m of majlislar) {
+      for (const id of m.tarkib) {
+        const o = byId.get(id)
+        if (!o || o.tur !== tur) continue
+        const r = stat.get(id) ?? { o, keldi: 0, sababli: 0, kelmadi: 0 }
+        const h = m.davomat[id]
+        if (h) r[h]++
+        stat.set(id, r)
       }
     }
-    if (h.belgilanmagan) rows.push(`⚪ Belgilanmagan: ${h.belgilanmagan}`)
-    lines.push(rows.length ? `<blockquote>${rows.join('\n')}</blockquote>` : '✅ Hammasi keldi')
+    const rows = [...stat.values()].sort((a, b) => byFish(a.o, b.o))
+    if (!rows.length) continue
+    const w = Math.max(...rows.map((r) => qisqaFish(r.o.fish).length))
+    const keldi = rows.reduce((s, r) => s + r.keldi, 0)
+    const jami = rows.reduce((s, r) => s + r.keldi + r.sababli + r.kelmadi, 0)
+    lines.push('', `┌─ ${tur === 'asosiy' ? '📗' : '📘'} <b>${TUR_TOLIQ[tur].toUpperCase()} (${rows.length} nafar, ${jami ? Math.round((keldi / jami) * 100) : 0}%)</b>`)
+    lines.push(...pre(tree(rows.map((r) => {
+      const marked = r.keldi + r.sababli + r.kelmadi
+      const foiz = marked ? Math.round((r.keldi / marked) * 100) : 0
+      return escHtml(`${qisqaFish(r.o.fish).padEnd(w, ' ')} | ${num(r.keldi)} / ${num(r.sababli)} / ${num(r.kelmadi)} | ${num(foiz, 3)}%`)
+    }))))
   }
   return lines.join('\n')
 }

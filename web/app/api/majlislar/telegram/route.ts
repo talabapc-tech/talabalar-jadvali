@@ -14,11 +14,19 @@ export async function POST(request: NextRequest) {
     const user = await verifyTelegramInitData(request.headers.get(TG_INIT_HEADER))
     const chatId = user ? String(user.id) : TG_CHAT_ID
     const fd = await request.formData()
-    const text = String(fd.get('text') || '').slice(0, 4000)
+    const text = String(fd.get('text') || '').slice(0, 16_000)
     const file = fd.get('file') as File | null
 
-    if (text) {
-      const r = await tgCall('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true })
+    // Hisobot bo'limlari bo'sh qator bilan ajratilgan — Telegram 4096 belgidan oshsa bo'limlar bo'yicha
+    // bo'linadi (<pre> jadvali o'rtasidan kesilmaydi)
+    const chunks: string[] = []
+    for (const block of text.split('\n\n')) {
+      const last = chunks.length - 1
+      if (last >= 0 && chunks[last].length + block.length + 2 <= 3900) chunks[last] += `\n\n${block}`
+      else chunks.push(block)
+    }
+    for (const chunk of chunks.filter((c) => c.trim())) {
+      const r = await tgCall('sendMessage', { chat_id: chatId, text: chunk, parse_mode: 'HTML', disable_web_page_preview: true })
       if (!r.ok) throw new Error(r.description || 'Xabar yuborilmadi')
     }
     if (file && file.size) {

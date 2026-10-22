@@ -739,10 +739,46 @@ async function searchText(query: string) {
     (q.length >= 4 && norm(s.pv).replace(/\s/g, '').includes(digits)) ||
     (/^\d{4,}$/.test(digits) && String(s.pinfl || '').includes(digits)))
   if (!matches.length) return null
+  const shown = matches.slice(0, 8)
   const lines = [`🔍 <b>Topildi: ${matches.length} ta</b>`]
-  matches.slice(0, 8).forEach((s, i) => lines.push(studentCard(s, i)))
+  shown.forEach((s, i) => lines.push(studentCard(s, i)))
   if (matches.length > 8) lines.push(`<i>…va yana ${matches.length - 8} nafar. Aniqroq yozing.</i>`)
-  return lines.join('\n')
+  return { text: lines.join('\n'), markup: malumotnomaButtons(shown) }
+}
+
+/** Har bir topilgan talaba uchun "📄 Ma'lumotnoma" tugmasi (ma'lumotnoma berib bo'lmaydiganlarga — yo'q) */
+function malumotnomaButtons(list: Student[]) {
+  const ok = list.map((s, i) => ({ s, i })).filter(({ s }) => !malumotnomaBlocker(s))
+  if (!ok.length) return BOT_KEYBOARD
+  const btns: Btn[] = ok.map(({ s, i }) => ({
+    text: list.length === 1 ? "📄 Ma'lumotnoma olish" : `📄 ${i + 1}. ${shortFish(s.fish)}`,
+    callback_data: `mal:${s.row}`,
+  }))
+  return { inline_keyboard: chunk(btns, 2) }
+}
+
+/** "Ergasheva Feruzaxon Asror qizi" → "Ergasheva F." (tugmaga sig'sin) */
+const shortFish = (fish: string) => {
+  const [fam, ism] = String(fish || '').trim().split(/\s+/)
+  return ism ? `${fam} ${ism[0]}.` : fam || '—'
+}
+
+/** Ma'lumotnoma rasmini yuborish (muhrli hujjat — faqat asosiy hisobot chatiga) */
+async function sendMalumotnoma(chatId: string | number, s: Student) {
+  if (String(chatId) !== DEFAULT_CHAT_ID) {
+    await sendMessage(chatId, "⛔ Ma'lumotnoma faqat asosiy chatda beriladi.")
+    return
+  }
+  const blocker = malumotnomaBlocker(s)
+  if (blocker) {
+    await sendMessage(chatId, `❌ ${esc(s.fish)}: ${esc(blocker)}`)
+    return
+  }
+  await tgCall('sendChatAction', { chat_id: chatId, action: 'upload_photo' })
+  const data = malumotnomaData(s)
+  await tgSendPhoto(chatId, await renderMalumotnomaJpg(data), malumotnomaFileName(s),
+    `📄 <b>O‘qiyotganligi haqida ma’lumotnoma</b>\n👤 <b>${esc(s.fish)}</b>\n👥 Guruh ${esc(s.group)} · Shartnoma №${esc(s.shnum || '—')}\n🗓 Sana: ${esc(data.sana)}`,
+    BOT_KEYBOARD)
 }
 
 /** /malumotnoma 285 — bitta talaba topilsa ma'lumotnoma rasmini (JPG) yuboradi */
@@ -760,25 +796,13 @@ async function malumotnomaCommand(chatId: string | number, query: string) {
     return
   }
   if (found.length > 1) {
-    // Shartnoma raqami bir nechta talabada bo'lsa (turli kurslar) — F.I.SH bilan so'rash taklif qilinadi
-    const shnumCount = (sh: string) => students.filter((x) => norm(x.shnum) === norm(sh)).length
-    await sendMessage(chatId, `🔍 <b>${found.length} ta talaba topildi</b> — keraklisining buyrug'ini bosib nusxalang:\n` +
-      quote(found.slice(0, 10).map((s) => {
-        const arg = s.shnum && shnumCount(s.shnum) === 1 ? s.shnum : s.fish
-        return `${esc(s.fish)} — ${esc(s.group || '—')}\n<code>/malumotnoma ${esc(arg)}</code>`
-      }), false))
+    // Bir nechta talaba (shartnoma raqami turli kurslarda takrorlanadi) — tugma bilan tanlanadi
+    const list = found.slice(0, 10)
+    await sendMessage(chatId, `🔍 <b>${found.length} ta talaba topildi</b> — keraklisini tanlang:\n` +
+      quote(list.map((s, i) => `${i + 1}. ${esc(s.fish)} — ${esc(s.group || '—')}`), false), malumotnomaButtons(list))
     return
   }
-  const s = found[0]
-  const blocker = malumotnomaBlocker(s)
-  if (blocker) {
-    await sendMessage(chatId, `❌ ${esc(s.fish)}: ${esc(blocker)}`)
-    return
-  }
-  const data = malumotnomaData(s)
-  await tgSendPhoto(chatId, await renderMalumotnomaJpg(data), malumotnomaFileName(s),
-    `📄 <b>O‘qiyotganligi haqida ma’lumotnoma</b>\n👤 <b>${esc(s.fish)}</b>\n👥 Guruh ${esc(s.group)} · Shartnoma №${esc(s.shnum || '—')}\n🗓 Sana: ${esc(data.sana)}`,
-    BOT_KEYBOARD)
+  await sendMalumotnoma(chatId, found[0])
 }
 
 const notConfigured = () =>
@@ -859,7 +883,7 @@ async function majlisCommand(chatId: string | number, origin: string) {
   const db = await loadMajlisDb().catch(() => null)
   const last = db?.majlislar[0]
   const text = (last && db ? `${majlisMatni(last, db.oqituvchilar)}\n\n` : '') +
-    "🗓 <b>O'qituvchilar majlisi davomati</b>\nYangi majlis ochish, asosiy va o'rindosh o'qituvchilarni belgilash, Excel hisobot — pastdagi tugma orqali."
+    "🗓 <b>O'qituvchilar majlisi davomati</b>\nYangi majlis ochish, asosiy va o'rindosh o'qituvchilarni belgilash va hisobot — pastdagi tugma orqali."
   return sendMessage(chatId, text, {
     inline_keyboard: [[{ text: '📋 Davomatni ochish', web_app: { url: `${origin}/majlis` } }]],
   })
@@ -973,7 +997,8 @@ export async function POST(request: NextRequest) {
       else if (data === 'st:kont') await sendMessage(chatId, await kontingentText("So'rov bo'yicha"))
       else if (data === 'st:kam') await sendMessage(chatId, await kamchiliklarText())
       else if (data === 'st:mal') await sendMessage(chatId, "📄 <b>Ma'lumotnoma</b>\n" + quote([
-        "Shartnoma raqami yoki F.I.SH bilan yozing:",
+        "Talabani qidiring (ismi yoki shartnoma №) — natija ostida 📄 tugmasi chiqadi.",
+        "Yoki buyruq bilan:",
         '<code>/malumotnoma 285</code>',
         '<code>/malumotnoma Aliyeva Malika</code>',
       ], false))
@@ -983,6 +1008,12 @@ export async function POST(request: NextRequest) {
         const buf = await readRepoFile(REPO_PATHS.baza, BOT_CACHE)
         if (buf) await sendDocument(chatId, buf, 'talabalar_bazasi.json', `📦 <b>talabalar_bazasi.json</b> — to'liq baza\n🕒 ${stamp}`)
         else await sendMessage(chatId, '❌ JSON baza fayli topilmadi.')
+      }
+      else if (data.startsWith('mal:')) {
+        const row = Number(data.slice(4))
+        const s = (await loadStudentsDb()).find((x) => Number(x.row) === row)
+        if (s) await sendMalumotnoma(chatId, s)
+        else await sendMessage(chatId, '❓ Talaba topilmadi (baza yangilangan bo\'lishi mumkin) — qaytadan qidiring.')
       }
       else if (data === 'gl') await showView(chatId, await coursePickerView(), msgId)
       else if (data.startsWith('k:')) await showView(chatId, await courseGroupsView(Number(data.slice(2))), msgId)
@@ -1385,7 +1416,7 @@ export async function POST(request: NextRequest) {
     if (text.length >= 2) {
       const res = await searchText(text)
       if (res) {
-        await sendMessage(chatId, res)
+        await sendMessage(chatId, res.text, res.markup)
         return Response.json({ ok: true })
       }
     }

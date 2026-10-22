@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { FileSpreadsheet, Loader2, Send } from 'lucide-react'
-import { byFish, HOLAT_META, TUR_TOLIQ, TURLAR, type Majlis, type MajlisDb, type Oqituvchi, type OqituvchiTur } from '@/lib/majlis'
+import { byFish, HOLAT_META, majlisHisobotMatni, TUR_TOLIQ, TURLAR, type Majlis, type MajlisDb, type Oqituvchi, type OqituvchiTur } from '@/lib/majlis'
 import { hisobotWorkbook, saveXlsx } from '@/lib/majlis-excel'
 import { haptic, tgFetch } from '@/lib/telegram-webapp'
 import type { Notify } from '../Toast'
@@ -51,20 +51,13 @@ export default function MajlisHisobot({ db, notify, inTelegram }: { db: MajlisDb
   const run = async (kind: 'excel' | 'tg') => {
     setBusy(kind)
     try {
-      const file = await hisobotWorkbook(list, db.oqituvchilar, davrNomi)
       if (kind === 'excel') {
-        saveXlsx(file)
+        saveXlsx(await hisobotWorkbook(list, db.oqituvchilar, davrNomi))
         notify('Hisobot yuklab olindi')
       } else {
-        const lines = [`📊 <b>Majlislar davomati — ${davrNomi}</b>`, `Majlislar soni: ${list.length}`]
-        for (const tur of TURLAR) {
-          const rows = jadval(list, db.oqituvchilar, tur)
-          const yoq = rows.filter((r) => r.kelmadi).map((r) => `${r.o.fish} (${r.kelmadi})`)
-          if (rows.length) lines.push('', `<b>${TUR_TOLIQ[tur]}</b>: ${rows.length} nafar`, yoq.length ? `❌ Kelmaganlar: ${yoq.join(', ')}` : '✅ Sababsiz kelmagan yo\'q')
-        }
+        // Telegramga kontingent hisobotidek matn (jadval) — Excel fayl yuborilmaydi
         const fd = new FormData()
-        fd.append('text', lines.join('\n'))
-        fd.append('file', new Blob([file.data as BlobPart]), file.fileName)
+        fd.append('text', majlisHisobotMatni(list, db.oqituvchilar, davrNomi))
         const res = await tgFetch('/api/majlislar/telegram', { method: 'POST', body: fd })
         const d = await res.json().catch(() => ({}))
         if (!res.ok || !d.ok) throw new Error(d.error || `Server ${res.status}`)
