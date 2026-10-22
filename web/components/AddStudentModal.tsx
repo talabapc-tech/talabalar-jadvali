@@ -17,8 +17,9 @@ interface Props {
   onAdd: (fields: EditFields, keepOpen?: boolean) => Promise<void>
 }
 
-function Input({ label, value, onChange, mono, placeholder, upper, highlight, required }: {
+function Input({ label, value, onChange, mono, placeholder, upper, highlight, required, inputMode }: {
   label: string; value: string; onChange: (v: string) => void; mono?: boolean; placeholder?: string; upper?: boolean; highlight?: boolean; required?: boolean
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
 }) {
   return (
     <label className="block">
@@ -28,6 +29,7 @@ function Input({ label, value, onChange, mono, placeholder, upper, highlight, re
         onChange={(e) => onChange(upper ? e.target.value.toUpperCase() : e.target.value)}
         placeholder={placeholder}
         required={required}
+        inputMode={inputMode}
         className={cx('field', mono && 'mono', highlight && 'border-emerald/70 ring-2 ring-emerald/20')}
         spellCheck={false}
       />
@@ -205,13 +207,13 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
         aria-modal="true"
         aria-label="Yangi talaba qo'shish"
       >
-        <header className="flex items-center gap-3 border-b border-line bg-ink-850/80 px-5 py-3.5">
+        <header className="flex items-center gap-3 border-b border-line bg-ink-850/80 px-4 py-3 sm:px-5 sm:py-3.5">
           <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-emerald/25 to-sky/25 text-emerald-soft">
             <UserPlus size={18} />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-[17px] font-extrabold text-fg">Yangi talaba qo'shish</h2>
-            <p className="text-[12px] text-fg-muted">Excel bazaga va portal ro'yxatiga yangi talaba kiritish</p>
+            <p className="hidden text-[12px] text-fg-muted sm:block">Excel bazaga va portal ro'yxatiga yangi talaba kiritish</p>
           </div>
           <button
             type="button"
@@ -224,7 +226,7 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
         </header>
 
         <form
-          className="flex-1 space-y-4 overflow-y-auto p-5"
+          className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-5"
           onSubmit={(e) => { e.preventDefault(); void submit(false) }}
         >
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-sky/35 bg-ink-950/60 p-3">
@@ -278,9 +280,9 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
               <Input label="Familiya va ism *" value={f.ism || ''} onChange={set('ism')} placeholder="Karimova Zilola" required />
               <Input label="Otasining ismi (Sharifi)" value={f.ota || ''} onChange={set('ota')} placeholder="Rustam qizi" />
               <Input label="Pasport / ID-karta seriya va №" value={f.pv || ''} onChange={set('pv')} mono upper placeholder="AD1234567" />
-              <Input label="JSHSHIR (14 xonali PINFL)" value={f.pinfl || ''} onChange={onPinfl} mono placeholder="60406055720067" />
-              <Input label="Tug'ilgan sana" value={f.dob || ''} onChange={set('dob')} mono placeholder="DD.MM.YYYY" highlight={dobFlash} />
-              <Input label="Pasport berilgan sana" value={f.ber || ''} onChange={set('ber')} mono placeholder="DD.MM.YYYY" />
+              <Input label="JSHSHIR (14 xonali PINFL)" value={f.pinfl || ''} onChange={onPinfl} mono placeholder="60406055720067" inputMode="numeric" />
+              <Input label="Tug'ilgan sana" value={f.dob || ''} onChange={set('dob')} mono placeholder="DD.MM.YYYY" highlight={dobFlash} inputMode="decimal" />
+              <Input label="Pasport berilgan sana" value={f.ber || ''} onChange={set('ber')} mono placeholder="DD.MM.YYYY" inputMode="decimal" />
             </div>
 
             {pinDecoded && (
@@ -322,7 +324,7 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
               <div className="sm:col-span-2">
                 <Input label="Tugatgan ta'lim muassasasi" value={f.mak || ''} onChange={set('mak')} placeholder="Shahrisabz tumani 14-sonli maktab" />
               </div>
-              <Input label="Bitirgan yili" value={f.yil || ''} onChange={set('yil')} mono placeholder="2026" />
+              <Input label="Bitirgan yili" value={f.yil || ''} onChange={set('yil')} mono placeholder="2026" inputMode="numeric" />
               <Choice label="Yo'nalishi" value={f.yon || ((f.group === '26-01' || (f.group && f.group.endsWith('-01'))) ? 'Farmatsiya ishi' : 'Hamshiralik ishi')} onChange={set('yon')} options={YON_OPTIONS.map((y) => [y, y])} />
             </div>
           </section>
@@ -333,15 +335,16 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
               Shartnoma va akademik guruh
             </h4>
             <div className="grid gap-3 sm:grid-cols-3">
-              <Input label="Shartnoma raqami" value={f.shnum || ''} onChange={set('shnum')} mono placeholder="319" />
+              <Input label="Shartnoma raqami" value={f.shnum || ''} onChange={set('shnum')} mono placeholder="319" inputMode="numeric" />
               <Choice label="Akademik guruh" value={f.group || '26-02'} onChange={onGroupChange} options={groupChoices} />
-              <Input label="Telefon raqami" value={f.tel || ''} onChange={set('tel')} placeholder="+998 90 123 45 67" />
+              <Input label="Telefon raqami" value={f.tel || ''} onChange={set('tel')} placeholder="+998 90 123 45 67" inputMode="tel" />
             </div>
           </section>
 
-          <div className="sticky -bottom-5 -mx-5 flex flex-wrap gap-2.5 border-t border-line bg-ink-900 px-5 pt-3 pb-5">
-            <button type="submit" className="btn-success flex-1 py-2.5" disabled={saving || !(f.ism || '').trim()}>
-              <Save size={16} /> {saving ? 'Saqlanmoqda…' : "Talabani qo'shish"}
+          {/* Telefonda ikki tugma yonma-yon, "Bekor qilish" — tepadagi X */}
+          <div className="pb-safe sticky -bottom-3 -mx-3 grid grid-cols-2 gap-2 border-t border-line bg-ink-900 px-3 pt-3 sm:-bottom-5 sm:-mx-5 sm:flex sm:gap-2.5 sm:px-5 sm:pb-5">
+            <button type="submit" className="btn-success py-2.5 sm:flex-1" disabled={saving || !(f.ism || '').trim()}>
+              <Save size={16} /> {saving ? 'Saqlanmoqda…' : <><span className="sm:hidden">Qo'shish</span><span className="hidden sm:inline">Talabani qo'shish</span></>}
             </button>
             <button
               type="button"
@@ -350,9 +353,9 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
               onClick={() => void submit(true)}
               title="Saqlab, oynani yopmasdan keyingi talabani kiritish"
             >
-              <Plus size={16} /> Saqlash va yana qo'shish
+              <Plus size={16} /> <span className="sm:hidden">Yana qo'shish</span><span className="hidden sm:inline">Saqlash va yana qo'shish</span>
             </button>
-            <button type="button" className="btn-ghost py-2.5" onClick={onClose}>
+            <button type="button" className="btn-ghost hidden py-2.5 sm:inline-flex" onClick={onClose}>
               Bekor qilish
             </button>
           </div>

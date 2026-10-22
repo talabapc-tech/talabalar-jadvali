@@ -1,7 +1,7 @@
 'use client'
 
-import { memo, useEffect, useRef } from 'react'
-import { FileDown, LayoutGrid, LayoutList, Rows3, Search, X } from 'lucide-react'
+import { memo, useEffect, useRef, useState } from 'react'
+import { FileDown, LayoutGrid, LayoutList, Rows3, Search, SlidersHorizontal, X } from 'lucide-react'
 import { ACADEMIC_LEAVE_GROUP, WITHDRAWN_GROUP } from '@/lib/config'
 import { EMPTY_FILTERS, type Filters } from '@/lib/student'
 import { cx } from './ui'
@@ -33,10 +33,15 @@ function Select({ label, value, onChange, options }: {
   )
 }
 
+const MODES = [['cards', LayoutGrid, 'Karta'], ['compact', LayoutList, 'Ixcham'], ['table', Rows3, 'Jadval']] as const
+
 function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onExportShown }: Props) {
   const searchRef = useRef<HTMLInputElement>(null)
+  // Telefonda 7 ta filtr yig'iq turadi — "Filtrlar" tugmasi bilan ochiladi (kompyuterda doim ochiq)
+  const [open, setOpen] = useState(false)
   // Kurs — yuqoridagi alohida tanlagich, "tozalash" uni o'zgartirmaydi
-  const active = (Object.keys(EMPTY_FILTERS) as (keyof Filters)[]).some((k) => k !== 'kurs' && filters[k])
+  const activeCount = (Object.keys(EMPTY_FILTERS) as (keyof Filters)[]).filter((k) => k !== 'kurs' && k !== 'search' && filters[k]).length
+  const active = activeCount > 0 || !!filters.search
 
   // "/" yoki Ctrl+K — qidiruvga o'tish
   useEffect(() => {
@@ -53,43 +58,67 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
   }, [])
 
   return (
-    <section className="panel p-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="min-w-[240px] flex-1">
-          <span className="label">Qidiruv — F.I.SH, pasport, JSHSHIR, shartnoma, maktab</span>
+    <section className="no-print panel p-3 sm:p-4">
+      <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+        <label className="min-w-0 flex-1 basis-full sm:min-w-[240px] sm:basis-auto">
+          <span className="label hidden sm:block">Qidiruv — F.I.SH, pasport, JSHSHIR, shartnoma, maktab</span>
           <div className="relative">
             <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-fg-subtle" />
             <input
               ref={searchRef}
               value={filters.search}
               onChange={(e) => onFilter({ search: e.target.value })}
-              placeholder="Qidirish…"
-              className="field h-10 pr-10 pl-9"
+              placeholder="Ism, pasport, JSHSHIR, shartnoma №…"
+              className="field h-11 pr-10 pl-9 sm:h-10 [&::-webkit-search-cancel-button]:hidden"
               type="search"
+              enterKeyHint="search"
               autoComplete="off"
               spellCheck={false}
             />
-            <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded-md border border-line px-1.5 text-[11px] text-fg-subtle">/</kbd>
+            {filters.search ? (
+              <button
+                type="button"
+                onClick={() => { onFilter({ search: '' }); searchRef.current?.focus() }}
+                className="absolute top-1/2 right-2 grid size-7 -translate-y-1/2 place-items-center rounded-lg text-fg-subtle hover:bg-ink-700 hover:text-fg"
+                aria-label="Qidiruvni tozalash"
+              >
+                <X size={15} />
+              </button>
+            ) : (
+              <kbd className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded-md border border-line px-1.5 text-[11px] text-fg-subtle sm:block">/</kbd>
+            )}
           </div>
         </label>
-        <div className="flex h-10 rounded-xl border border-line bg-ink-950/60 p-0.5" role="tablist">
-          {([['cards', LayoutGrid, 'Karta'], ['compact', LayoutList, 'Ixcham'], ['table', Rows3, 'Jadval']] as const).map(([m, Icon, t]) => (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className={cx('btn-ghost h-10 flex-1 md:hidden', (open || activeCount > 0) && 'border-sky/50 text-sky-soft')}
+        >
+          <SlidersHorizontal size={15} /> Filtrlar
+          {activeCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-sky text-[11px] font-bold text-ink-950">{activeCount}</span>}
+        </button>
+        <div className="flex h-10 rounded-xl border border-line bg-ink-950/60 p-0.5" role="tablist" aria-label="Ko'rinish">
+          {MODES.map(([m, Icon, t]) => (
             <button
               key={m}
               type="button"
               role="tab"
               aria-selected={mode === m}
+              aria-label={t}
+              title={t}
               onClick={() => onMode(m)}
-              className={cx('flex items-center gap-1.5 rounded-[10px] px-3 text-[12.5px] font-semibold transition-colors',
+              className={cx('flex items-center gap-1.5 rounded-[10px] px-2.5 text-[12.5px] font-semibold transition-colors sm:px-3',
+                m === 'table' && 'hidden md:flex',
                 mode === m ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white' : 'text-fg-muted hover:text-fg')}
             >
-              <Icon size={14} /> {t}
+              <Icon size={15} /> <span className="hidden sm:inline">{t}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+      <div className={cx('mt-3 grid-cols-2 gap-3 md:grid md:grid-cols-4 xl:grid-cols-7', open ? 'grid' : 'hidden')}>
         <Select label="Guruh" value={filters.group} onChange={(v) => onFilter({ group: v })}
           options={[
             // Kontingent plitkalarida Ctrl bilan bir nechta guruh tanlanganda
@@ -109,18 +138,18 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
           options={[['ok', "To'liq mos"], ['translit', 'Imlo farqi (q/k, x/h)'], ['farq', "Ro'yxatdan farq bor"], ['tekshir', 'Tekshirish kerak'], ['boshqa', 'Boshqa shaxs hujjati'], ['none', 'Tekshirilmagan']]} />
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3.5">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:mt-4 sm:pt-3.5">
         <span className="text-[13px] text-fg-muted">
-          Ko'rsatilmoqda: <strong className="text-fg tabular-nums">{shown}</strong>
+          <span className="hidden sm:inline">Ko'rsatilmoqda: </span><strong className="text-fg tabular-nums">{shown}</strong>
           <span className="text-fg-subtle"> / {total}</span>
         </span>
         {active && (
           <button type="button" className="btn-ghost h-8 px-2.5 text-[12px]" onClick={() => onFilter({ ...EMPTY_FILTERS, kurs: filters.kurs })}>
-            <X size={14} /> Filtrlarni tozalash
+            <X size={14} /> Tozalash
           </button>
         )}
         <button type="button" className="btn-ghost ml-auto h-8 px-2.5 text-[12px]" onClick={onExportShown} disabled={!shown} title="Ekrandagi talabalarni Excelga yuklab olish">
-          <FileDown size={14} /> Ko'rinayotganlarni .xlsx
+          <FileDown size={14} /> <span><span className="hidden min-[400px]:inline">Ko'rinayotganlarni </span>.xlsx</span>
         </button>
       </div>
     </section>

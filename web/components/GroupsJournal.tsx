@@ -65,7 +65,7 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
 
   return (
     <article className={cx('panel overflow-hidden', sp?.border)}>
-      <header className="flex flex-wrap items-center gap-3 border-b border-line bg-ink-850/70 px-4 py-3">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line bg-ink-850/70 px-3 py-3 sm:px-4">
         <span className={cx('chip mono text-[12.5px]',
           sp ? sp.tone : farm ? 'border-emerald/45 bg-emerald/10 text-emerald-soft' : 'border-blue/45 bg-blue/10 text-blue-soft')}>
           {sp ? 'Maxsus' : `Guruh ${code}`}
@@ -76,7 +76,8 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
             {leader && <><UserRound size={12} /> {leader} ·</>} {students.length} nafar
           </div>
         </div>
-        <div className="flex gap-1.5">
+        {/* Telefonda tugmalar alohida qatorda, teng kenglikda */}
+        <div className="no-print flex w-full gap-1.5 sm:w-auto [&>*]:min-w-0 [&>*]:flex-1 [&>*]:gap-1 [&>*]:px-1.5 [&>*]:text-[11.5px] sm:[&>*]:flex-none sm:[&>*]:gap-2 sm:[&>*]:px-2.5 sm:[&>*]:text-[12px]">
           {!sp && (
             <button
               type="button"
@@ -104,13 +105,13 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
               download
               title={`Guruh ${code} to'ldirilgan rasmiy Word (.docx) davomat jurnalini yuklab olish`}
             >
-              <FileText size={14} /> Jurnal (.docx)
+              <FileText size={14} /> Word
             </a>
           )}
           <button type="button" className="btn-ghost h-8 px-2.5 text-[12px]" onClick={download} disabled={busy || !students.length} title="Guruhni Excel (.xlsx) formatda yuklab olish">
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} .xlsx
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Excel
           </button>
-          <button type="button" className="btn-ghost h-8 px-2 text-[12px] text-sky hover:text-sky-soft" onClick={sendSingleTg} disabled={tgBusy || !students.length} title="Shu guruhning 1-varoqli jurnal rasmini Telegramga yuborish">
+          <button type="button" className="btn-ghost h-8 max-w-11 px-2 text-[12px] text-sky hover:text-sky-soft" onClick={sendSingleTg} disabled={tgBusy || !students.length} title="Shu guruhning 1-varoqli jurnal rasmini Telegramga yuborish" aria-label="Telegramga yuborish">
             {tgBusy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           </button>
         </div>
@@ -121,7 +122,7 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
         <ol className="divide-y divide-line/70">
           {students.map((s, i) => (
             <li key={s.row}>
-              <button type="button" onClick={() => onOpen(s)} className="grid w-full grid-cols-[34px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 text-left text-[13px] transition-colors hover:bg-ink-800/70">
+              <button type="button" onClick={() => onOpen(s)} className="grid w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-ink-800/70 sm:grid-cols-[34px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4 sm:py-2">
                 <span className="mono text-center text-[12px] font-bold text-fg-subtle tabular-nums">{i + 1}</span>
                 <span className={cx('truncate font-semibold', sp ? sp.text : 'text-fg')}>{fullName(s)}</span>
                 {sp ? (
@@ -200,7 +201,7 @@ function GroupsJournal({ students, groups: list, onOpen, notify }: {
 
   return (
     <div className="space-y-4">
-      <div className="panel flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="no-print panel flex flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-4">
         <div className="flex flex-wrap items-center gap-2.5 text-[13px]">
           <span className="font-bold text-fg">Akademik guruhlar jurnali</span>
           <span className="chip border-sky/35 bg-sky/10 text-sky-soft">{list.length} ta rasmiy guruh · {officialTotal} nafar talaba</span>
@@ -211,7 +212,7 @@ function GroupsJournal({ students, groups: list, onOpen, notify }: {
             <span className="chip border-rose/35 bg-rose/10 text-rose">Safdan chiqarilgan: {groups.special.safdan.length} nafar</span>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <button
             type="button"
             className="btn-ghost h-9 border-emerald/40 bg-emerald/10 text-[12.5px] text-emerald-soft hover:bg-emerald/20"
@@ -225,7 +226,7 @@ function GroupsJournal({ students, groups: list, onOpen, notify }: {
             }}
             title="Shu ko'rinishdagi barcha guruhlarni QABUL - 2026.xlsx formatida yuklab olish"
           >
-            <FileSpreadsheet size={15} /> Qabul shabloni ({list.length} guruh)
+            <FileSpreadsheet size={15} /> <span>Qabul<span className="hidden sm:inline"> shabloni</span> ({list.length})</span>
           </button>
           <a
             href="/api/download_davomat?type=excel"
@@ -233,25 +234,25 @@ function GroupsJournal({ students, groups: list, onOpen, notify }: {
             className="btn-ghost h-9 border-sky/40 bg-sky/10 text-[12.5px] text-sky-soft hover:bg-sky/20"
             title="Barcha guruhlar uchun davomat jurnali andozasini Excel (.xlsx) da yuklab olish"
           >
-            <FileSpreadsheet size={15} /> Davomat jurnali (.xlsx)
+            <FileSpreadsheet size={15} /> <span>Davomat<span className="hidden sm:inline"> jurnali</span> .xlsx</span>
           </a>
           <a
             href="/api/download_davomat?type=zip"
             download
             className="btn-ghost h-9 border-amber/40 bg-amber/10 text-[12.5px] text-amber hover:bg-amber/20"
-            title="Barcha 19 ta guruhning to'ldirilgan Word (.docx) davomat jurnallarini bitta ZIP arxivda yuklab olish"
+            title="Barcha guruhlarning to'ldirilgan Word (.docx) davomat jurnallarini bitta ZIP arxivda yuklab olish"
           >
-            <Download size={15} /> Barcha Word jurnallar (.zip)
+            <Download size={15} /> <span>Word<span className="hidden sm:inline"> jurnallar</span> .zip</span>
           </a>
           <button type="button" className="btn-ghost h-9 text-[12.5px]" onClick={openAllPdfs} title="Barcha guruhlar PDF jurnalini (bitta fayl) yangi oynada ochish">
-            <FileText size={15} className="text-sky" /> Barcha PDF ({list.length})
+            <FileText size={15} className="text-sky" /> <span><span className="hidden sm:inline">Barcha </span>PDF ({list.length})</span>
           </button>
-          <button type="button" className="btn-ghost h-9 text-[12.5px]" onClick={() => window.print()} title="Jurnallarni chop etish (Ctrl+P)">
+          <button type="button" className="btn-ghost hidden h-9 text-[12.5px] sm:inline-flex" onClick={() => window.print()} title="Jurnallarni chop etish (Ctrl+P)">
             <Printer size={15} /> Chop etish
           </button>
           <button
             type="button"
-            className={cx('btn-primary h-9 text-[12.5px]', tgOpen && 'ring-2 ring-sky/40')}
+            className={cx('btn-primary col-span-2 h-9 text-[12.5px]', tgOpen && 'ring-2 ring-sky/40')}
             onClick={() => setTgOpen((o) => !o)}
           >
             <Send size={14} /> Telegramga yuborish
@@ -260,7 +261,7 @@ function GroupsJournal({ students, groups: list, onOpen, notify }: {
       </div>
 
       {tgOpen && (
-        <div className="panel animate-pop-in space-y-3 border-sky/35 bg-ink-900/90 p-4">
+        <div className="no-print panel animate-pop-in space-y-3 border-sky/35 bg-ink-900/90 p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-[13.5px] font-bold text-fg">Tanlangan guruhlarning 1-varoqli PDF jurnallarini (rasm sifatida) Telegramga yuborish</div>
             <div className="flex items-center gap-1.5 text-[12px]">
@@ -311,11 +312,11 @@ function GroupsJournal({ students, groups: list, onOpen, notify }: {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <button type="button" className="btn-ghost h-9 text-[12.5px]" onClick={() => setTgOpen(false)}>Bekor qilish</button>
               <button
                 type="button"
-                className="btn-success h-9 text-[12.5px]"
+                className="btn-success h-9 flex-1 text-[12.5px] sm:flex-none"
                 disabled={sendingTg || !selectedGroups.length}
                 onClick={handleSendBulkTg}
               >

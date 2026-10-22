@@ -72,14 +72,15 @@ export default function DocDropZone({ title, icon: Icon, tone, max, files, onCha
         </span>
         <button
           type="button"
-          className="text-[11px] text-sky hover:underline"
+          className="rounded-md px-1 py-0.5 text-[11px] text-sky hover:underline"
+          title="Nusxalangan rasmni qo'yish (Ctrl+V)"
           onClick={async () => {
             const got = await getFilesFromClipboard()
             if (got.length) add(got)
             else onMessage?.('Buferda rasm yoki fayl topilmadi (avval rasmni Ctrl+C qiling)')
           }}
         >
-          <ClipboardPaste size={11} className="mr-0.5 inline" /> Ctrl+V
+          <ClipboardPaste size={11} className="mr-0.5 inline" /> <span className="sm:hidden">Qo'yish</span><span className="hidden sm:inline">Ctrl+V</span>
         </button>
       </div>
 
@@ -119,10 +120,13 @@ export default function DocDropZone({ title, icon: Icon, tone, max, files, onCha
 
       <button
         type="button"
-        className="flex w-full flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[11.5px] text-fg-muted hover:bg-ink-800/60 hover:text-fg"
+        className="flex w-full flex-col items-center justify-center gap-0.5 rounded-lg py-2.5 text-[12px] text-fg-muted hover:bg-ink-800/60 hover:text-fg sm:py-2 sm:text-[11.5px]"
         onClick={() => inputRef.current?.click()}
       >
-        <span className="flex items-center gap-1.5"><Upload size={13} className="text-sky" /> {over ? "Qo'yib yuboring…" : 'Shu yerga tashlang yoki bosib tanlang'}</span>
+        <span className="flex items-center gap-1.5">
+          <Upload size={13} className="text-sky" />
+          {over ? "Qo'yib yuboring…" : <><span className="sm:hidden">{docxOnly ? 'Faylni tanlash' : 'Rasm tanlash yoki suratga olish'}</span><span className="hidden sm:inline">Shu yerga tashlang yoki bosib tanlang</span></>}
+        </span>
         {hint && files.length < max && <span className="text-[10.5px] text-fg-subtle">{hint}</span>}
       </button>
     </div>

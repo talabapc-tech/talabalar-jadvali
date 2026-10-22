@@ -28,6 +28,7 @@
   --color-sky: #38bdf8;
   --color-sky-soft: #7dd3fc;
   --color-amber: #f59e0b;
+  --color-amber-soft: #fbbf24;
   --color-rose: #f43f5e;
   --color-violet: #a78bfa;
 
@@ -66,6 +67,11 @@
   --color-emerald-soft: #059669;
   --color-blue-soft: #2563eb;
   --color-sky-soft: #0284c7;
+  /* Och fonda o'qilishi uchun to'qroq: sariq, binafsha, qizil matnlar */
+  --color-amber: #d97706;
+  --color-amber-soft: #b45309;
+  --color-violet: #7c3aed;
+  --color-rose: #e11d48;
 }
 
 html {
@@ -79,7 +85,15 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
+
+/* Yorug' mavzuda kulrang tugmalar "o'chiq" ko'rinmasin — oq fon, ustiga borganda kulrang */
+:root[data-theme='light'] .btn-ghost:not(:disabled) { background-color: #fff; }
+:root[data-theme='light'] .btn-ghost:not(:disabled):hover { background-color: var(--color-ink-800); }
+
+/* Telefonda pastki tugmalar "home" chizig'i ostida qolmasin */
+.pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
 
 /* Fon: ikki yumshoq nur (yashil va ko'k). position:fixed + transform yo'q —
    skroll paytida qayta chizilmaydi, sahifani sekinlashtirmaydi. */
@@ -119,9 +133,10 @@ body::before {
 @utility btn-danger {
   @apply btn border border-rose/40 bg-rose/10 text-rose hover:bg-rose/20;
 }
+/* Telefonda 16px — iPhone maydonga bosilganda sahifani kattalashtirib yubormaydi */
 @utility field {
-  @apply w-full rounded-xl border border-line bg-ink-950/70 px-3 py-2 text-[13.5px] text-fg placeholder:text-fg-subtle
-    outline-none transition-colors focus:border-sky/70 focus:bg-ink-950 focus:ring-2 focus:ring-sky/20;
+  @apply w-full rounded-xl border border-line bg-ink-950/70 px-3 py-2 text-base text-fg placeholder:text-fg-subtle
+    outline-none transition-colors focus:border-sky/70 focus:bg-ink-950 focus:ring-2 focus:ring-sky/20 sm:text-[13.5px];
 }
 @utility label {
   @apply mb-1.5 block text-[11px] font-bold tracking-wider text-fg-subtle uppercase;
@@ -131,4 +146,17 @@ body::before {
 }
 @utility mono {
   @apply font-mono tracking-tight;
+}
+
+/* Chop etish (Guruhlar jurnali → "Chop etish"): oq qog'oz, tugmalar va menyular yashiriladi */
+@media print {
+  :root {
+    color-scheme: light;
+    --color-ink-950: #fff; --color-ink-900: #fff; --color-ink-850: #fff; --color-ink-800: #f1f5f9; --color-ink-700: #e2e8f0;
+    --color-line: #cbd5e1; --color-line-strong: #94a3b8;
+    --color-fg: #000; --color-fg-muted: #334155; --color-fg-subtle: #475569;
+  }
+  body::before { display: none; }
+  .no-print { display: none !important; }
+  .panel, article { break-inside: avoid; box-shadow: none !important; }
 }

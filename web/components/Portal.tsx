@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BookOpenCheck, Database, Loader2, ServerCrash, Zap } from 'lucide-react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, ArrowUp, BookOpenCheck, Database, Loader2, Search, ServerCrash, Zap } from 'lucide-react'
 import { exportFiltered } from '@/lib/excel'
 import { useStudents } from '@/lib/store'
 import { applyGroupSettings, COURSES, GROUP_SETTINGS, type GroupSettings } from '@/lib/config'
@@ -34,6 +34,41 @@ function readPrefs(): { filters: Filters; mode: DisplayMode; view: View } | null
     }
   } catch { /* bo'sh */ }
   return null
+}
+
+/**
+ * Ro'yxat uzun (500+ talaba) — pastga tushib ketganda qidiruv va filtrlarga bir bosishda qaytish.
+ * Qidiruv paneli ekrandan chiqqanda paydo bo'ladi.
+ */
+function BackToSearch({ target }: { target: React.RefObject<HTMLDivElement | null> }) {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const el = target.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting && e.boundingClientRect.top < 0))
+    io.observe(el)
+    return () => io.disconnect()
+  }, [target])
+  if (!show) return null
+  const go = () => {
+    target.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Telefonda klaviatura darhol ochilmasin — faqat kompyuterda qidiruvga fokus
+    if (window.matchMedia('(pointer: fine)').matches) {
+      setTimeout(() => target.current?.querySelector<HTMLInputElement>('input[type="search"]')?.focus({ preventScroll: true }), 400)
+    }
+  }
+  return (
+    <button
+      type="button"
+      onClick={go}
+      className="no-print animate-pop-in fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex h-12 items-center gap-2 rounded-full border border-sky/40 bg-ink-850/95 px-4 text-[13px] font-semibold text-sky-soft shadow-xl shadow-black/40 backdrop-blur-md transition-colors hover:bg-ink-800"
+      title="Qidiruv va filtrlarga qaytish"
+    >
+      <ArrowUp size={16} />
+      <Search size={15} />
+      <span className="hidden sm:inline">Qidiruv</span>
+    </button>
+  )
 }
 
 export default function Portal({ initialTab = 'students' }: { initialTab?: 'students' | 'staff' } = {}) {
@@ -101,6 +136,9 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   }, [filters, mode, view, prefsLoaded])
 
   const patchFilters = useCallback((patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch })), [])
+  // Kurs tanlovi saqlanadi — u alohida tanlagich
+  const clearFilters = useCallback(() => setFilters((f) => ({ ...EMPTY_FILTERS, kurs: f.kurs })), [])
+  const filterRef = useRef<HTMLDivElement>(null)
 
   // Qidiruv matni kechiktirilgan qiymat bilan ishlaydi — yozish hech qachon qotmaydi
   const deferredFilters = useDeferredValue(filters)
@@ -246,9 +284,18 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
         ) : (
           <>
         {data.state === 'loading' && (
-          <div className="panel grid place-items-center gap-3 py-24 text-fg-muted">
-            <Loader2 size={30} className="animate-spin text-sky" />
-            Talabalar ro'yxati yuklanmoqda…
+          // Sahifa shaklidagi "skelet" — bo'sh oyna o'rniga nima kelishi darhol ko'rinadi
+          <div className="space-y-5" aria-busy="true" aria-label="Talabalar ro'yxati yuklanmoqda">
+            <div className="flex items-center gap-2 text-[13px] text-fg-muted">
+              <Loader2 size={16} className="animate-spin text-sky" /> Talabalar ro'yxati yuklanmoqda…
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
+              {Array.from({ length: 4 }, (_, i) => <div key={i} className="panel h-[76px] animate-pulse sm:h-[84px]" />)}
+            </div>
+            <div className="panel h-40 animate-pulse" />
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }, (_, i) => <div key={i} className="panel h-60 animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />)}
+            </div>
           </div>
         )}
 
@@ -263,37 +310,42 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
 
         {data.state === 'ready' && (
           <>
-            <nav className="flex flex-wrap items-center gap-2">
-              {([
-                ['database', Database, 'Umumiy baza', String(data.students.length)],
-                ['groups', BookOpenCheck, 'Guruhlar jurnali', String(groups.length)],
-              ] as const).map(([v, Icon, t, n]) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setView(v)}
-                  className={cx(
-                    'flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-[13.5px] font-semibold transition-colors sm:flex-none sm:px-4',
-                    view === v ? 'border-sky/50 bg-gradient-to-r from-blue/25 to-sky/15 text-fg' : 'border-line bg-ink-900/60 text-fg-muted hover:text-fg'
-                  )}
-                >
-                  <Icon size={16} className={view === v ? 'text-sky' : ''} /> {t}
-                  <span className="rounded-md bg-ink-700/80 px-1.5 text-[11.5px] tabular-nums">{n}</span>
-                </button>
-              ))}
-              <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-line bg-ink-900/60 p-1 sm:ml-auto sm:w-auto" role="tablist" aria-label="Kurs">
-                {([['', 'Barchasi', Object.values(kursCounts).reduce((a, b) => a + b, 0)], ...COURSES.map((c) => [String(c.kurs), `${c.kurs}-kurs`, kursCounts[c.kurs] ?? 0])] as [string, string, number][]).map(([k, t, n]) => (
+            <nav className="no-print flex flex-wrap items-center gap-2">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+                {([
+                  ['database', Database, 'Umumiy baza', 'Baza', String(data.students.length)],
+                  ['groups', BookOpenCheck, 'Guruhlar jurnali', 'Jurnal', String(groups.length)],
+                ] as const).map(([v, Icon, t, short, n]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setView(v)}
+                    aria-pressed={view === v}
+                    className={cx(
+                      'flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 text-[13.5px] font-semibold transition-colors sm:px-4',
+                      view === v ? 'border-sky/50 bg-gradient-to-r from-blue/25 to-sky/15 text-fg' : 'border-line bg-ink-900/60 text-fg-muted hover:text-fg'
+                    )}
+                  >
+                    <Icon size={16} className={view === v ? 'text-sky' : ''} />
+                    <span className="sm:hidden">{short}</span>
+                    <span className="hidden sm:inline">{t}</span>
+                    <span className="rounded-md bg-ink-700/80 px-1.5 text-[11.5px] tabular-nums">{n}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="grid w-full grid-cols-4 gap-1 rounded-xl border border-line bg-ink-900/60 p-1 lg:ml-auto lg:flex lg:w-auto" role="tablist" aria-label="Kurs">
+                {([['', 'Jami', Object.values(kursCounts).reduce((a, b) => a + b, 0)], ...COURSES.map((c) => [String(c.kurs), `${c.kurs}-kurs`, kursCounts[c.kurs] ?? 0])] as [string, string, number][]).map(([k, t, n]) => (
                   <button
                     key={k || 'all'}
                     type="button"
                     role="tab"
                     aria-selected={filters.kurs === k}
                     onClick={() => patchFilters({ kurs: k, group: '' })}
-                    className={cx('flex flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-1.5 py-1.5 text-[12px] font-semibold transition-colors sm:flex-none sm:gap-1.5 sm:px-3 sm:text-[12.5px]',
+                    className={cx('flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-[12px] font-semibold transition-colors sm:gap-1.5 sm:px-3 sm:text-[12.5px]',
                       filters.kurs === k ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white' : 'text-fg-muted hover:text-fg')}
                   >
                     {t}
-                    <span className={cx('rounded-md px-1 text-[11px] tabular-nums sm:px-1.5', filters.kurs === k ? 'bg-white/20' : 'bg-ink-700/80')}>{n}</span>
+                    <span className={cx('rounded-md px-1 text-[11px] tabular-nums max-[359px]:hidden sm:px-1.5', filters.kurs === k ? 'bg-white/20' : 'bg-ink-700/80')}>{n}</span>
                   </button>
                 ))}
               </div>
@@ -324,14 +376,18 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                   </div>
                 )}
 
-                <FilterBar filters={filters} groups={groups} onFilter={patchFilters} shown={shown.length} total={data.students.length} mode={mode} onMode={setMode} onExportShown={onExportShown} />
-                <StudentList students={shown} mode={mode} duplicateRows={duplicateRows} onOpen={onOpen} onToggleVerify={onToggleVerify} onToggleBaza={onToggleBaza} />
+                <div ref={filterRef} className="scroll-mt-20">
+                  <FilterBar filters={filters} groups={groups} onFilter={patchFilters} shown={shown.length} total={data.students.length} mode={mode} onMode={setMode} onExportShown={onExportShown} />
+                </div>
+                <StudentList students={shown} mode={mode} duplicateRows={duplicateRows} onOpen={onOpen} onToggleVerify={onToggleVerify} onToggleBaza={onToggleBaza} onClearFilters={clearFilters} />
               </>
             ) : (
               <GroupsJournal key={filters.kurs || 'all'} students={data.students} groups={groups} onOpen={onOpen} notify={notify} />
             )}
 
-            <footer className="pt-4 pb-8 text-center text-[12px] text-fg-subtle">
+            {view === 'database' && <BackToSearch target={filterRef} />}
+
+            <footer className="no-print pt-4 pb-8 text-center text-[12px] text-fg-subtle">
               Manba:{' '}
               {data.source === 'supabase' ? (
                 <span className="inline-flex items-center gap-1 text-emerald-soft">

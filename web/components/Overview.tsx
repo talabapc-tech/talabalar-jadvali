@@ -18,10 +18,10 @@ interface Props {
 }
 
 function Tile({
-  icon: Icon, label, value, sub, tone, active, onClick,
+  icon: Icon, label, value, sub, tone, active, onClick, className,
 }: {
   icon: typeof Users; label: string; value: React.ReactNode; sub?: React.ReactNode
-  tone: 'blue' | 'emerald' | 'amber' | 'sky' | 'rose' | 'violet'; active?: boolean; onClick?: () => void
+  tone: 'blue' | 'emerald' | 'amber' | 'sky' | 'rose' | 'violet'; active?: boolean; onClick?: () => void; className?: string
 }) {
   const tones = {
     blue: 'from-blue/25 to-blue/5 text-blue-soft',
@@ -35,18 +35,23 @@ function Tile({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={!!active}
       className={cx(
-        'panel group flex items-center gap-3.5 p-3.5 text-left transition-colors hover:border-line-strong hover:bg-ink-850 sm:p-4',
+        'panel group flex items-center gap-3.5 p-3 text-left transition-colors hover:border-line-strong hover:bg-ink-850 sm:p-4',
         active && 'border-sky/50 bg-ink-850 ring-1 ring-sky/30',
+        className,
       )}
     >
       <span className={cx('hidden size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br sm:grid', tones[tone])}>
         <Icon size={21} strokeWidth={2.2} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11.5px] font-bold tracking-wide text-fg-subtle uppercase">{label}</span>
-        <span className="block text-[22px] leading-tight font-extrabold tracking-tight text-fg tabular-nums">{value}</span>
-        {sub && <span className="block truncate text-[12px] text-fg-muted">{sub}</span>}
+        <span className="flex items-start gap-1.5 text-[10.5px] leading-tight font-bold tracking-wide text-fg-subtle uppercase sm:text-[11.5px]">
+          <Icon size={12} strokeWidth={2.4} className={cx('mt-px shrink-0 sm:hidden', tones[tone].split(' ').pop())} />
+          {label}
+        </span>
+        <span className="block text-[20px] leading-tight font-extrabold tracking-tight text-fg tabular-nums sm:text-[22px]">{value}</span>
+        {sub && <span className="block truncate text-[11.5px] text-fg-muted sm:text-[12px]">{sub}</span>}
       </span>
     </button>
   )
@@ -88,7 +93,8 @@ function Overview({ students, groups, filters, onFilter, onGroupSettings }: Prop
 
   return (
     <section className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-7">
+      {/* 7 ta plitka: telefonda 2 ustun, kompyuterda 4 — "Hujjati chala" ikki ustunni egallab bo'sh joy qoldirmaydi */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 2xl:grid-cols-7">
         <Tile icon={Users} tone="blue" label={filters.kurs ? `${filters.kurs}-kurs kontingenti` : 'Rasmiy kontingent'} value={stats.official} sub={`${groups.length} ta akademik guruh`}
           active={!filters.group && !filters.verified && !filters.baza && !filters.status} onClick={() => onFilter({ group: '', verified: '', baza: '', status: '' })} />
         <Tile icon={BadgeCheck} tone="emerald" label="Tasdiqlangan" value={<>{stats.verified}<span className="text-[15px] text-fg-subtle"> / {stats.official}</span></>}
@@ -101,6 +107,7 @@ function Overview({ students, groups, filters, onFilter, onGroupSettings }: Prop
           sub={stats.bazaOut > 0 ? <span className="font-semibold text-rose">{stats.bazaOut} ta kiritilmagan</span> : <span className="flex items-center gap-2"><span className="w-16"><ProgressBar value={bazaPct} tone="sky" /></span>{bazaPct}%</span>}
           active={!!filters.baza} onClick={toggleBazaFilter} />
         <Tile icon={FileWarning} tone="sky" label="Hujjati chala" value={stats.chala + stats.yoq} sub={`${stats.chala} chala · ${stats.yoq} bo'sh`}
+          className="col-span-2 2xl:col-span-1"
           active={filters.status === 'chala'} onClick={() => onFilter({ status: filters.status === 'chala' ? '' : 'chala' })} />
         <Tile icon={CalendarOff} tone="violet" label="Akademik ta'til" value={stats.leave} sub="Kontingentga kirmaydi"
           active={filters.group === ACADEMIC_LEAVE_GROUP} onClick={() => toggleGroup(ACADEMIC_LEAVE_GROUP)} />

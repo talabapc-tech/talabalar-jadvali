@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, useLayoutEffect, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
-import { FileText, Link2, Phone } from 'lucide-react'
+import { FileText, Link2, Phone, SearchX, X } from 'lucide-react'
 import { formatPinfl, fullName, NAME_FLAGS, passTypeShort } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import type { DisplayMode } from './FilterBar'
@@ -15,6 +15,20 @@ interface Props {
   onOpen: (s: Student) => void
   onToggleVerify: (s: Student) => void
   onToggleBaza: (s: Student) => void
+  onClearFilters?: () => void
+}
+
+/** Jadval 1440px keng — telefonda (md dan tor) o'rniga ixcham kartalar ko'rsatiladi */
+function useWide() {
+  const [wide, setWide] = useState(true)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const update = () => setWide(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return wide
 }
 
 /** Ro'yxat konteynerining sahifa boshidan masofasi — virtualizatsiya shu nuqtadan boshlanadi */
@@ -98,7 +112,7 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
     <article
       onClick={() => onOpen(s)}
       className={cx(
-        'group relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl border bg-ink-900/80 p-4 transition-colors',
+        'group relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl border bg-ink-900/80 p-3.5 transition-colors sm:p-4',
         dup ? 'border-rose/55' : ok ? 'border-emerald/25 hover:border-emerald/50' : 'border-line hover:border-sky/45',
         'hover:bg-ink-850',
       )}
@@ -156,10 +170,10 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
   )
 })
 
-function CardGrid({ students, duplicateRows, compact, onOpen, onToggleVerify, onToggleBaza }: Omit<Props, 'mode'> & { compact?: boolean }) {
+function CardGrid({ students, duplicateRows, compact, onOpen, onToggleVerify, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'> & { compact?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
-  const gap = compact ? 10 : 14
-  const cols = useColumns(ref, compact ? 310 : 360, gap)
+  const gap = compact ? 10 : 12
+  const cols = useColumns(ref, compact ? 310 : 330, gap)
   const top = useOffsetTop(ref)
   const rows = Math.ceil(students.length / cols)
 
@@ -220,7 +234,7 @@ const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleVerify, onT
 
 const ROW_H = 50
 
-function Table({ students, duplicateRows, onOpen, onToggleVerify, onToggleBaza }: Omit<Props, 'mode'>) {
+function Table({ students, duplicateRows, onOpen, onToggleVerify, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'>) {
   const ref = useRef<HTMLDivElement>(null)
   const top = useOffsetTop(ref)
   const v = useWindowVirtualizer({ count: students.length, estimateSize: () => ROW_H, overscan: 12, scrollMargin: top })
@@ -251,17 +265,22 @@ function Table({ students, duplicateRows, onOpen, onToggleVerify, onToggleBaza }
   )
 }
 
-function StudentList(props: Props) {
+function StudentList({ onClearFilters, ...props }: Props) {
+  const wide = useWide()
   if (!props.students.length) {
     return (
-      <div className="panel grid place-items-center px-6 py-16 text-center">
+      <div className="panel grid place-items-center gap-1 px-6 py-14 text-center">
+        <SearchX size={30} className="mb-1 text-fg-subtle" />
         <div className="text-[15px] font-semibold text-fg">Hech narsa topilmadi</div>
-        <div className="mt-1 text-[13px] text-fg-muted">Qidiruv so'zini yoki filtrlarni o'zgartirib ko'ring.</div>
+        <div className="text-[13px] text-fg-muted">Qidiruv so'zini yoki filtrlarni o'zgartirib ko'ring.</div>
+        {onClearFilters && (
+          <button type="button" className="btn-ghost mt-3" onClick={onClearFilters}><X size={15} /> Filtrlarni tozalash</button>
+        )}
       </div>
     )
   }
-  if (props.mode === 'table') return <Table {...props} />
-  return <CardGrid {...props} compact={props.mode === 'compact'} />
+  if (props.mode === 'table' && wide) return <Table {...props} />
+  return <CardGrid {...props} compact={props.mode !== 'cards'} />
 }
 
 export default memo(StudentList)

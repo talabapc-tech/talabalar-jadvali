@@ -109,8 +109,9 @@ function PinflCard({ pinfl }: { pinfl: string }) {
   )
 }
 
-function Input({ label, value, onChange, mono, placeholder, upper, highlight }: {
+function Input({ label, value, onChange, mono, placeholder, upper, highlight, inputMode }: {
   label: string; value: string; onChange: (v: string) => void; mono?: boolean; placeholder?: string; upper?: boolean; highlight?: boolean
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode']
 }) {
   return (
     <label className="block">
@@ -119,6 +120,7 @@ function Input({ label, value, onChange, mono, placeholder, upper, highlight }: 
         value={value}
         onChange={(e) => onChange(upper ? e.target.value.toUpperCase() : e.target.value)}
         placeholder={placeholder}
+        inputMode={inputMode}
         className={cx('field', mono && 'mono', highlight && 'border-emerald/70 ring-2 ring-emerald/20')}
         spellCheck={false}
       />
@@ -198,9 +200,9 @@ function EditForm({ student, all, onCancel, onSave }: { student: Student; all: S
           <Input label="Familiya va ism *" value={f.ism} onChange={set('ism')} placeholder="Karimova Zilola" />
           <Input label="Otasining ismi" value={f.ota} onChange={set('ota')} placeholder="... qizi / ... o'g'li" />
           <Input label="Pasport seriya va №" value={f.pv} onChange={set('pv')} mono upper placeholder="AD1234567" />
-          <Input label="JSHSHIR (14 raqam)" value={f.pinfl} onChange={onPinfl} mono placeholder="60406055720067" />
-          <Input label="Tug'ilgan sana" value={f.dob} onChange={set('dob')} mono placeholder="DD.MM.YYYY" highlight={dobFlash} />
-          <Input label="Pasport berilgan sana" value={f.ber} onChange={set('ber')} mono placeholder="DD.MM.YYYY" />
+          <Input label="JSHSHIR (14 raqam)" value={f.pinfl} onChange={onPinfl} mono placeholder="60406055720067" inputMode="numeric" />
+          <Input label="Tug'ilgan sana" value={f.dob} onChange={set('dob')} mono placeholder="DD.MM.YYYY" highlight={dobFlash} inputMode="decimal" />
+          <Input label="Pasport berilgan sana" value={f.ber} onChange={set('ber')} mono placeholder="DD.MM.YYYY" inputMode="decimal" />
         </div>
         {dups.length > 0 && (
           <div className="mt-3 flex gap-2 rounded-xl border border-rose/45 bg-rose/10 p-3 text-[12.5px] text-rose">
@@ -214,13 +216,13 @@ function EditForm({ student, all, onCancel, onSave }: { student: Student; all: S
           <Choice label="Hujjat turi" value={f.doc_tur} onChange={set('doc_tur')} options={[['Shahodatnoma', 'Shahodatnoma'], ['Diplom', 'Diplom']]} />
           <Input label="Hujjat seriya va №" value={f.sh_doc} onChange={set('sh_doc')} mono upper placeholder="UM 03752500" />
           <div className="sm:col-span-2"><Input label="Tugatgan muassasa" value={f.mak} onChange={set('mak')} placeholder="14-sonli umumiy o'rta ta'lim maktabi" /></div>
-          <Input label="Bitirgan yili" value={f.yil} onChange={set('yil')} mono placeholder="2026" />
+          <Input label="Bitirgan yili" value={f.yil} onChange={set('yil')} mono placeholder="2026" inputMode="numeric" />
           <Choice label="Yo'nalishi" value={f.yon} onChange={set('yon')} options={YON_OPTIONS.map((y) => [y, y])} />
         </div>
       </Section>
       <Section n={3} title="Shartnoma va guruh" tone="sky">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input label="Shartnoma raqami" value={f.shnum} onChange={set('shnum')} mono placeholder="203" />
+          <Input label="Shartnoma raqami" value={f.shnum} onChange={set('shnum')} mono placeholder="203" inputMode="numeric" />
           <Choice label="Akademik guruh" value={f.group} onChange={onGroup} options={groupChoices} />
           {isSecretGroup(f.group) && (
             <div className="sm:col-span-2">
@@ -233,9 +235,9 @@ function EditForm({ student, all, onCancel, onSave }: { student: Student; all: S
                 value={f.chiqqan_guruh} onChange={set('chiqqan_guruh')} options={aslChoices} />
             </div>
           )}
-          <div className="sm:col-span-2"><Input label="Telefon" value={f.tel} onChange={set('tel')} placeholder="+998 90 123 45 67" /></div>
+          <div className="sm:col-span-2"><Input label="Telefon" value={f.tel} onChange={set('tel')} placeholder="+998 90 123 45 67" inputMode="tel" /></div>
           <Input label={`Buyruq raqami${orderRequired ? ' *' : ''}`} value={f.buyruq} onChange={set('buyruq')} mono placeholder="T-40/2" highlight={orderRequired && !f.buyruq.trim()} />
-          <Input label={`Buyruq sanasi${orderRequired ? ' *' : ''}`} value={f.buyruq_sana} onChange={set('buyruq_sana')} mono placeholder="02.09.2026" />
+          <Input label={`Buyruq sanasi${orderRequired ? ' *' : ''}`} value={f.buyruq_sana} onChange={set('buyruq_sana')} mono placeholder="02.09.2026" inputMode="decimal" />
         </div>
         {orderError && (
           <div className="mt-3 flex gap-2 rounded-xl border border-amber/45 bg-amber/10 p-3 text-[12.5px] text-amber">
@@ -380,10 +382,15 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
           </div>
           <div className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1">
             <h2 className="text-[17px] leading-snug font-extrabold text-fg sm:truncate">{fullName(s)}</h2>
-            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[12px] text-fg-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-fg-muted sm:gap-2">
               <GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} inline />
-              <span className="mono">Shartnoma №{s.shnum || '—'}</span>
+              <span className="mono">№{s.shnum || '—'}</span>
               {!isOfficialGroup(s.group) && <span className="text-rose">rasmiy kontingentga kirmaydi</span>}
+              {/* Eng ko'p bosiladigan ikki belgi — pastga tushmasdan */}
+              <span className="flex items-center gap-1.5">
+                <VerifyButton student={s} onToggle={onToggleVerify} compact />
+                <BazaButton student={s} onToggle={onToggleBaza} compact />
+              </span>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">

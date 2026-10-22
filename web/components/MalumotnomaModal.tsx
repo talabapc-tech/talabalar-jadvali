@@ -55,25 +55,25 @@ export default function MalumotnomaModal({ student: s, onClose }: { student: Stu
           <div className="m-4 rounded-xl border border-rose/45 bg-rose/10 p-4 text-[13px] text-rose">{blocker}</div>
         ) : (
           <>
-            <div className="flex flex-wrap items-end gap-2 border-b border-line px-4 py-3">
-              <label className="block">
+            <div className="flex flex-wrap items-end gap-2 border-b border-line px-3 py-3 sm:px-4">
+              <label className="block flex-1 sm:flex-none">
                 <span className="label">Sana</span>
                 <input
                   type="date"
-                  className="field mono w-[170px]"
+                  className="field mono w-full sm:w-[170px]"
                   value={toIso(sana)}
                   onChange={(e) => { if (e.target.value) { setSana(fromIso(e.target.value)); setLoaded(false) } }}
                 />
               </label>
-              <div className="ml-auto flex flex-wrap items-center gap-2">
+              <div className="grid w-full grid-cols-[auto_1fr_1fr] items-center gap-2 sm:ml-auto sm:flex sm:w-auto">
                 <a className="text-[12px] font-semibold text-fg-muted underline-offset-2 hover:text-fg hover:underline" href={`${src}&format=docx`} download={malumotnomaFileName(s, 'docx')} title="Tahrirlash uchun Word fayl">
                   Word (.docx)
                 </a>
-                <a className={cx('btn-primary h-[38px]', !loaded && 'pointer-events-none opacity-50')} href={`${src}&download=1`} download={malumotnomaFileName(s)}>
-                  <Download size={15} /> Yuklab olish (.jpg)
+                <a className={cx('btn-primary h-10 sm:h-[38px]', !loaded && 'pointer-events-none opacity-50')} href={`${src}&download=1`} download={malumotnomaFileName(s)}>
+                  <Download size={15} /> <span className="sm:hidden">Rasm</span><span className="hidden sm:inline">Yuklab olish (.jpg)</span>
                 </a>
-                <button type="button" className="btn-ghost h-[38px] text-sky hover:text-sky-soft" onClick={send} disabled={sending || !loaded}>
-                  {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Botga yuborish
+                <button type="button" className="btn-ghost h-10 text-sky hover:text-sky-soft sm:h-[38px]" onClick={send} disabled={sending || !loaded}>
+                  {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} <span className="sm:hidden">Botga</span><span className="hidden sm:inline">Botga yuborish</span>
                 </button>
               </div>
             </div>

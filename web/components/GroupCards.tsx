@@ -1,6 +1,7 @@
 'use client'
 
-import { Check, EyeOff, Settings2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, ChevronDown, EyeOff, Settings2, X } from 'lucide-react'
 import { GROUP_LEADERS } from '@/lib/config'
 import { groupTitle, isSecretGroup, kursOf, selectedGroups } from '@/lib/student'
 import { cx, ProgressBar } from './ui'
@@ -30,7 +31,26 @@ const TONE: Record<number, { v: string; text: string; ring: string }> = {
   3: { v: '--color-amber', text: 'text-amber', ring: 'border-amber/45' },
 }
 
+const COLLAPSE_KEY = 'portal_groups_collapsed'
+
+/** Plitkalarni yig'ish/yoyish — tanlov eslab qolinadi; telefonda birinchi marta yig'iq holda ochiladi */
+function useCollapsed() {
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(COLLAPSE_KEY)
+      setCollapsed(saved === null ? window.matchMedia('(max-width: 639px)').matches : saved === '1')
+    } catch { /* bo'sh */ }
+  }, [])
+  const toggle = () => setCollapsed((c) => {
+    try { localStorage.setItem(COLLAPSE_KEY, c ? '0' : '1') } catch { /* bo'sh */ }
+    return !c
+  })
+  return [collapsed, toggle] as const
+}
+
 export default function GroupCards({ groups, active, onPick, onSettings }: Props) {
+  const [collapsed, toggleCollapsed] = useCollapsed()
   const chosen = selectedGroups(active).filter((g) => groups.some((x) => x.g === g))
   const anyActive = chosen.length > 0
 
@@ -70,12 +90,16 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[13px] font-bold text-fg">Kontingent — guruhlar</span>
-          <span className="hidden text-[12px] text-fg-subtle sm:inline">
+          <button type="button" onClick={toggleCollapsed} aria-expanded={!collapsed} className="flex items-center gap-1.5 rounded-lg py-1 pr-1.5 text-[13px] font-bold text-fg hover:text-sky-soft">
+            <ChevronDown size={16} className={cx('transition-transform', collapsed && '-rotate-90')} />
+            Kontingent — guruhlar
+            {collapsed && <span className="font-medium text-fg-subtle">({groups.length})</span>}
+          </button>
+          <span className="hidden text-[12px] text-fg-subtle lg:inline">
             Bosing — bitta guruh · <kbd className="rounded border border-line bg-ink-800 px-1 font-mono text-[11px]">Ctrl</kbd> + bosing — bir nechta · kurs sarlavhasi — butun kurs
           </span>
           {chosen.length > 0 && (
-            <div className="inline-flex items-center gap-2 rounded-xl border border-sky/40 bg-sky/15 px-3 py-1 text-[13px] font-semibold text-sky-soft shadow-sm animate-in fade-in duration-150">
+            <div className="animate-fade-in inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-sky/40 bg-sky/15 px-3 py-1 text-[13px] font-semibold text-sky-soft shadow-sm">
               <span className="flex items-center gap-1.5 font-bold text-sky">
                 <span className="grid size-5 place-items-center rounded-full bg-sky text-ink-950 text-[11px] font-black">
                   {chosen.length}
@@ -103,7 +127,7 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
           )}
         </div>
         <button type="button" className="btn-ghost ml-auto h-8 px-2.5 text-[12px]" onClick={onSettings} title="Kurs, guruh rahbari va yo'nalishni o'zgartirish">
-          <Settings2 size={14} className="text-sky" /> Guruh sozlamalari
+          <Settings2 size={14} className="text-sky" /> <span className="sm:hidden">Sozlamalar</span><span className="hidden sm:inline">Guruh sozlamalari</span>
         </button>
       </div>
 
@@ -116,12 +140,12 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
           const tone = TONE[c.k]
           const cp = c.total ? Math.round((c.ver / c.total) * 100) : 0
           return (
-            <section key={c.k} className="panel overflow-hidden" style={{ borderTop: `3px solid var(${tone.v})` }}>
+            <section key={c.k} className={cx('panel overflow-hidden', collapsed && 'lg:self-start')} style={{ borderTop: `3px solid var(${tone.v})` }}>
               <button
                 type="button"
                 onClick={() => pickKurs(c.list.map((x) => x.g))}
                 title={`${ROMAN[c.k]}-kursning hamma guruhini tanlash`}
-                className="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition-colors hover:bg-ink-850"
+                className={cx('flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-850', !collapsed && 'border-b border-line')}
               >
                 <span className={cx('mono text-[24px] leading-none font-extrabold', tone.text)}>{ROMAN[c.k]}</span>
                 <span className="min-w-0 flex-1">
@@ -147,7 +171,7 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                 </span>
               </button>
 
-              <div className="grid grid-cols-2 gap-2.5 p-3 sm:grid-cols-3 xl:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+              {!collapsed && <div className="grid grid-cols-3 gap-2 p-2.5 sm:gap-2.5 sm:p-3 xl:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
                 {c.list.map(({ g, total, ver }) => {
                   const p = total ? Math.round((ver / total) * 100) : 0
                   const on = chosen.includes(g)
@@ -159,7 +183,7 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                       title={`${g} · ${GROUP_LEADERS[g] || '—'} · ${groupTitle(g)}\nCtrl + bosish — bir nechtasini tanlash`}
                       onClick={(e) => pick(g, e.ctrlKey || e.metaKey)}
                       className={cx(
-                        'relative rounded-xl border p-3 text-left transition-all duration-150 select-none',
+                        'relative min-w-0 rounded-xl border p-2.5 text-left transition-all duration-150 select-none sm:p-3',
                         tone.ring,
                         on ? 'ring-2 ring-sky shadow-[0_10px_28px_-12px_rgb(56_189_248/0.7)]' : 'hover:-translate-y-px hover:brightness-125',
                         anyActive && !on && 'opacity-45 saturate-50 hover:opacity-100 hover:saturate-100',
@@ -167,31 +191,31 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                       style={{ background: `color-mix(in srgb, var(${tone.v}) ${8 + p / 7}%, transparent)` }}
                     >
                       {on && (
-                        <span className="absolute top-2 right-2 grid size-5 place-items-center rounded-full bg-sky text-ink-950">
+                        <span className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-sky text-ink-950 sm:top-2 sm:right-2">
                           <Check size={13} strokeWidth={3.5} />
                         </span>
                       )}
-                      <span className={cx('mono flex items-center gap-1.5 text-[17px] font-bold', tone.text)}>
+                      <span className={cx('mono flex items-center gap-1.5 text-[14px] font-bold sm:text-[17px]', tone.text)}>
                         {g}
                         {isSecretGroup(g) && (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-amber/55 bg-amber/10 px-1.5 py-px font-sans text-[10.5px] font-bold text-amber" title="Darslarga kelmaydiganlar — kontraktlarga kirmaydi">
-                            <EyeOff size={10} /> maxfiy
+                          <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-amber/55 bg-amber/10 px-1 py-px font-sans text-[10.5px] font-bold text-amber sm:px-1.5" title="Maxfiy guruh: darslarga kelmaydiganlar — kontraktlarga kirmaydi">
+                            <EyeOff size={10} /> <span className="hidden sm:inline">maxfiy</span>
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 block text-[28px] leading-tight font-extrabold text-fg tabular-nums">
-                        {total}<span className="ml-1 text-[12px] font-semibold text-fg-muted">nafar</span>
+                      <span className="mt-0.5 block text-[22px] leading-tight font-extrabold text-fg tabular-nums sm:text-[28px]">
+                        {total}<span className="ml-1 hidden text-[12px] font-semibold text-fg-muted sm:inline">nafar</span>
                       </span>
-                      <span className="block truncate text-[13px] font-semibold text-fg">{GROUP_LEADERS[g] || '—'}</span>
-                      <span className="block truncate text-[11.5px] text-fg-muted">{groupTitle(g)}</span>
-                      <span className="mt-2 flex items-center gap-2">
+                      <span className="block truncate text-[11.5px] font-semibold text-fg sm:text-[13px]">{GROUP_LEADERS[g] || '—'}</span>
+                      <span className="hidden truncate text-[11.5px] text-fg-muted sm:block">{groupTitle(g)}</span>
+                      <span className="mt-1.5 flex items-center gap-1.5 sm:mt-2 sm:gap-2">
                         <ProgressBar value={p} />
-                        <span className={cx('text-[11.5px] font-bold tabular-nums', p === 100 ? 'text-emerald-soft' : 'text-fg-muted')}>{ver}/{total}</span>
+                        <span className={cx('text-[10.5px] font-bold tabular-nums sm:text-[11.5px]', p === 100 ? 'text-emerald-soft' : 'text-fg-muted')}>{ver}/{total}</span>
                       </span>
                     </button>
                   )
                 })}
-              </div>
+              </div>}
             </section>
           )
         })}

@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Archive, CalendarCheck, ChevronDown, ClipboardList, CloudCheck, CloudUpload, FileSpreadsheet, FileText, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users } from 'lucide-react'
+import {
+  Archive, CalendarCheck, ChevronDown, ClipboardList, CloudCheck, CloudOff, CloudUpload, FileSpreadsheet, FileText,
+  GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users, X, type LucideIcon,
+} from 'lucide-react'
 import { exportRole, ROLE_META, sendRoleToTelegram, type Role } from '@/lib/excel'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
@@ -50,35 +53,71 @@ function SyncBadge({ pendingCount, notify }: { pendingCount: number; notify: Not
   }
 
   let text: string
-  if (offline) text = 'Python xizmati o\'chiq'
+  if (offline) text = "Python xizmati o'chiq"
   else if (pendingCount > 0) text = `${pendingCount} ta o'zgarish saqlanmoqda`
   else if (gitPending) text = info?.state === 'syncing' ? "Saqlandi • GitHub'ga yuborilmoqda" : `Saqlandi (GitHub navbatda${info?.pending_seconds ? ` ${info.pending_seconds}s` : ''})`
   else text = 'Hammasi saqlangan'
 
   return (
-    <div className="flex items-center gap-2">
-      <span
+    <>
+      {/* Tor ekranda faqat rangli belgi — bosilsa holat matni chiqadi */}
+      <button
+        type="button"
+        onClick={() => notify(text, offline ? 'error' : busy ? 'info' : 'success')}
         className={cx(
-          'chip h-9 rounded-xl px-3 text-[12.5px]',
+          'chip size-9 shrink-0 justify-center rounded-xl px-0 text-[12.5px] lg:w-auto lg:cursor-default lg:px-3',
           offline ? 'border-rose/45 bg-rose/10 text-rose' : busy ? 'border-sky/40 bg-sky/10 text-sky-soft' : 'border-emerald/40 bg-emerald/10 text-emerald-soft',
         )}
-        title={local ? "Lokal rejim: o'zgarishlar kompyuterdagi Python xizmati orqali Excelga yoziladi" : "O'zgarishlar GitHub navbatiga yoziladi; kompyuterdagi xizmat ularni Excelga qo'llaydi"}
+        title={offline
+          ? "Kompyuterdagi Python xizmati ishlamayapti — o'zgarishlar Excelga yozilmaydi. ISHGA_TUSHIRISH.bat ni ishga tushiring"
+          : local ? "Lokal rejim: o'zgarishlar kompyuterdagi Python xizmati orqali Excelga yoziladi" : "O'zgarishlar GitHub navbatiga yoziladi; kompyuterdagi xizmat ularni Excelga qo'llaydi"}
       >
-        {pendingCount > 0 ? (
-          <Loader2 size={14} className="animate-spin text-sky-soft" />
-        ) : gitPending ? (
-          <CloudUpload size={14} className="animate-pulse text-sky-soft" />
-        ) : (
-          <CloudCheck size={14} />
-        )}
-        {text}
-      </span>
+        {offline ? <CloudOff size={14} className="shrink-0" />
+          : pendingCount > 0 ? <Loader2 size={14} className="shrink-0 animate-spin" />
+          : gitPending ? <CloudUpload size={14} className="shrink-0 animate-pulse" />
+          : <CloudCheck size={14} className="shrink-0" />}
+        <span className="hidden lg:inline">{text}</span>
+      </button>
       {local && !offline && (
-        <button type="button" className="btn-ghost h-9" onClick={flush} disabled={flushing} title="30 soniyani kutmasdan hisobotni qayta yaratib GitHub'ga yuborish">
+        <button type="button" className="btn-ghost h-9 shrink-0 px-2.5" onClick={flush} disabled={flushing} title="30 soniyani kutmasdan hisobotni qayta yaratib GitHub'ga yuborish">
           <CloudUpload size={15} />
-          <span className="hidden sm:inline">Hozir yuborish</span>
+          <span className="hidden xl:inline">Hozir yuborish</span>
         </button>
       )}
+    </>
+  )
+}
+
+/** Tayyor hujjatlar: serverdan yuklab olinadi yoki Telegram'ga yuboriladi (/api/download_davomat) */
+const DOCS: { type: string; tg: string; title: string; sub: string; icon: LucideIcon; tone: string }[] = [
+  { type: 'excel', tg: 'excel', title: 'Davomat jurnali (.xlsx)', sub: 'Barcha guruhlar jurnali andozasi', icon: FileText, tone: 'bg-emerald/15 text-emerald-soft' },
+  { type: 'zip', tg: 'zip', title: 'Barcha Word jurnallar (.zip)', sub: "Barcha guruhlarning to'ldirilgan Word jurnali", icon: Archive, tone: 'bg-amber/15 text-amber' },
+  { type: 'docx', tg: 'docx', title: 'Davomat 26-02 (.docx)', sub: "To'ldirilgan rasmiy Word jurnali", icon: FileText, tone: 'bg-blue/15 text-blue-soft' },
+  { type: 'sorovnoma', tg: 'sorovnoma', title: "1-kurs So'rovnoma (.xlsx)", sub: 'Manzillar, ota-ona va telefonlar', icon: ClipboardList, tone: 'bg-amber/15 text-amber' },
+  { type: 'topshirmaganlar_xlsx', tg: 'topshirmaganlar', title: 'Topshirmaganlar (.xlsx)', sub: "1-kurs guruhlar kesimida ro'yxat", icon: FileSpreadsheet, tone: 'bg-rose/15 text-rose' },
+  { type: 'topshirmaganlar_docx', tg: 'topshirmaganlar_docx', title: 'Topshirmaganlar (.docx)', sub: 'Chop etishga tayyor rasmiy Word hisobot', icon: FileText, tone: 'bg-rose/15 text-rose' },
+]
+
+function TgButton({ busy, disabled, title, onClick }: { busy: boolean; disabled: boolean; title: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick() }}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      className="grid size-9 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25 disabled:opacity-50 sm:size-8"
+    >
+      {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+    </button>
+  )
+}
+
+function MenuTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-3 pt-2 pb-1.5 text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
+      <span>{children}</span>
+      <span className="hidden sm:inline">Yuklash · Telegram</span>
     </div>
   )
 }
@@ -86,8 +125,7 @@ function SyncBadge({ pendingCount, notify }: { pendingCount: number; notify: Not
 function ExportMenu({ students, notify }: { students: Student[]; notify: Notify }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<Role | null>(null)
-  const [tgBusy, setTgBusy] = useState<Role | null>(null)
-  const [docBusy, setDocBusy] = useState<string | null>(null)
+  const [tgBusy, setTgBusy] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -112,13 +150,11 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
     }
   }
 
-  const runTg = async (e: React.MouseEvent, role: Role) => {
-    e.stopPropagation()
+  const runTg = async (role: Role) => {
     setTgBusy(role)
     try {
       await sendRoleToTelegram(students, role)
       notify(`${ROLE_META[role].title} Telegram botga yuborildi!`)
-      setOpen(false)
     } catch (err) {
       notify(`Telegramga yuborishda xato: ${(err as Error).message}`, 'error')
     } finally {
@@ -126,232 +162,86 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
     }
   }
 
-  const sendSpecialDoc = async (type: string, title: string) => {
-    setDocBusy(type)
+  const sendDoc = async (doc: (typeof DOCS)[number]) => {
+    setTgBusy(doc.tg)
     try {
       const res = await fetch('/api/download_davomat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ type: doc.tg }),
       })
       const d = await res.json().catch(() => ({}))
-      if (res.ok && d.ok) {
-        notify(`${title} Telegramga yuborildi!`, 'success')
-      } else {
-        notify(`Yuborilmadi: ${d.error || 'Server xatosi'}`, 'error')
-      }
+      if (res.ok && d.ok) notify(`${doc.title} Telegramga yuborildi!`)
+      else notify(`Yuborilmadi: ${d.error || 'Server xatosi'}`, 'error')
     } catch (e) {
       notify(`Telegramga yuborishda xato: ${(e as Error).message}`, 'error')
     } finally {
-      setDocBusy(null)
+      setTgBusy(null)
     }
   }
 
+  const rowCls = 'group flex w-full items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-ink-700/60 sm:px-2.5'
+
   return (
-    <div ref={ref} className="relative">
-      <button type="button" className="btn-primary h-9" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+    <div ref={ref} className="relative shrink-0">
+      <button type="button" className="btn-primary h-9 px-3" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu">
         <FileSpreadsheet size={16} />
-        <span>Excel<span className="hidden sm:inline">&nbsp;eksport</span></span>
+        <span>Excel<span className="hidden lg:inline">&nbsp;eksport</span></span>
         <ChevronDown size={14} className={cx('transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
-        <div className="animate-pop-in absolute right-0 z-50 mt-2 w-[min(380px,calc(100vw-2rem))] rounded-2xl border border-line-strong bg-ink-850 p-2 shadow-2xl shadow-black/50">
-          <div className="flex items-center justify-between px-3 pt-2 pb-2 text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
-            <span>4 bo'lim uchun .xlsx</span>
-            <span>Yuklash / Telegram</span>
-          </div>
-          {(Object.keys(ROLE_META) as Role[]).map((role, i) => (
-            <div
-              key={role}
-              className="group flex w-full items-center gap-2 rounded-xl px-2.5 py-2 transition-colors hover:bg-ink-700/60"
-            >
-              <button
-                type="button"
-                onClick={() => run(role)}
-                disabled={!!busy || !!tgBusy}
-                className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              >
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-emerald/20 to-sky/20 text-[13px] font-bold text-sky-soft">{i + 1}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13.5px] font-semibold text-fg">{ROLE_META[role].title}</span>
-                  <span className="block truncate text-[12px] text-fg-muted">{ROLE_META[role].sub}</span>
-                </span>
-                {busy === role ? <Loader2 size={16} className="animate-spin text-sky" /> : <Download size={16} className="text-fg-subtle group-hover:text-sky" />}
-              </button>
-              <button
-                type="button"
-                onClick={(e) => runTg(e, role)}
-                disabled={!!busy || !!tgBusy}
-                title={`${ROLE_META[role].title} Excel faylini Telegramga yuborish`}
-                className="grid size-8 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25"
-              >
-                {tgBusy === role ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              </button>
+        <>
+          {/* Telefonda menyu pastdan chiqadi, orqasi qoraytiriladi */}
+          <div className="animate-fade-in fixed inset-0 z-40 bg-ink-950/60 sm:hidden" onClick={() => setOpen(false)} />
+          <div
+            role="menu"
+            className="animate-slide-up pb-safe fixed inset-x-2 bottom-2 z-50 max-h-[80dvh] overflow-y-auto rounded-2xl border border-line-strong bg-ink-850 p-2 shadow-2xl shadow-black/50
+              sm:animate-pop-in sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-auto sm:mt-2 sm:max-h-[calc(100dvh-90px)] sm:w-[400px] sm:pb-2"
+          >
+            <div className="flex items-center justify-between px-3 pt-1 pb-1 sm:hidden">
+              <span className="text-[14px] font-bold text-fg">Excel va hujjatlar</span>
+              <button type="button" className="grid size-9 place-items-center rounded-xl text-fg-muted hover:bg-ink-700" onClick={() => setOpen(false)} aria-label="Yopish"><X size={18} /></button>
             </div>
-          ))}
+            <MenuTitle>4 bo'lim uchun .xlsx</MenuTitle>
+            {(Object.keys(ROLE_META) as Role[]).map((role, i) => (
+              <div key={role} className={rowCls}>
+                <button type="button" onClick={() => run(role)} disabled={!!busy} className="flex min-w-0 flex-1 items-center gap-3 py-0.5 text-left">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-emerald/20 to-sky/20 text-[13px] font-bold text-sky-soft">{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13.5px] font-semibold text-fg">{ROLE_META[role].title}</span>
+                    <span className="block truncate text-[12px] text-fg-muted">{ROLE_META[role].sub}</span>
+                  </span>
+                  {busy === role ? <Loader2 size={16} className="animate-spin text-sky" /> : <Download size={16} className="shrink-0 text-fg-subtle group-hover:text-sky" />}
+                </button>
+                <TgButton busy={tgBusy === role} disabled={!!tgBusy} title={`${ROLE_META[role].title} — Telegramga yuborish`} onClick={() => runTg(role)} />
+              </div>
+            ))}
 
-          <div className="my-1.5 border-t border-line/70" />
-          <div className="flex items-center justify-between px-3 pt-1 pb-1 text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
-            <span>Davomat jurnali & So'rovnoma</span>
-            <span>Yuklash / Telegram</span>
+            <div className="my-1.5 border-t border-line/70" />
+            <MenuTitle>Davomat va so'rovnoma</MenuTitle>
+            {DOCS.map((doc) => {
+              const Icon = doc.icon
+              return (
+                <div key={doc.type} className={rowCls}>
+                  <a
+                    href={`/api/download_davomat?type=${doc.type}`}
+                    download
+                    className="flex min-w-0 flex-1 items-center gap-3 py-0.5 text-left"
+                    onClick={() => notify(`${doc.title} yuklanmoqda...`, 'info')}
+                  >
+                    <span className={cx('grid size-8 shrink-0 place-items-center rounded-lg', doc.tone)}><Icon size={17} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13.5px] font-semibold text-fg">{doc.title}</span>
+                      <span className="block truncate text-[12px] text-fg-muted">{doc.sub}</span>
+                    </span>
+                    <Download size={16} className="shrink-0 text-fg-subtle group-hover:text-sky" />
+                  </a>
+                  <TgButton busy={tgBusy === doc.tg} disabled={!!tgBusy} title={`${doc.title} — Telegramga yuborish`} onClick={() => sendDoc(doc)} />
+                </div>
+              )
+            })}
           </div>
-
-          {/* Davomat Jurnali Excel */}
-          <div className="group flex w-full items-center gap-2 rounded-xl px-2.5 py-2 transition-colors hover:bg-ink-700/60">
-            <a
-              href="/api/download_davomat?type=excel"
-              download
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              onClick={() => notify("Davomat Jurnali (.xlsx) yuklanmoqda...")}
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-emerald/15 text-emerald"><FileText size={17} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-fg">Davomat jurnali (.xlsx)</span>
-                <span className="block truncate text-[12px] text-fg-muted">Barcha guruhlar jurnali andozasi</span>
-              </span>
-              <Download size={16} className="text-fg-subtle group-hover:text-sky" />
-            </a>
-            <button
-              type="button"
-              onClick={() => sendSpecialDoc('excel', 'Davomat jurnali (.xlsx)')}
-              disabled={!!docBusy}
-              title="Davomat Jurnali (.xlsx) faylini Telegramga yuborish"
-              className="grid size-8 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25"
-            >
-              {docBusy === 'excel' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
-
-          {/* Barcha Word Jurnallar ZIP */}
-          <div className="group flex w-full items-center gap-2 rounded-xl px-2.5 py-2 transition-colors hover:bg-ink-700/60">
-            <a
-              href="/api/download_davomat?type=zip"
-              download
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              onClick={() => notify("Barcha guruhlar Word jurnallari (.zip) yuklanmoqda...")}
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber/15 text-amber"><Archive size={17} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-fg">Barcha Word jurnallar (.zip)</span>
-                <span className="block truncate text-[12px] text-fg-muted">19 ta guruh to'ldirilgan Word jurnali</span>
-              </span>
-              <Download size={16} className="text-fg-subtle group-hover:text-sky" />
-            </a>
-            <button
-              type="button"
-              onClick={() => sendSpecialDoc('zip', 'Barcha Word jurnallar (.zip)')}
-              disabled={!!docBusy}
-              title="Barcha Word jurnallar (.zip) arxivini Telegramga yuborish"
-              className="grid size-8 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25"
-            >
-              {docBusy === 'zip' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
-
-          {/* Davomat 26-02 Word */}
-          <div className="group flex w-full items-center gap-2 rounded-xl px-2.5 py-2 transition-colors hover:bg-ink-700/60">
-            <a
-              href="/api/download_davomat?type=docx"
-              download
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              onClick={() => notify("Davomat jurnali 26-02 (.docx) yuklanmoqda...")}
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-blue/15 text-blue-soft"><FileText size={17} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-fg">Davomat 26-02 (.docx)</span>
-                <span className="block truncate text-[12px] text-fg-muted">To'ldirilgan rasmiy Word jurnali</span>
-              </span>
-              <Download size={16} className="text-fg-subtle group-hover:text-sky" />
-            </a>
-            <button
-              type="button"
-              onClick={() => sendSpecialDoc('docx', 'Davomat 26-02 (.docx)')}
-              disabled={!!docBusy}
-              title="Davomat jurnali 26-02 (.docx) faylini Telegramga yuborish"
-              className="grid size-8 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25"
-            >
-              {docBusy === 'docx' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
-
-          {/* 1-kurs So'rovnoma */}
-          <div className="group flex w-full items-center gap-2 rounded-xl px-2.5 py-2 transition-colors hover:bg-ink-700/60">
-            <a
-              href="/api/download_davomat?type=sorovnoma"
-              download
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              onClick={() => notify("1-kurs so'rovnoma (.xlsx) yuklanmoqda...")}
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-amber/15 text-amber"><ClipboardList size={17} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-fg">1-kurs So'rovnoma (.xlsx)</span>
-                <span className="block truncate text-[12px] text-fg-muted">Manzillar, ota-ona va telefonlar</span>
-              </span>
-              <Download size={16} className="text-fg-subtle group-hover:text-sky" />
-            </a>
-            <button
-              type="button"
-              onClick={() => sendSpecialDoc('sorovnoma', "1-kurs So'rovnoma (.xlsx)")}
-              disabled={!!docBusy}
-              title="1-kurs So'rovnoma faylini Telegramga yuborish"
-              className="grid size-8 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25"
-            >
-              {docBusy === 'sorovnoma' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
-
-          {/* 1-kurs So'rovnoma Topshirmaganlar Excel */}
-          <div className="group flex w-full items-center gap-2 rounded-xl px-2.5 py-2 transition-colors hover:bg-ink-700/60">
-            <a
-              href="/api/download_davomat?type=topshirmaganlar_xlsx"
-              download
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              onClick={() => notify("Topshirmaganlar hisoboti (.xlsx) yuklanmoqda...")}
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-rose/15 text-rose"><FileSpreadsheet size={17} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-fg">Topshirmaganlar (.xlsx)</span>
-                <span className="block truncate text-[12px] text-fg-muted">1-kurs guruhlar kesimida ro'yxat</span>
-              </span>
-              <Download size={16} className="text-fg-subtle group-hover:text-sky" />
-            </a>
-            <button
-              type="button"
-              onClick={() => sendSpecialDoc('topshirmaganlar', "Topshirmaganlar hisoboti (.xlsx)")}
-              disabled={!!docBusy}
-              title="Topshirmaganlar (.xlsx) faylini Telegramga yuborish"
-              className="grid size-8 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25"
-            >
-              {docBusy === 'topshirmaganlar' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
-
-          {/* 1-kurs So'rovnoma Topshirmaganlar Word */}
-          <div className="group flex w-full items-center gap-2 rounded-xl px-2.5 py-2 transition-colors hover:bg-ink-700/60">
-            <a
-              href="/api/download_davomat?type=topshirmaganlar_docx"
-              download
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              onClick={() => notify("Topshirmaganlar hisoboti (.docx) yuklanmoqda...")}
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-rose/15 text-rose"><FileText size={17} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-fg">Topshirmaganlar (.docx)</span>
-                <span className="block truncate text-[12px] text-fg-muted">Chop etishga tayyor rasmiy Word hisobot</span>
-              </span>
-              <Download size={16} className="text-fg-subtle group-hover:text-sky" />
-            </a>
-            <button
-              type="button"
-              onClick={() => sendSpecialDoc('topshirmaganlar_docx', "Topshirmaganlar hisoboti (.docx)")}
-              disabled={!!docBusy}
-              title="Topshirmaganlar (.docx) faylini Telegramga yuborish"
-              className="grid size-8 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25"
-            >
-              {docBusy === 'topshirmaganlar_docx' ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
-        </div>
+        </>
       )}
     </div>
   )
@@ -366,13 +256,13 @@ function LogoutButton() {
   const logout = async () => {
     if (!confirm('Tizimdan chiqasizmi?')) return
     setBusy(true)
-    try { localStorage.removeItem('portal_device_token'); } catch {}
+    try { localStorage.removeItem('portal_device_token') } catch { /* bo'sh */ }
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => null)
     window.location.replace('/login')
   }
   if (local) return null
   return (
-    <button type="button" className="btn-ghost h-9 px-2.5" onClick={logout} disabled={busy} title="Tizimdan chiqish" aria-label="Tizimdan chiqish">
+    <button type="button" className="btn-ghost size-9 shrink-0 p-0" onClick={logout} disabled={busy} title="Tizimdan chiqish" aria-label="Tizimdan chiqish">
       {busy ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
     </button>
   )
@@ -394,169 +284,126 @@ function ThemeButton() {
     try { localStorage.setItem('portal_theme', next) } catch { /* bo'sh */ }
   }
 
+  const title = theme === 'dark' ? "Yorug' rejimga o'tish" : "To'q rejimga o'tish"
   return (
-    <button
-      type="button"
-      className="btn-ghost size-9 p-0"
-      onClick={toggle}
-      title={theme === 'dark' ? "Yorug' (Kun) rejimga o'tish" : "To'q (Tun) rejimga o'tish"}
-    >
+    <button type="button" className="btn-ghost size-9 shrink-0 p-0" onClick={toggle} title={title} aria-label={title}>
       {theme === 'dark' ? <Sun size={15} className="text-amber" /> : <Moon size={15} className="text-blue-soft" />}
     </button>
   )
 }
 
-export default function Header({
-  students,
-  pendingCount,
-  onRefresh,
-  refreshing,
-  onAdd,
-  onOpenSettings,
-  notify,
-  activeTab = 'students',
-  onTabChange,
-  onAddStaff,
-  onExportStaff,
-}: {
-  students: Student[];
-  pendingCount: number;
-  onRefresh: () => void;
-  refreshing: boolean;
-  onAdd: () => void;
-  onOpenSettings?: () => void;
-  notify: Notify;
-  activeTab?: 'students' | 'staff';
-  onTabChange?: (tab: 'students' | 'staff') => void;
-  onAddStaff?: () => void;
-  onExportStaff?: () => void;
-}) {
+type MainTab = 'students' | 'staff'
+
+/** Talabalar / Xodimlar almashgichi */
+function TabSwitch({ activeTab, onTabChange }: { activeTab: MainTab; onTabChange: (t: MainTab) => void }) {
+  const tabs = [
+    { id: 'students' as const, href: '/talabalar', label: 'Talabalar', icon: GraduationCap, on: 'border-sky/40 bg-sky/20 text-sky-soft' },
+    { id: 'staff' as const, href: '/xodimlar', label: 'Xodimlar', icon: Users, on: 'border-emerald/40 bg-emerald/20 text-emerald-soft' },
+  ]
   return (
-    <header className="z-40 border-b border-line bg-ink-950/85 backdrop-blur-md sm:sticky sm:top-0">
-      <div className="mx-auto flex max-w-[1680px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
+    <div className="grid w-full grid-cols-2 rounded-xl border border-line bg-ink-900/90 p-1 shadow-inner sm:flex sm:w-auto">
+      {tabs.map(({ id, href, label, icon: Icon, on }) => (
+        <Link
+          key={id}
+          href={href}
+          onClick={(e) => { e.preventDefault(); onTabChange(id) }}
+          aria-current={activeTab === id ? 'page' : undefined}
+          className={cx(
+            'flex items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-bold transition select-none',
+            activeTab === id ? cx(on, 'shadow-sm') : 'border-transparent text-fg-muted hover:text-fg',
+          )}
+        >
+          <Icon size={15} />
+          <span>{label}</span>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+export default function Header({
+  students, pendingCount, onRefresh, refreshing, onAdd, onOpenSettings, notify,
+  activeTab = 'students', onTabChange, onAddStaff, onExportStaff,
+}: {
+  students: Student[]
+  pendingCount: number
+  onRefresh: () => void
+  refreshing: boolean
+  onAdd: () => void
+  onOpenSettings?: () => void
+  notify: Notify
+  activeTab?: MainTab
+  onTabChange?: (tab: MainTab) => void
+  onAddStaff?: () => void
+  onExportStaff?: () => void
+}) {
+  const staff = activeTab === 'staff'
+  return (
+    // Telefonda sarlavha yopishmaydi (joy tejaladi); backdrop-blur faqat kompyuterda — u ichidagi
+    // fixed menyuning (pastdan chiqadigan) joylashuvini buzadi
+    <header className="no-print z-40 border-b border-line bg-ink-950 sm:sticky sm:top-0 sm:bg-ink-950/85 sm:backdrop-blur-md">
+      <div className="mx-auto flex max-w-[1680px] flex-wrap items-center gap-x-4 gap-y-2.5 px-3 py-2.5 sm:px-6 sm:py-3">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-sky/30 bg-gradient-to-br from-emerald/20 via-blue/20 to-sky/20">
+          <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-sky/30 bg-gradient-to-br from-emerald/20 via-blue/20 to-sky/20 sm:size-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="" className="size-7" />
+            <img src="/logo.svg" alt="" className="size-6 sm:size-7" />
           </div>
-          <div className="min-w-0">
-            <div className="text-[11px] font-bold tracking-[0.14em] text-emerald-soft uppercase">Shahrisabz Tibbiyot Texnikumi</div>
-            <h1 className="truncate text-[17px] font-extrabold tracking-tight text-fg">
-              {activeTab === 'staff' ? 'Xodimlar boshqaruvi' : 'Talabalar portali'} <span className="font-semibold text-fg-subtle">· 2026/2027</span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[10.5px] font-bold tracking-[0.12em] text-emerald-soft uppercase sm:text-[11px] sm:tracking-[0.14em]">Shahrisabz Tibbiyot Texnikumi</div>
+            <h1 className="truncate text-[16px] font-extrabold tracking-tight text-fg sm:text-[17px]">
+              {staff ? 'Xodimlar boshqaruvi' : 'Talabalar portali'} <span className="hidden font-semibold text-fg-subtle min-[400px]:inline">· 2026/2027</span>
             </h1>
+          </div>
+          <div className="flex items-center gap-1.5 sm:hidden">
+            <ThemeButton />
+            <LogoutButton />
           </div>
         </div>
 
-        {/* Asosiy bo'limlar almashgichi (Tab) */}
-        {onTabChange && (
-          <div className="flex items-center rounded-xl border border-line bg-ink-900/90 p-1 shadow-inner">
-            <Link
-              href="/talabalar"
-              onClick={(e) => {
-                if (onTabChange) {
-                  e.preventDefault()
-                  onTabChange('students')
-                }
-              }}
-              className={cx(
-                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-bold transition select-none',
-                activeTab === 'students'
-                  ? 'border border-sky/40 bg-sky/20 text-sky-soft shadow-sm'
-                  : 'text-fg-muted hover:text-fg'
-              )}
-            >
-              <GraduationCap size={15} />
-              <span>Talabalar</span>
-            </Link>
-            <Link
-              href="/xodimlar"
-              onClick={(e) => {
-                if (onTabChange) {
-                  e.preventDefault()
-                  onTabChange('staff')
-                }
-              }}
-              className={cx(
-                'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-bold transition select-none',
-                activeTab === 'staff'
-                  ? 'border border-emerald/40 bg-emerald/20 text-emerald-soft shadow-sm'
-                  : 'text-fg-muted hover:text-fg'
-              )}
-            >
-              <Users size={15} />
-              <span>Xodimlar</span>
-            </Link>
-          </div>
-        )}
+        {onTabChange && <TabSwitch activeTab={activeTab} onTabChange={onTabChange} />}
 
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          {activeTab === 'staff' ? (
+        <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2">
+          {staff ? (
             <>
               {onAddStaff && (
-                <button
-                  type="button"
-                  className="btn-success h-9"
-                  onClick={onAddStaff}
-                  title="Yangi xodim qo'shish"
-                >
+                <button type="button" className="btn-success h-9 flex-1 px-3 sm:flex-none" onClick={onAddStaff} title="Yangi xodim qo'shish">
                   <UserPlus size={15} />
                   <span>Xodim qo'shish</span>
                 </button>
               )}
               {onExportStaff && (
-                <button
-                  type="button"
-                  className="btn-primary h-9"
-                  onClick={onExportStaff}
-                  title="Xodimlarni Excelga eksport qilish"
-                >
+                <button type="button" className="btn-primary h-9 shrink-0 px-3" onClick={onExportStaff} title="Xodimlarni Excelga eksport qilish">
                   <FileSpreadsheet size={16} />
-                  <span>Xodimlarni eksport</span>
+                  <span>Eksport</span>
                 </button>
               )}
             </>
           ) : (
             <>
               <SyncBadge pendingCount={pendingCount} notify={notify} />
-              <button
-                type="button"
-                className="btn-success h-9"
-                onClick={onAdd}
-                title="Yangi talaba qo'shish"
-              >
+              <button type="button" className="btn-success h-9 flex-1 px-3 sm:flex-none" onClick={onAdd} title="Yangi talaba qo'shish">
                 <UserPlus size={15} />
-                <span>Talaba qo'shish</span>
+                <span className="lg:hidden">Qo'shish</span><span className="hidden lg:inline">Talaba qo'shish</span>
               </button>
-              <ExportMenu students={students} notify={notify} />
             </>
           )}
-          <button
-            type="button"
-            className="btn-ghost h-9"
-            onClick={onRefresh}
-            disabled={refreshing}
-            title="Serverdan eng yangi ma'lumotni olish"
-          >
-            <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
-            <span className="hidden sm:inline">Yangilash</span>
-          </button>
-          <a href="/majlis" className="btn-ghost h-9" title="O'qituvchilar majlisi davomati (asosiy va o'rindosh)">
+          <a href="/majlis" className="btn-ghost h-9 shrink-0 px-2.5" title="O'qituvchilar majlisi davomati (asosiy va o'rindosh)" aria-label="Majlislar davomati">
             <CalendarCheck size={15} className="text-sky-soft" />
-            <span className="hidden sm:inline">Majlislar</span>
+            <span className="hidden xl:inline">Majlislar</span>
           </a>
+          <button type="button" className="btn-ghost h-9 shrink-0 px-2.5" onClick={onRefresh} disabled={refreshing} title="Serverdan eng yangi ma'lumotni olish" aria-label="Yangilash">
+            <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
+            <span className="hidden xl:inline">Yangilash</span>
+          </button>
           {onOpenSettings && (
-            <button
-              type="button"
-              className="btn-ghost h-9 px-2.5 sm:px-3 text-fg-muted hover:text-fg"
-              onClick={onOpenSettings}
-              title="Sozlamalar (API kalitlar, AI modellar)"
-            >
+            <button type="button" className="btn-ghost h-9 shrink-0 px-2.5" onClick={onOpenSettings} title="Sozlamalar (API kalitlar, AI modellar)" aria-label="Sozlamalar">
               <Settings size={15} />
-              <span className="hidden sm:inline">Sozlamalar</span>
+              <span className="hidden xl:inline">Sozlamalar</span>
             </button>
           )}
-          <ThemeButton />
-          <LogoutButton />
+          <span className="hidden sm:contents"><ThemeButton /></span>
+          {!staff && <ExportMenu students={students} notify={notify} />}
+          <span className="hidden sm:contents"><LogoutButton /></span>
         </div>
       </div>
     </header>
