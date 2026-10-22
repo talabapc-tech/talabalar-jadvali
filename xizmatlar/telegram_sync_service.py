@@ -504,7 +504,9 @@ def process_remote_github_changes():
                     nr = ws.max_row + 1
                     ws.cell(row=nr, column=1, value=nr - 1)
                     ws.cell(row=nr, column=2, value=s_ism)
-                    ws.cell(row=nr, column=3, value=data.get('yon', 'Hamshiralik ishi - 3 yillik'))
+                    grp_val = str(data.get('group', '')).strip()
+                    yon_val = 'Farmatsiya ishi' if (grp_val == '26-01' or grp_val.endswith('-01')) else (data.get('yon') or 'Hamshiralik ishi')
+                    ws.cell(row=nr, column=3, value=yon_val)
                     ws.cell(row=nr, column=4, value="To'lov qildi")
                     ws.cell(row=nr, column=5, value=normalize_shnum(data.get('shnum', '')))
                     ws.cell(row=nr, column=6, value=time.strftime("%d.%m.%Y"))
@@ -2817,7 +2819,7 @@ def analyze_docx_content(docx_bytes, filename, default_ism="", default_yon="", u
         "ism": default_ism,
         "ota": "",
         "shnum": "",
-        "yonalis": default_yon or "Hamshiralik ishi - 3 yillik",
+        "yonalis": default_yon or "Hamshiralik ishi",
         "pass_val": "",
         "pinfl": "",
         "dob": "",
@@ -3135,7 +3137,8 @@ def save_manual_students(students_list):
         cqr = str(st.get('cqr', '')).strip()
         maktab = str(st.get('maktab', '')).strip()
         yil = str(st.get('yil', '')).strip()
-        yonalis = str(st.get('yonalis', 'Hamshiralik ishi - 3 yillik')).strip()
+        group = str(st.get('group', '')).strip()
+        yonalis = 'Farmatsiya ishi' if (group == '26-01' or group.endswith('-01')) else str(st.get('yonalis') or 'Hamshiralik ishi').strip()
         tel = str(st.get('tel', '')).strip()
         group = str(st.get('group', '')).strip()
 
@@ -4570,7 +4573,8 @@ Aniq JSON formatda qaytar:
                 doc_tur = get_param('doc_tur') or 'Shahodatnoma'
                 mak = get_param('mak')
                 yil = get_param('yil')
-                yon = get_param('yon') or 'Hamshiralik ishi - 3 yillik'
+                group = get_param('group').strip()
+                yon = 'Farmatsiya ishi' if (group == '26-01' or group.endswith('-01')) else (get_param('yon') or 'Hamshiralik ishi')
                 tel = get_param('tel')
                 group = get_param('group').strip()
                 doc_file = get_param('doc_file')
@@ -5729,7 +5733,8 @@ def update_student_data(st):
     cert_tur = str(st.get('cert_tur', 'Shahodatnoma')).strip()
     maktab = str(st.get('maktab', '')).strip()
     yil = str(st.get('yil', '')).strip()
-    yonalis = str(st.get('yonalis', 'Hamshiralik ishi - 3 yillik')).strip()
+    grp_t = str(st.get('group', '')).strip()
+    yonalis = 'Farmatsiya ishi' if (grp_t == '26-01' or grp_t.endswith('-01')) else str(st.get('yonalis') or 'Hamshiralik ishi').strip()
     
     ws.cell(row=target_row, column=2, value=ism)
     ws.cell(row=target_row, column=3, value=yonalis)

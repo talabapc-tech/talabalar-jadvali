@@ -485,7 +485,7 @@ async function sendLocal(change: Change): Promise<void> {
           cert_tur: d.doc_tur || 'Shahodatnoma',
           maktab: d.mak || '',
           yil: d.yil || '2024',
-          yonalis: d.yon || 'Hamshiralik ishi - 3 yillik',
+          yonalis: d.yon || ((d.group === '26-01' || (d.group && d.group.endsWith('-01'))) ? 'Farmatsiya ishi' : 'Hamshiralik ishi'),
           tel: d.tel || '',
           group: d.group || '26-02',
         }],

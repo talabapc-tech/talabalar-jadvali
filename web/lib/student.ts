@@ -308,7 +308,7 @@ export function buildAddedStudent(f: EditFields, row: number): Student {
     ism,
     ota,
     fish,
-    yon: f.yon || 'Hamshiralik ishi - 3 yillik',
+    yon: f.yon || ((f.group === '26-01' || (f.group && f.group.endsWith('-01'))) ? 'Farmatsiya ishi' : 'Hamshiralik ishi'),
     group: f.group || '26-02',
     pv,
     pass_type,

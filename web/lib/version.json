@@ -1,9 +1,9 @@
 {
-  "version": "2.0.430",
-  "build": 430,
-  "commit": "89ff0a5",
-  "commitDate": "2026-10-21T09:58:11+05:00",
-  "lastPushDate": "2026-10-21T09:58:11+05:00",
-  "commitMessage": "fix(kontingent): 5-variant tekis ustunlar va qator sig'imi, webhook va avto-cronda bir xil ko'rinish",
-  "generatedAt": "2026-10-21T10:30:56.422Z"
+  "version": "2.0.450",
+  "build": 450,
+  "commit": "0802d29",
+  "commitDate": "2026-10-22T09:43:07+05:00",
+  "lastPushDate": "2026-10-22T09:43:07+05:00",
+  "commitMessage": "Auto: talaba ma'lumotlari yangilandi (2026-10-22 09:43:06)",
+  "generatedAt": "2026-10-22T08:26:36.241Z"
 }

@@ -42,9 +42,25 @@ function oquvYiliBoshi(sana: string): number {
   return mm >= 8 ? yyyy : yyyy - 1
 }
 
-/** "Hamshiralik ishi - 3 yillik" → "Hamshiralik ishi" */
-export function cleanYon(yon: string): string {
-  return yon.replace(/\s*[-–—]\s*\d+\s*yillik\s*$/i, '').trim()
+/**
+ * Ta'lim yo'nalishi qoidasi:
+ * - 01-guruh (masalan 26-01) qat'iy "Farmatsiya ishi"
+ * - Qolgan barcha guruhlar qat'iy "Hamshiralik ishi"
+ */
+export function yonalishOfGroup(group: string | undefined): string {
+  const g = String(group || '').trim()
+  if (g === '26-01' || g.endsWith('-01')) return 'Farmatsiya ishi'
+  return 'Hamshiralik ishi'
+}
+
+/** "Hamshiralik ishi - 3 yillik" → "Hamshiralik ishi", 01-guruhlar → "Farmatsiya ishi" */
+export function cleanYon(yon: string, group?: string): string {
+  if (group) return yonalishOfGroup(group)
+  const gMatch = /^(\d{2}-\d{2})/.exec(yon)
+  if (gMatch) return yonalishOfGroup(gMatch[1])
+  const cleaned = yon.replace(/\s*[-–—]\s*\d+\s*yillik\s*$/i, '').trim()
+  if (cleaned.toLowerCase().includes('farm')) return 'Farmatsiya ishi'
+  return 'Hamshiralik ishi'
 }
 
 /** Ma'lumotnoma berib bo'lmasa — sababi, aks holda null */
@@ -61,7 +77,7 @@ export function malumotnomaData(s: Student, sana = todayTashkent()): Malumotnoma
   const bosqich = qabul ? Math.max(1, start - (2000 + Number(qabul[1])) + 1) : 1
   return {
     fish: uzQuotes(fullName(s)),
-    yon: uzQuotes(cleanYon(s.yon || '') || 'Hamshiralik ishi'),
+    yon: uzQuotes(yonalishOfGroup(s.group)),
     group: s.group,
     bosqich,
     oquvYili: `${start}/${start + 1}`,

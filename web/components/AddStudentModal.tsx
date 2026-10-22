@@ -148,7 +148,7 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
     setF((x) => ({
       ...x,
       group: g,
-      yon: g === '26-01' ? 'Farmatsiya ishi' : (x.yon === 'Farmatsiya ishi' ? 'Hamshiralik ishi - 3 yillik' : x.yon),
+      yon: (g === '26-01' || g.endsWith('-01')) ? 'Farmatsiya ishi' : 'Hamshiralik ishi',
     }))
   }
 
@@ -323,7 +323,7 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
                 <Input label="Tugatgan ta'lim muassasasi" value={f.mak || ''} onChange={set('mak')} placeholder="Shahrisabz tumani 14-sonli maktab" />
               </div>
               <Input label="Bitirgan yili" value={f.yil || ''} onChange={set('yil')} mono placeholder="2026" />
-              <Choice label="Yo'nalishi" value={f.yon || 'Hamshiralik ishi - 3 yillik'} onChange={set('yon')} options={YON_OPTIONS.map((y) => [y, y])} />
+              <Choice label="Yo'nalishi" value={f.yon || ((f.group === '26-01' || (f.group && f.group.endsWith('-01'))) ? 'Farmatsiya ishi' : 'Hamshiralik ishi')} onChange={set('yon')} options={YON_OPTIONS.map((y) => [y, y])} />
             </div>
           </section>
 
