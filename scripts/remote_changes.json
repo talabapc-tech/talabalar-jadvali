@@ -30,5 +30,21 @@
     },
     "id": "chg_1792644085018_cq3sn",
     "created_at": "2026-10-22T04:41:25.018Z"
+  },
+  {
+    "type": "update_student",
+    "data": {
+      "row": 81,
+      "fields": {
+        "group": "Talabalar safidan chiqarilganlar",
+        "buyruq": "---",
+        "buyruq_sana": "22.10.2026"
+      },
+      "shnum": "206",
+      "pinfl": "62906005590060",
+      "ism": "Mustafayeva Nargiza"
+    },
+    "id": "chg_1792644119518_lgu2e",
+    "created_at": "2026-10-22T04:41:59.518Z"
   }
 ]
