@@ -127,5 +127,53 @@
       "faol": true
     }
   ],
-  "majlislar": []
+  "majlislar": [
+    {
+      "id": "mmvjts1dkbwx5",
+      "sana": "2026-10-22",
+      "vaqt": "22:38",
+      "mavzu": "",
+      "qatnashchilar": "hammasi",
+      "tarkib": [
+        "o01",
+        "o02",
+        "o03",
+        "o04",
+        "o05",
+        "o06",
+        "o07",
+        "o08",
+        "o09",
+        "o10",
+        "o11",
+        "o12",
+        "o13",
+        "o14",
+        "o15",
+        "o16",
+        "o17",
+        "o18",
+        "o19",
+        "o20",
+        "o21"
+      ],
+      "davomat": {
+        "o07": "keldi",
+        "o09": "keldi",
+        "o01": "keldi",
+        "o13": "keldi",
+        "o02": "keldi",
+        "o05": "keldi",
+        "o12": "keldi",
+        "o06": "keldi",
+        "o10": "keldi",
+        "o03": "keldi",
+        "o11": "keldi",
+        "o04": "keldi",
+        "o08": "keldi"
+      },
+      "izoh": {},
+      "yangilangan": "2026-10-22T17:39:00.984Z"
+    }
+  ]
 }
