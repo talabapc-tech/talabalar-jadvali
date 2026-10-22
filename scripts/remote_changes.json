@@ -94,5 +94,21 @@
     },
     "id": "chg_1792644142925_bvfp9",
     "created_at": "2026-10-22T04:42:22.925Z"
+  },
+  {
+    "type": "update_student",
+    "data": {
+      "row": 150,
+      "fields": {
+        "group": "Talabalar safidan chiqarilganlar",
+        "buyruq": "---",
+        "buyruq_sana": "22.10.2026"
+      },
+      "shnum": "283",
+      "pinfl": "42601925680010",
+      "ism": "usmonova gulnoza xamdam qizi"
+    },
+    "id": "chg_1792644146752_o1me9",
+    "created_at": "2026-10-22T04:42:26.752Z"
   }
 ]
