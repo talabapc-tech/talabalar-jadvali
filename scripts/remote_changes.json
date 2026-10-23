@@ -31,5 +31,17 @@
     },
     "id": "chg_1792753100988_irmie",
     "created_at": "2026-10-23T10:58:20.988Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 573,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "60302075590065",
+      "ism": "Uralova Jasmina"
+    },
+    "id": "chg_1792753113226_54w5j",
+    "created_at": "2026-10-23T10:58:33.226Z"
   }
 ]
