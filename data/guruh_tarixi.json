@@ -223,6 +223,20 @@
       }
     ]
   },
+  "520": {
+    "fish": "Raxmatova Muxlisa Faxriddin qizi",
+    "pinfl": "60404015720032",
+    "moves": [
+      {
+        "from": "25-22",
+        "to": "Akademik ta'til olganlar",
+        "buyruq": "T-58",
+        "buyruq_sana": "23.10.2026",
+        "vaqt": "2026-10-23T09:43:40.225Z",
+        "manba": "portal"
+      }
+    ]
+  },
   "557": {
     "fish": "Uktamova Sarvinoz Obid qizi",
     "pinfl": "61901005590031",
