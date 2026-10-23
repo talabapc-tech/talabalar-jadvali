@@ -67,5 +67,17 @@
     },
     "id": "chg_1792753133242_arbn3",
     "created_at": "2026-10-23T10:58:53.242Z"
+  },
+  {
+    "type": "baza_student",
+    "data": {
+      "row": 563,
+      "status": "KIRITILDI",
+      "shnum": "226",
+      "pinfl": "60609075730014",
+      "ism": "Zaripova Setora"
+    },
+    "id": "chg_1792753134395_vhqrh",
+    "created_at": "2026-10-23T10:58:54.395Z"
   }
 ]
