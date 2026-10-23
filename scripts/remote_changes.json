@@ -55,5 +55,17 @@
     },
     "id": "chg_1792753113228_rp4as",
     "created_at": "2026-10-23T10:58:33.228Z"
+  },
+  {
+    "type": "baza_student",
+    "data": {
+      "row": 182,
+      "status": "KIRITILDI",
+      "shnum": "",
+      "pinfl": "61311085680032",
+      "ism": "Shonazarova Vazira"
+    },
+    "id": "chg_1792753133242_arbn3",
+    "created_at": "2026-10-23T10:58:53.242Z"
   }
 ]
