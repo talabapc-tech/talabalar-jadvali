@@ -396,20 +396,20 @@ async function staffMenuView(): Promise<View> {
   }
 }
 
-/** 📊 Hisobotlar — Excel, davomat jurnallari, JSON baza */
+/** 📊 Hisobotlar — Excel, guruh ro'yxatlari (PDF), JSON baza */
 function reportsMenuView(): View {
   return {
     text: [
       '📊 <b>Hisobotlar</b>',
       quote([
-        "📑 <b>Excel hisobotlar</b> — buxgalteriya, baza admin, guruh rahbarlari, to'liq baza, so'rovnoma",
-        '📝 <b>Davomat jurnallari</b> — Excel andoza, PDF va Word',
+        "📑 <b>Excel hisobotlar</b> — buxgalteriya, baza admin, guruh rahbarlari, to'liq baza",
+        "🗂 <b>Guruh ro'yxatlari (PDF)</b> — A4, imzo uchun, chop etishga tayyor",
         "📦 <b>JSON baza</b> — to'liq zaxira nusxa",
       ], false),
     ].join('\n'),
     markup: {
       inline_keyboard: [
-        [{ text: '📑 Excel hisobotlar', callback_data: 'rep:excel' }, { text: '📝 Davomat jurnallari', callback_data: 'rep:davomat' }],
+        [{ text: '📑 Excel hisobotlar', callback_data: 'rep:excel' }, { text: "🗂 Guruh ro'yxatlari (PDF)", callback_data: 'rep:pdf' }],
         [{ text: '📦 JSON baza', callback_data: 'rep:json' }, { text: '📈 Kontingent', callback_data: 'st:kont' }],
       ],
     },
@@ -424,8 +424,7 @@ function excelReportsView(): View {
         '1️⃣ <b>Buxgalteriya</b> — shartnoma № va pasport',
         '2️⃣ <b>Baza administratori</b> — pasport va shahodatnoma / diplom',
         "3️⃣ <b>Guruh rahbarlari</b> — tug'ilgan sana, pasport, shahodatnoma",
-        "4️⃣ <b>To'liq baza</b> — barcha ustunlar",
-        "📋 <b>1-kurs so'rovnoma</b> — manzil, ota-ona, telefonlar",
+        "4️⃣ <b>To'liq baza</b> — barcha ustunlar (manzil, ota-ona, telefonlar ham)",
       ], false),
       '<i>Fayl darhol shu chatga yuboriladi.</i>',
     ].join('\n'),
@@ -433,29 +432,6 @@ function excelReportsView(): View {
       inline_keyboard: [
         [{ text: '1️⃣ Buxgalteriya', callback_data: 'doc:bux' }, { text: '2️⃣ Baza admin', callback_data: 'doc:adm' }],
         [{ text: '3️⃣ Guruh rahbarlari', callback_data: 'doc:grh' }, { text: "4️⃣ To'liq baza", callback_data: 'doc:tol' }],
-        [{ text: "📋 1-kurs so'rovnoma", callback_data: 'doc:sor' }],
-        backTo('m:rep', 'Hisobotlar'),
-      ],
-    },
-  }
-}
-
-function davomatReportsView(): View {
-  return {
-    text: [
-      '📝 <b>Davomat jurnallari</b>',
-      quote([
-        '📝 <b>Excel andoza</b> — barcha guruhlar uchun',
-        '📑 <b>PDF jurnallar</b> — A4, chop etishga tayyor',
-        '📦 <b>1-kurs Word (ZIP)</b> — guruhlarning Word fayllari',
-        "📄 <b>26-02 namuna</b> — to'ldirilgan Word jurnal",
-      ], false),
-      '💡 <i>Bitta guruh:</i> <code>/davomat 26-03</code> · <i>hammasi:</i> <code>/davomat barcha</code>',
-    ].join('\n'),
-    markup: {
-      inline_keyboard: [
-        [{ text: '📝 Excel andoza', callback_data: 'dvm:xls' }, { text: '📑 PDF jurnallar', callback_data: 'dvm:pdf' }],
-        [{ text: '📦 1-kurs Word ZIP', callback_data: 'dvm:zip' }, { text: '📄 26-02 namuna', callback_data: 'dvm:doc' }],
         backTo('m:rep', 'Hisobotlar'),
       ],
     },
@@ -491,26 +467,12 @@ async function sendRoleExcelDirect(chatId: string | number, file: string, title:
   }
 }
 
-async function sendDavomatDoc(chatId: string | number, type: 'xls' | 'pdf' | 'zip' | 'doc') {
+/** Barcha guruhlar ro'yxati (imzo varaqasi) — A4 PDF (hisobotlar/pdf_jurnallar) */
+async function sendGuruhlarPdf(chatId: string | number) {
   const { stamp } = tashkentStamp()
-  const dirs = ['hisobotlar/davomat_jurnallari', 'hisobotlar', '']
-  if (type === 'xls') {
-    const buf = await readRepoFileIn(dirs, 'Davomat_Jurnali_Uchun_Malumotlar.xlsx', BOT_CACHE)
-    if (buf) await sendDocument(chatId, buf, 'Davomat_Jurnali_Uchun_Malumotlar.xlsx', `📝 <b>Davomat Jurnali Uchun Talabalar Ma'lumotlari (.xlsx)</b>\n🕒 Sana: ${stamp}`)
-    else await sendMessage(chatId, '❌ Fayl topilmadi.')
-  } else if (type === 'pdf') {
-    const buf = await readRepoFileIn(REPO_PATHS.pdfJurnallar, 'Barcha_Guruhlar_Jurnali.pdf', BOT_CACHE)
-    if (buf) await sendDocument(chatId, buf, 'Barcha_Guruhlar_Jurnali.pdf', `📑 <b>Barcha ${pdfGroups().length} ta guruh jurnallari (A4 PDF)</b>\n🕒 Sana: ${stamp}`)
-    else await sendMessage(chatId, '❌ PDF jurnal topilmadi.')
-  } else if (type === 'zip') {
-    const buf = await readRepoFileIn(dirs, '1-kurs_Guruhlar_Davomat_Jurnallari_Word.zip', BOT_CACHE)
-    if (buf) await sendDocument(chatId, buf, '1-kurs_Guruhlar_Davomat_Jurnallari_Word.zip', `📦 <b>1-kurs Guruhlari Davomat Jurnallari (Word .docx ZIP)</b>\n🕒 Sana: ${stamp}`)
-    else await sendMessage(chatId, '❌ ZIP fayl topilmadi.')
-  } else if (type === 'doc') {
-    const buf = await readRepoFileIn(dirs, "Davomat jurnali 26-02 (TO'LDIRILGAN).docx", BOT_CACHE)
-    if (buf) await sendDocument(chatId, buf, "Davomat jurnali 26-02 (TO'LDIRILGAN).docx", `📄 <b>Davomat jurnali 26-02 (Word namunasi)</b>\n🕒 Sana: ${stamp}`)
-    else await sendMessage(chatId, '❌ Word fayl topilmadi.')
-  }
+  const buf = await readRepoFileIn(REPO_PATHS.pdfJurnallar, 'Barcha_Guruhlar_Jurnali.pdf', BOT_CACHE)
+  if (buf) await sendDocument(chatId, buf, 'Barcha_Guruhlar_Jurnali.pdf', `📑 <b>Barcha ${pdfGroups().length} ta guruh ro'yxati (A4 PDF)</b>\n🕒 Sana: ${stamp}`)
+  else await sendMessage(chatId, '❌ PDF ro\'yxat topilmadi.')
 }
 
 /* ------------------------------ AI DRAFT VA TASDIQLASH KO'RINISHI ------------------------------ */
@@ -870,7 +832,7 @@ function startText() {
     quote([
       `${MENU.talabalar} — guruhlar, kontingent, kamchiliklar, yangi talaba`,
       `${MENU.xodimlar} — asosiy va o'rindosh o'qituvchilar, shtat, yangi xodim`,
-      `${MENU.hisobotlar} — Excel, davomat jurnallari, JSON baza`,
+      `${MENU.hisobotlar} — Excel, guruh ro'yxatlari (PDF), JSON baza`,
       `${MENU.majlis} — o'qituvchilar majlisi davomati`,
     ], false),
     "🔍 <b>Qidiruv:</b> talaba ismi, shartnoma №, pasport yoki JSHSHIR ni yozing.",
@@ -915,7 +877,6 @@ export async function GET(request: NextRequest) {
           { command: 'kontingent', description: 'Guruhlar kesimida kontingent' },
           { command: 'royxat', description: "Guruhlar ro'yxati (matn + rasm)" },
           { command: 'malumotnoma', description: "O'qiyotganligi haqida ma'lumotnoma: /malumotnoma 285" },
-          { command: 'davomat', description: 'Davomat jurnallari: /davomat 26-03 yoki /davomat barcha' },
           { command: 'majlis', description: "O'qituvchilar majlisi davomati (Mini App)" },
           { command: 'id', description: 'Chat ID raqamim' },
         ],
@@ -1019,7 +980,7 @@ export async function POST(request: NextRequest) {
       else if (data.startsWith('k:')) await showView(chatId, await courseGroupsView(Number(data.slice(2))), msgId)
       else if (data.startsWith('g:')) await sendGroupList(chatId, data.slice(2))
       else if (data === 'rep:excel') await showView(chatId, excelReportsView(), msgId)
-      else if (data === 'rep:davomat') await showView(chatId, davomatReportsView(), msgId)
+      else if (data === 'rep:pdf' || data === 'dvm:pdf') await sendGuruhlarPdf(chatId)
       else if (data === 'tch:all') await showView(chatId, teachersListView(await loadStaffDb(), 'all'), msgId)
       else if (data === 'tch:asosiy') await showView(chatId, teachersListView(await loadStaffDb(), 'asosiy'), msgId)
       else if (data === 'tch:orindosh') await showView(chatId, teachersListView(await loadStaffDb(), 'orindosh'), msgId)
@@ -1031,11 +992,6 @@ export async function POST(request: NextRequest) {
       else if (data === 'doc:adm') await sendRoleExcelDirect(chatId, '2_Baza_Admin_Pasport_va_Shahodatnoma.xlsx', '2. Baza Administratori (Pasport va Shahodatnoma/Diplom)')
       else if (data === 'doc:grh') await sendRoleExcelDirect(chatId, '3_Guruh_Rahbarlari_Talabalar_Malumotlari.xlsx', '3. Guruh Rahbarlari')
       else if (data === 'doc:tol') await sendRoleExcelDirect(chatId, '4_Toliq_Malumotlar_Bazasi.xlsx', "4. To'liq Ma'lumotlar Bazasi")
-      else if (data === 'doc:sor') await sendRoleExcelDirect(chatId, '1-kurs_Sorovnoma_Malumotlari.xlsx', "1-kurs Talabalari So'rovnoma Ma'lumotlari")
-      else if (data === 'dvm:xls') await sendDavomatDoc(chatId, 'xls')
-      else if (data === 'dvm:pdf') await sendDavomatDoc(chatId, 'pdf')
-      else if (data === 'dvm:zip') await sendDavomatDoc(chatId, 'zip')
-      else if (data === 'dvm:doc') await sendDavomatDoc(chatId, 'doc')
       else if (data.startsWith('sav_st:')) {
         const [, dId, grp] = data.split(':')
         const draft = getPendingDraft(dId)
@@ -1288,7 +1244,6 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: true })
     }
 
-    // "davomat" tekshiruvidan oldin — "Majlis davomati" Davomat jurnaliga tushib qolmasin
     if (t.includes('majlis')) {
       await majlisCommand(chatId, siteOrigin(request.nextUrl.origin))
       return Response.json({ ok: true })
@@ -1327,10 +1282,6 @@ export async function POST(request: NextRequest) {
       await showView(chatId, excelReportsView())
       return Response.json({ ok: true })
     }
-    if (t.includes('davomat jurnallari') || t.includes('davomat jurnali')) {
-      await showView(chatId, davomatReportsView())
-      return Response.json({ ok: true })
-    }
 
     if (t.includes('kontingent') || t.includes('kontengent')) {
       await sendMessage(chatId, await kontingentText("So'rov bo'yicha"))
@@ -1362,55 +1313,6 @@ export async function POST(request: NextRequest) {
       const buf = await readRepoFileIn(REPO_PATHS.pdfJurnallar, 'Barcha_Guruhlar_Jurnali.pdf', BOT_CACHE)
       if (buf) await sendDocument(chatId, buf, 'Barcha_Guruhlar_Jurnali.pdf', `📑 <b>Barcha ${pdfGroups().length} ta guruh jurnallari (A4 PDF)</b>\n🕒 Sana: ${stamp}`)
       else await sendMessage(chatId, '❌ PDF jurnal topilmadi.')
-      return Response.json({ ok: true })
-    }
-    if (t.includes('davomat') || t.startsWith('/davomat')) {
-      const dirs = ['hisobotlar/davomat_jurnallari', 'hisobotlar', '']
-      // 1. Agar foydalanuvchi ma'lum bir guruhni so'ragan bo'lsa (masalan /davomat 26-01 yoki /davomat 25-16)
-      const grpMatch = /(2[4-6]-\d{2})/i.exec(text)
-      if (grpMatch) {
-        const grp = grpMatch[1].toUpperCase()
-        const gDoc = await readRepoFileIn(dirs, `Davomat_jurnali_${grp}.docx`, BOT_CACHE)
-        if (gDoc) {
-          await sendDocument(chatId, gDoc, `Davomat_jurnali_${grp}.docx`, `📄 <b>Guruh ${grp} Davomat jurnali (Word .docx)</b>\n🕒 Sana: ${stamp}\n✅ Barcha talabalar, telefonlar va manzillar to'ldirilgan`)
-          return Response.json({ ok: true })
-        }
-      }
-
-      // 2. Agar barcha guruhlar so'ralsa (/davomat all yoki /davomat barcha yoki zip)
-      if (t.includes('all') || t.includes('barcha') || t.includes('hamma')) {
-        const allZip = await readRepoFileIn(dirs, 'Barcha_Guruhlar_Davomat_Jurnallari_Word.zip', BOT_CACHE)
-        if (allZip) {
-          await sendDocument(chatId, allZip, 'Barcha_Guruhlar_Davomat_Jurnallari_Word.zip', `📦 <b>Barcha 19 ta Guruh Davomat Jurnallari (Word .docx ZIP)</b>\n🕒 Sana: ${stamp}\n👥 1-kurs, 2-kurs va 3-kurs to'ldirilgan jurnallari`)
-          return Response.json({ ok: true })
-        }
-      }
-
-      // 3. Standart holatda: Excel andoza + 1-kurs jurnallari ZIP arxivi + 26-02 Word namunasi
-      const excel = await readRepoFileIn(dirs, 'Davomat_Jurnali_Uchun_Malumotlar.xlsx', BOT_CACHE)
-      const c1Zip = await readRepoFileIn(dirs, '1-kurs_Guruhlar_Davomat_Jurnallari_Word.zip', BOT_CACHE)
-      const docx = await readRepoFileIn(dirs, "Davomat jurnali 26-02 (TO'LDIRILGAN).docx", BOT_CACHE)
-
-      if (excel) {
-        await sendDocument(chatId, excel, 'Davomat_Jurnali_Uchun_Malumotlar.xlsx', `📝 <b>Davomat Jurnali Uchun Talabalar Ma'lumotlari (.xlsx)</b>\n🕒 Sana: ${stamp}\n👥 Barcha 1-kurs va 26-02 guruhlari uchun andoza`)
-      }
-      if (c1Zip) {
-        await sendDocument(chatId, c1Zip, '1-kurs_Guruhlar_Davomat_Jurnallari_Word.zip', `📦 <b>1-kurs Guruhlari Davomat Jurnallari (Word .docx ZIP)</b>\n🕒 Sana: ${stamp}\n✅ Barcha 6 ta guruh (26-01 dan 26-06 gacha) to'liq to'ldirilgan jurnallari\n\n💡 <i>Barcha 19 ta guruhni olish uchun:</i> <code>/davomat barcha</code>\n💡 <i>Alohida guruh uchun:</i> <code>/davomat 26-03</code>`)
-      } else if (docx) {
-        await sendDocument(chatId, docx, "Davomat jurnali 26-02 (TO'LDIRILGAN).docx", `📄 <b>Davomat jurnali 26-02 (Avtomatik to'ldirilgan Word hujjati)</b>\n🕒 Sana: ${stamp}\n✅ Barcha jadvallari to'liq to'ldirilgan`)
-      }
-      if (!excel && !c1Zip && !docx) {
-        await sendMessage(chatId, '❌ Davomat jurnali fayllari topilmadi.')
-      }
-      return Response.json({ ok: true })
-    }
-    if (t.includes('sorovnoma') || t.includes("so'rovnoma")) {
-      const buf = await readRepoFileIn(['hisobotlar', ''], '1-kurs_Sorovnoma_Malumotlari.xlsx', BOT_CACHE)
-      if (buf) {
-        await sendDocument(chatId, buf, '1-kurs_Sorovnoma_Malumotlari.xlsx', `📊 <b>1-kurs Talabalari So'rovnoma Ma'lumotlari (.xlsx)</b>\n🕒 Sana: ${stamp}\n✅ Manzillar, ota-ona ma'lumotlari va toza telefon raqamlar`)
-      } else {
-        await sendMessage(chatId, "❌ So'rovnoma fayli topilmadi.")
-      }
       return Response.json({ ok: true })
     }
     if (text.length >= 2) {

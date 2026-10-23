@@ -1249,40 +1249,6 @@ def send_role_excel_to_telegram_chat(role='toliq', target_chat_id=None):
     return False, resp.text[:160]
 
 
-def send_davomat_reports_to_telegram_chat(target_chat_id=None):
-    """Davomat jurnali uchun to'ldirilgan Word va Excel fayllarini Telegram chatga yuboradi."""
-    import requests
-    cfg = load_backup_config()
-    if not cfg:
-        return False, "Telegram bot sozlanmagan"
-    chat_id = target_chat_id or cfg['chat_id']
-    excel_path = os.path.join(BASE_DIR, 'hisobotlar', 'Davomat_Jurnali_Uchun_Malumotlar.xlsx')
-    docx_path = os.path.join(BASE_DIR, 'Davomat jurnali 26-02 (TO\'LDIRILGAN).docx')
-    stamp = time.strftime('%d.%m.%Y %H:%M')
-    sent = 0
-    if os.path.exists(excel_path):
-        caption = f"📝 <b>Davomat Jurnali Uchun Talabalar Ma'lumotlari (.xlsx)</b>\n🕒 Sana: {stamp}\n👥 Barcha 1-kurs va 26-02 guruhlari uchun to'liq andoza"
-        with open(excel_path, 'rb') as fh:
-            requests.post(
-                f"https://api.telegram.org/bot{cfg['token']}/sendDocument",
-                data={'chat_id': chat_id, 'caption': caption, 'parse_mode': 'HTML'},
-                files={'document': ('Davomat_Jurnali_Uchun_Malumotlar.xlsx', fh)},
-                timeout=120
-            )
-            sent += 1
-    if os.path.exists(docx_path):
-        caption = f"📄 <b>Davomat jurnali 26-02 (Avtomatik to'ldirilgan Word hujjati)</b>\n🕒 Sana: {stamp}\n✅ Barcha jadvallari to'liq to'ldirilgan"
-        with open(docx_path, 'rb') as fh:
-            requests.post(
-                f"https://api.telegram.org/bot{cfg['token']}/sendDocument",
-                data={'chat_id': chat_id, 'caption': caption, 'parse_mode': 'HTML'},
-                files={'document': ('Davomat jurnali 26-02 (TO\'LDIRILGAN).docx', fh)},
-                timeout=120
-            )
-            sent += 1
-    return sent > 0, f"{sent} ta fayl yuborildi"
-
-
 def get_kontingent_stats():
     json_path, _ = build_json_database_file()
     with open(json_path, 'r', encoding='utf-8') as f:
@@ -1834,8 +1800,8 @@ BOT_KEYBOARD_MARKUP = {
         [{"text": "➕ Yangi talaba"}, {"text": "➕ Yangi xodim"}],
         [{"text": "🎓 Guruhlar ro'yxati"}, {"text": "📈 Kontingent"}],
         [{"text": "👨‍🏫 O'qituvchilar ro'yxati"}, {"text": "👔 Shtat xodimlari"}],
-        [{"text": "📊 Excel hisobotlar"}, {"text": "📝 Davomat jurnallari"}],
-        [{"text": "📦 JSON Baza (.json)"}, {"text": "⚠️ Kamchiliklar"}]
+        [{"text": "📊 Excel hisobotlar"}, {"text": "📦 JSON Baza (.json)"}],
+        [{"text": "⚠️ Kamchiliklar"}]
     ],
     "resize_keyboard": True,
     "is_persistent": True
@@ -2092,7 +2058,6 @@ Quyidagi guruhlangan tugmalar orqali istalgan vaqtda kerakli ma'lumotlarni olish
 
 📊 <b>Hisobot va Hujjatlar:</b>
 • <b>📊 Excel hisobotlar</b> — 1-Buxgalteriya, 2-Admin, 3-Guruh rahbarlari, 4-To'liq
-• <b>📝 Davomat jurnallari</b> — Excel andoza va jurnallar
 
 📦 <b>Baza va Nazorat:</b>
 • <b>📦 JSON Baza (.json)</b> — To'liq JSON ma'lumotlar bazasi
@@ -2211,8 +2176,6 @@ def _start_telegram_bot_polling():
                         send_excel_reports_menu(chat_id)
                     elif 'kontingent' in t_low or 'kontengent' in t_low or t_low == '/kontingent':
                         send_kontingent_to_telegram(chat_id, reason="So'rov bo'yicha", variant_num=5)
-                    elif 'davomat' in t_low or t_low == '/davomat':
-                        send_davomat_reports_to_telegram_chat(chat_id)
                     elif 'buxgalter' in t_low or '1. buxgalter' in t_low or t_low == '/buxgalteriya':
                         send_role_excel_to_telegram_chat('buxgalteriya', chat_id)
                     elif 'baza admin' in t_low or '2. baza' in t_low or t_low == '/admin':

@@ -2,10 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import {
-  Archive, CalendarCheck, ChevronDown, ClipboardList, CloudCheck, CloudOff, CloudUpload, FileSpreadsheet, FileText,
-  GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users, X, type LucideIcon,
-} from 'lucide-react'
+import { CalendarCheck, ChevronDown, CloudCheck, CloudOff, CloudUpload, FileSpreadsheet, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users, X } from 'lucide-react'
 import { exportRole, ROLE_META, sendRoleToTelegram, type Role } from '@/lib/excel'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
@@ -88,16 +85,6 @@ function SyncBadge({ pendingCount, notify }: { pendingCount: number; notify: Not
   )
 }
 
-/** Tayyor hujjatlar: serverdan yuklab olinadi yoki Telegram'ga yuboriladi (/api/download_davomat) */
-const DOCS: { type: string; tg: string; title: string; sub: string; icon: LucideIcon; tone: string }[] = [
-  { type: 'excel', tg: 'excel', title: 'Davomat jurnali (.xlsx)', sub: 'Barcha guruhlar jurnali andozasi', icon: FileText, tone: 'bg-emerald/15 text-emerald-soft' },
-  { type: 'zip', tg: 'zip', title: 'Barcha Word jurnallar (.zip)', sub: "Barcha guruhlarning to'ldirilgan Word jurnali", icon: Archive, tone: 'bg-amber/15 text-amber' },
-  { type: 'docx', tg: 'docx', title: 'Davomat 26-02 (.docx)', sub: "To'ldirilgan rasmiy Word jurnali", icon: FileText, tone: 'bg-blue/15 text-blue-soft' },
-  { type: 'sorovnoma', tg: 'sorovnoma', title: "1-kurs So'rovnoma (.xlsx)", sub: 'Manzillar, ota-ona va telefonlar', icon: ClipboardList, tone: 'bg-amber/15 text-amber' },
-  { type: 'topshirmaganlar_xlsx', tg: 'topshirmaganlar', title: 'Topshirmaganlar (.xlsx)', sub: "1-kurs guruhlar kesimida ro'yxat", icon: FileSpreadsheet, tone: 'bg-rose/15 text-rose' },
-  { type: 'topshirmaganlar_docx', tg: 'topshirmaganlar_docx', title: 'Topshirmaganlar (.docx)', sub: 'Chop etishga tayyor rasmiy Word hisobot', icon: FileText, tone: 'bg-rose/15 text-rose' },
-]
-
 function TgButton({ busy, disabled, title, onClick }: { busy: boolean; disabled: boolean; title: string; onClick: () => void }) {
   return (
     <button
@@ -162,24 +149,6 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
     }
   }
 
-  const sendDoc = async (doc: (typeof DOCS)[number]) => {
-    setTgBusy(doc.tg)
-    try {
-      const res = await fetch('/api/download_davomat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: doc.tg }),
-      })
-      const d = await res.json().catch(() => ({}))
-      if (res.ok && d.ok) notify(`${doc.title} Telegramga yuborildi!`)
-      else notify(`Yuborilmadi: ${d.error || 'Server xatosi'}`, 'error')
-    } catch (e) {
-      notify(`Telegramga yuborishda xato: ${(e as Error).message}`, 'error')
-    } finally {
-      setTgBusy(null)
-    }
-  }
-
   const rowCls = 'group flex w-full items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-ink-700/60 sm:px-2.5'
 
   return (
@@ -199,7 +168,7 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
               sm:animate-pop-in sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-auto sm:mt-2 sm:max-h-[calc(100dvh-90px)] sm:w-[400px] sm:pb-2"
           >
             <div className="flex items-center justify-between px-3 pt-1 pb-1 sm:hidden">
-              <span className="text-[14px] font-bold text-fg">Excel va hujjatlar</span>
+              <span className="text-[14px] font-bold text-fg">Excel eksport</span>
               <button type="button" className="grid size-9 place-items-center rounded-xl text-fg-muted hover:bg-ink-700" onClick={() => setOpen(false)} aria-label="Yopish"><X size={18} /></button>
             </div>
             <MenuTitle>4 bo'lim uchun .xlsx</MenuTitle>
@@ -217,29 +186,6 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
               </div>
             ))}
 
-            <div className="my-1.5 border-t border-line/70" />
-            <MenuTitle>Davomat va so'rovnoma</MenuTitle>
-            {DOCS.map((doc) => {
-              const Icon = doc.icon
-              return (
-                <div key={doc.type} className={rowCls}>
-                  <a
-                    href={`/api/download_davomat?type=${doc.type}`}
-                    download
-                    className="flex min-w-0 flex-1 items-center gap-3 py-0.5 text-left"
-                    onClick={() => notify(`${doc.title} yuklanmoqda...`, 'info')}
-                  >
-                    <span className={cx('grid size-8 shrink-0 place-items-center rounded-lg', doc.tone)}><Icon size={17} /></span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13.5px] font-semibold text-fg">{doc.title}</span>
-                      <span className="block truncate text-[12px] text-fg-muted">{doc.sub}</span>
-                    </span>
-                    <Download size={16} className="shrink-0 text-fg-subtle group-hover:text-sky" />
-                  </a>
-                  <TgButton busy={tgBusy === doc.tg} disabled={!!tgBusy} title={`${doc.title} — Telegramga yuborish`} onClick={() => sendDoc(doc)} />
-                </div>
-              )
-            })}
           </div>
         </>
       )}
