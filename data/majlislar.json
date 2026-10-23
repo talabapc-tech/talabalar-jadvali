@@ -157,9 +157,11 @@
         "o20",
         "o21"
       ],
-      "davomat": {},
+      "davomat": {
+        "o08": "keldi"
+      },
       "izoh": {},
-      "yangilangan": "2026-10-23T06:30:10.786Z"
+      "yangilangan": "2026-10-23T06:30:17.359Z"
     }
   ]
 }
