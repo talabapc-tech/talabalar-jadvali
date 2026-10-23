@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "type": "add_student",
+    "data": {
+      "ism": "Xurramova Nilufar",
+      "ota": "Murodulla qizi",
+      "group": "26-03",
+      "pv": "AE2166628",
+      "pinfl": "62603085590057",
+      "dob": "26.03.2008",
+      "ber": "03.04.2025",
+      "doc_tur": "Shahodatnoma",
+      "sh_doc": "UM 03754800",
+      "mak": "43-sonli umumiy o'rta ta'lim maktabi",
+      "yil": "2026",
+      "yon": "Hamshiralik ishi",
+      "shnum": "334",
+      "tel": "887202608"
+    },
+    "id": "chg_1792752969147_e7q0y",
+    "created_at": "2026-10-23T10:56:09.147Z"
+  }
+]
