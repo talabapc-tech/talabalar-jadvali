@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-23 15:58:17",
+  "updated_at": "2026-10-23 15:59:02",
   "total_students": 568,
   "students": [
     {
@@ -11326,7 +11326,7 @@
       "name_match": "",
       "name_flag": "",
       "verified": "TASDIQLANDI",
-      "baza": "KIRITILMAGAN",
+      "baza": "KIRITILDI",
       "buyruq": "T-40/2",
       "buyruq_sana": "02.09.2026"
     },
@@ -12605,8 +12605,8 @@
       "cert_fish": "Mavjud",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
-      "baza": "KIRITILDI",
+      "verified": "TASDIQLANDI",
+      "baza": "KIRITILMAGAN",
       "buyruq": "",
       "buyruq_sana": ""
     },
@@ -12830,7 +12830,7 @@
       "name_match": "",
       "name_flag": "",
       "verified": "KUTILMOQDA",
-      "baza": "KIRITILDI",
+      "baza": "KIRITILMAGAN",
       "buyruq": "",
       "buyruq_sana": ""
     },
