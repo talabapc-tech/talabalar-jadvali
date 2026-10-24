@@ -1,16 +1,1 @@
-[
-  {
-    "type": "update_student",
-    "data": {
-      "row": 93,
-      "fields": {
-        "tel": "+998 87 382-08-24 / +998 87 399-01-79 (Onasi)"
-      },
-      "shnum": "38",
-      "pinfl": "62410085590084",
-      "ism": "Nu'monova Saidabonu"
-    },
-    "id": "chg_1792816400792_kvd8x",
-    "created_at": "2026-10-24T04:33:20.792Z"
-  }
-]
+[]
