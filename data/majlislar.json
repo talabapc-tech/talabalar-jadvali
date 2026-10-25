@@ -67,12 +67,6 @@
       "faol": true
     },
     {
-      "id": "o12",
-      "fish": "Quldosheva Kumush Jo'ra qizi",
-      "tur": "asosiy",
-      "faol": true
-    },
-    {
       "id": "o13",
       "fish": "Mirzayeva Dilnavoz Quchkarovna",
       "tur": "asosiy",
@@ -125,6 +119,12 @@
       "fish": "Narzullayeva Iroda Nasriddin qizi",
       "tur": "orindosh",
       "faol": true
+    },
+    {
+      "id": "o12",
+      "fish": "Quldosheva Kumush Jo'ra qizi",
+      "tur": "asosiy",
+      "faol": false
     }
   ],
   "majlislar": [
