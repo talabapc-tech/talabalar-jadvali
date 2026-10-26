@@ -13,5 +13,20 @@
     },
     "id": "chg_1792998686249_eqwj0",
     "created_at": "2026-10-26T07:11:26.249Z"
+  },
+  {
+    "type": "update_student",
+    "data": {
+      "row": 520,
+      "fields": {
+        "group": "25-22",
+        "buyruq": ""
+      },
+      "shnum": "",
+      "pinfl": "60404015720032",
+      "ism": "raxmatova muxlisa faxriddin qizi"
+    },
+    "id": "chg_1792998689327_k14zd",
+    "created_at": "2026-10-26T07:11:29.327Z"
   }
 ]
