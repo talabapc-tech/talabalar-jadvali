@@ -148,9 +148,19 @@
         "o11",
         "o13"
       ],
-      "davomat": {},
+      "davomat": {
+        "o07": "keldi",
+        "o09": "keldi",
+        "o01": "keldi",
+        "o13": "keldi",
+        "o02": "keldi",
+        "o05": "keldi",
+        "o06": "kelmadi",
+        "o10": "keldi",
+        "o03": "keldi"
+      },
       "izoh": {},
-      "yangilangan": "2026-10-29T06:23:53.347Z"
+      "yangilangan": "2026-10-29T06:31:47.977Z"
     },
     {
       "id": "mmvklbs67rmd6",
