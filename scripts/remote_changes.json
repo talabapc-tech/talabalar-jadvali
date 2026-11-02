@@ -22,5 +22,17 @@
     },
     "id": "chg_1793629752925_xtvu2",
     "created_at": "2026-11-02T14:29:12.925Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 568,
+      "status": "TASDIQLANDI",
+      "shnum": "333",
+      "pinfl": "62603085680013",
+      "ism": "Primova Bahora"
+    },
+    "id": "chg_1793629760733_7xb67",
+    "created_at": "2026-11-02T14:29:20.733Z"
   }
 ]
