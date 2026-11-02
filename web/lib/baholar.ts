@@ -3,15 +3,10 @@
   Jadvallar: web/supabase/baholar.sql
 
   Tizim: texnikumda baho 5 ballik (2–5) kiritiladi, bazaning adminiga esa 100 ballik reyting kerak.
-  5 ballik baho aniq ballni saqlamaydi, shuning uchun reyting AVTOMATIK hosil qilinadi:
-    • har bir baho o'z oralig'idan ball oladi (BALL_ORALIQ),
-    • R-semestr (reyting) = Yakuniy, Joriy, Oraliq reytinglarining o'rtachasi,
-    • R-semestr ball mezondan chiqmaydi: 5 ballik R-semestr = uch bahoning yaxlitlangan o'rtachasi,
-      100 ballik R-semestr esa shu bahoga mos oraliqqa (86+ → 5, 71+ → 4, 55+ → 3, undan past → 2) tushadi.
-  Ball tasodifiy, lekin DETERMINISTIK: bir xil talaba/fan/baho har safar bir xil ball beradi (Excel qayta yuklansa o'zgarmaydi).
+  Foydalanuvchi talabi: R-semestr avtomatik hisoblanmaydi, uni foydalanuvchi/o'qituvchi o'zi qo'yadi.
 */
 
-/** Fan bo'yicha baho turlari. Tartib admin jadvalidagidek: Yakuniy, Joriy, Oraliq, R-semestr */
+/** Fan bo'yicha baho turlari: Yakuniy, Joriy, Oraliq, R-semestr */
 export const BAHO_TURLARI = [
   { key: 'yakuniy', label: 'Yakuniy', nazorat: 'Yakuniy nazorat' },
   { key: 'joriy', label: 'Joriy', nazorat: 'Joriy nazorat' },
@@ -20,12 +15,15 @@ export const BAHO_TURLARI = [
 ] as const
 
 export type BahoTuri = (typeof BAHO_TURLARI)[number]['key']
-/** Qo'lda kiritiladigan 3 ta baho (R-semestr o'zi hisoblanadi) */
-export const KIRITILADIGAN = ['yakuniy', 'joriy', 'oraliq'] as const
+
+/** Qo'lda kiritiladigan baholar: Yakuniy, Joriy, Oraliq va R-semestr (o'zimiz qo'yamiz) */
+export const KIRITILADIGAN = ['yakuniy', 'joriy', 'oraliq', 'r_semestr'] as const
 export type Kiritiladigan = (typeof KIRITILADIGAN)[number]
 
 export const SEMESTRLAR = [1, 2, 3, 4, 5, 6] as const
 export const DEFAULT_AMALIYOT = 'Malakaviy amaliyot'
+export const AM_FIELDS = ['joy', 'boshlanish', 'tugash', 'ball', 'izoh'] as const
+export type AmField = (typeof AM_FIELDS)[number]
 
 /** Har bir 5 ballik baho uchun reyting ball oralig'i (ikkala chegara ham kiradi) */
 export const BALL_ORALIQ: Record<number, readonly [number, number]> = {
@@ -42,7 +40,7 @@ export function bahoOf(ball: number): 2 | 3 | 4 | 5 {
 
 export interface Fan { nom: string; tartib: number }
 
-/** Bazadagi bitta qator: talaba × fan. *100 — avtomatik hosil qilingan reyting */
+/** Bazadagi bitta qator: talaba × fan. *100 — reyting */
 export interface BahoRow {
   pinfl: string
   fan: string
@@ -113,51 +111,47 @@ function rnd(seed: string): number {
   return ((a ^ (a >>> 14)) >>> 0) / 4294967296
 }
 
-function ballFor(seed: string, baho: number): number {
-  const [lo, hi] = BALL_ORALIQ[baho]
+export function ballFor(seed: string, baho: number): number {
+  const [lo, hi] = BALL_ORALIQ[baho] || [60, 70]
   return lo + Math.floor(rnd(seed) * (hi - lo + 1))
 }
-
-const round2 = (n: number) => Math.round(n * 100) / 100
 
 export interface Reyting {
   yakuniy100: number | null
   joriy100: number | null
   oraliq100: number | null
-  /** Faqat uchala baho ham bo'lganda */
   r100: number | null
-  /** 5 ballik R-semestr: uchala bahoning yaxlitlangan o'rtachasi */
   r_semestr: number | null
 }
 
 /**
- * Uch bahodan (5 ballik) reyting hosil qiladi. seed — talaba|semestr|fan (bir xil kirish → bir xil natija).
- * Uchala baho bo'lsa: R-semestr = uch reyting o'rtachasi va u r_semestr bahosining mezonida bo'ladi.
+ * Baholardan reyting hosil qiladi.
+ * R-semestr foydalanuvchi tomonidan kiritilsa, shu qiymat saqlanadi.
  */
-export function hisoblaReyting(seed: string, g: Record<Kiritiladigan, number | null>): Reyting {
-  const make = (attempt: number) => {
-    const out: Record<Kiritiladigan, number | null> = { yakuniy: null, joriy: null, oraliq: null }
-    for (const k of KIRITILADIGAN) out[k] = g[k] === null ? null : ballFor(`${seed}|${k}|${g[k]}|${attempt}`, g[k]!)
-    return out
-  }
-  const first = make(0)
-  const res: Reyting = { yakuniy100: first.yakuniy, joriy100: first.joriy, oraliq100: first.oraliq, r100: null, r_semestr: null }
-  if (g.yakuniy === null || g.joriy === null || g.oraliq === null) return res
+export function hisoblaReyting(
+  seed: string,
+  g: { yakuniy: number | null; joriy: number | null; oraliq: number | null; r_semestr?: number | null },
+): Reyting {
+  const yakuniy100 = g.yakuniy !== null ? ballFor(`${seed}|yakuniy|${g.yakuniy}`, g.yakuniy) : null
+  const joriy100 = g.joriy !== null ? ballFor(`${seed}|joriy|${g.joriy}`, g.joriy) : null
+  const oraliq100 = g.oraliq !== null ? ballFor(`${seed}|oraliq|${g.oraliq}`, g.oraliq) : null
 
-  const want = Math.round((g.yakuniy + g.joriy + g.oraliq) / 3)
-  let pick = first
-  let r = (first.yakuniy! + first.joriy! + first.oraliq!) / 3
-  for (let a = 1; bahoOf(r) !== want && a <= 400; a++) {
-    pick = make(a)
-    r = (pick.yakuniy! + pick.joriy! + pick.oraliq!) / 3
+  // Foydalanuvchi R-semestrni o'zi kiritgan bo'lsa
+  let r_semestr: number | null = null
+  let r100: number | null = null
+
+  if (g.r_semestr !== undefined && g.r_semestr !== null) {
+    r_semestr = g.r_semestr
+    r100 = ballFor(`${seed}|r_semestr|${r_semestr}`, r_semestr)
   }
-  res.yakuniy100 = pick.yakuniy
-  res.joriy100 = pick.joriy
-  res.oraliq100 = pick.oraliq
-  res.r100 = round2(r)
-  // Mezon mos kelmay qolsa (amalda bo'lmaydi) — baho reytingga moslanadi, ikkalasi doim bir-biriga mos qoladi
-  res.r_semestr = bahoOf(r) === want ? want : bahoOf(r)
-  return res
+
+  return {
+    yakuniy100,
+    joriy100,
+    oraliq100,
+    r100,
+    r_semestr,
+  }
 }
 
 /** Bitta bahodan (malakaviy amaliyot) reyting */

@@ -1,14 +1,56 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, BookOpen, Briefcase, CheckCircle2, ClipboardList, Database, FileSpreadsheet, Loader2, Plus, Save, Sparkles, Trash2, Zap } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  BookOpen,
+  Briefcase,
+  Check,
+  CheckCircle2,
+  ClipboardList,
+  Copy,
+  Database,
+  Edit2,
+  Eye,
+  EyeOff,
+  FileSpreadsheet,
+  GripVertical,
+  Link as LinkIcon,
+  Loader2,
+  Maximize2,
+  Plus,
+  RotateCcw,
+  Save,
+  Share2,
+  Sparkles,
+  Trash2,
+  Users,
+  X,
+  Zap,
+} from 'lucide-react'
 import type { OquvReja } from '@/lib/curriculum'
 import { GROUP_SETTINGS } from '@/lib/config'
 import { academicGroups, byName, fullName, kursOf } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import {
-  BAHO_TURLARI, DEFAULT_AMALIYOT, KIRITILADIGAN, SEMESTRLAR, amaliyotReyting, bahoOf, bahoText, hisoblaReyting, parseBaho, reytingSeed,
-  type AmaliyotRow, type BahoRow, type BaholarPayload, type Fan, type Kiritiladigan, type Reyting,
+  BAHO_TURLARI,
+  DEFAULT_AMALIYOT,
+  KIRITILADIGAN,
+  SEMESTRLAR,
+  amaliyotReyting,
+  bahoOf,
+  bahoText,
+  hisoblaReyting,
+  parseBaho,
+  reytingSeed,
+  type AmaliyotRow,
+  type BahoRow,
+  type BaholarPayload,
+  type Fan,
+  type Kiritiladigan,
+  type Reyting,
 } from '@/lib/baholar'
 import { exportBaholar, type ExportGrade } from '@/lib/baholar-excel'
 import type { Notify } from './Toast'
@@ -20,8 +62,25 @@ const PREF_KEY = 'baholar_prefs_v2'
 const AM_FIELDS = ['joy', 'boshlanish', 'tugash', 'ball', 'izoh'] as const
 type AmField = (typeof AM_FIELDS)[number]
 
+interface ShareLinkItem {
+  id: string
+  token: string
+  guruh: string
+  semestr: number
+  fan: string
+  teacherName?: string
+  hiddenPinfls: string[]
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 function readPrefs(): { guruh?: string; semestr?: number; view?: SubView; birlik?: Birlik } {
-  try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {} } catch { return {} }
+  try {
+    return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}
+  } catch {
+    return {}
+  }
 }
 
 const mean = (vals: (number | null)[], dec = 1) => {
@@ -32,17 +91,32 @@ const mean = (vals: (number | null)[], dec = 1) => {
 }
 
 /** Bahoga qarab matn rangi: 5 — yashil, 4 — ko'k, 3 — sariq, 2 — qizil */
-const BAHO_RANG: Record<number, string> = { 5: 'text-emerald-soft', 4: 'text-sky-soft', 3: 'text-amber', 2: 'text-rose' }
+const BAHO_RANG: Record<number, string> = {
+  5: 'text-emerald-soft',
+  4: 'text-sky-soft',
+  3: 'text-amber',
+  2: 'text-rose',
+}
 
-const cellCls = (changed: boolean, bad: boolean) => cx(
-  'h-8 w-11 rounded-md border bg-ink-950/70 text-center text-base font-semibold tabular-nums text-fg outline-none transition-colors sm:text-[13px]',
-  'focus:border-sky/70 focus:ring-2 focus:ring-sky/20',
-  bad ? 'border-rose bg-rose/10 text-rose' : changed ? 'border-amber/60 bg-amber/10' : 'border-line',
-)
+const cellCls = (changed: boolean, bad: boolean) =>
+  cx(
+    'h-8 w-10 sm:w-11 rounded-md border bg-ink-950/70 text-center text-base font-semibold tabular-nums text-fg outline-none transition-colors sm:text-[13px]',
+    'focus:border-sky/70 focus:ring-2 focus:ring-sky/20',
+    bad ? 'border-rose bg-rose/10 text-rose' : changed ? 'border-amber/60 bg-amber/10' : 'border-line',
+  )
 
-interface Calc { g: Record<Kiritiladigan, number | null>; rey: Reyting }
+interface Calc {
+  g: Record<Kiritiladigan, number | null>
+  rey: Reyting
+}
 
-export default function BaholarSection({ students, notify }: { students: Student[]; notify: Notify }) {
+export default function BaholarSection({
+  students,
+  notify,
+}: {
+  students: Student[]
+  notify: Notify
+}) {
   const groups = useMemo(() => academicGroups(students), [students])
   const [guruh, setGuruh] = useState('')
   const [semestr, setSemestr] = useState<number>(1)
@@ -52,8 +126,8 @@ export default function BaholarSection({ students, notify }: { students: Student
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<{ text: string; setup: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
-  const [edits, setEdits] = useState<Record<string, string>>({})       // baholar: pinfl|fan|key
-  const [amEdits, setAmEdits] = useState<Record<string, string>>({})   // amaliyot: pinfl|field
+  const [edits, setEdits] = useState<Record<string, string>>({}) // baholar: pinfl|fan|key
+  const [amEdits, setAmEdits] = useState<Record<string, string>>({}) // amaliyot: pinfl|field
   const [newFan, setNewFan] = useState('')
   const [amNom, setAmNom] = useState(DEFAULT_AMALIYOT)
   const [newAm, setNewAm] = useState('')
@@ -63,8 +137,30 @@ export default function BaholarSection({ students, notify }: { students: Student
   const [curriculumLoading, setCurriculumLoading] = useState(false)
   const [importingPlan, setImportingPlan] = useState(false)
   const tableRef = useRef<HTMLDivElement>(null)
+  const focusTableRef = useRef<HTMLDivElement>(null)
 
-  /* ---------------------------- tanlov (guruh, semestr) ---------------------------- */
+  // 1. Talabalar maxsus tartibi (drag & drop reordering)
+  const [studentOrder, setStudentOrder] = useState<string[]>([])
+  const [draggedPinfl, setDraggedPinfl] = useState<string | null>(null)
+
+  // 2. Yashirilgan fanlar ro'yxati
+  const [hiddenFanlar, setHiddenFanlar] = useState<string[]>([])
+  const [fanVisibilityModalOpen, setFanVisibilityModalOpen] = useState(false)
+
+  // 3. Fanni alohida ochib baholash (Fokus rejimi)
+  const [focusedFan, setFocusedFan] = useState<string | null>(null)
+
+  // 4. O'qituvchiga ulashish modal holati
+  const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [groupShares, setGroupShares] = useState<ShareLinkItem[]>([])
+  const [sharesLoading, setSharesLoading] = useState(false)
+  const [newShareFan, setNewShareFan] = useState('')
+  const [newShareTeacher, setNewShareTeacher] = useState('')
+  const [newShareHiddenPinfls, setNewShareHiddenPinfls] = useState<string[]>([])
+  const [editingShare, setEditingShare] = useState<ShareLinkItem | null>(null)
+  const [copiedToken, setCopiedToken] = useState<string | null>(null)
+
+  /* ---------------------------- Tanlov (guruh, semestr) ---------------------------- */
 
   useEffect(() => {
     const p = readPrefs()
@@ -74,18 +170,103 @@ export default function BaholarSection({ students, notify }: { students: Student
     setGuruh(p.guruh || '')
     setPrefsLoaded(true)
   }, [])
+
   useEffect(() => {
     if (!groups.length) return
     setGuruh((g) => (g && groups.includes(g) ? g : groups[0]))
   }, [groups])
+
   useEffect(() => {
     if (!prefsLoaded) return
-    try { localStorage.setItem(PREF_KEY, JSON.stringify({ guruh, semestr, view, birlik })) } catch { /* bo'sh */ }
+    try {
+      localStorage.setItem(PREF_KEY, JSON.stringify({ guruh, semestr, view, birlik }))
+    } catch {
+      /* bo'sh */
+    }
   }, [guruh, semestr, view, birlik, prefsLoaded])
 
+  // Talabalar ro'yxati va maxsus tartibni yuklash
+  useEffect(() => {
+    if (!guruh) return
+    try {
+      const local = localStorage.getItem(`baholar_order_${guruh}`)
+      if (local) setStudentOrder(JSON.parse(local))
+    } catch {
+      /* bo'sh */
+    }
+    // Serverdan tartibni olish
+    fetch(`/api/baholar/order?guruh=${encodeURIComponent(guruh)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.ok && Array.isArray(d.order) && d.order.length) {
+          setStudentOrder(d.order)
+        }
+      })
+      .catch(() => {})
+  }, [guruh])
+
+  // Yashirilgan fanlar keshini yuklash
+  useEffect(() => {
+    if (!guruh) return
+    try {
+      const local = localStorage.getItem(`baholar_hidden_fanlar_${guruh}_${semestr}`)
+      if (local) setHiddenFanlar(JSON.parse(local))
+      else setHiddenFanlar([])
+    } catch {
+      setHiddenFanlar([])
+    }
+  }, [guruh, semestr])
+
   const list = useMemo(() => students.filter((s) => s.group.trim() === guruh).sort(byName), [students, guruh])
-  const rows = useMemo(() => list.filter((s) => s.pinfl), [list])
+  const baseRows = useMemo(() => list.filter((s) => s.pinfl), [list])
   const noPinfl = useMemo(() => list.filter((s) => !s.pinfl), [list])
+
+  // Maxsus tartiblangan talabalar qatorlari
+  const rows = useMemo(() => {
+    if (!studentOrder.length) return baseRows
+    const orderMap = new Map(studentOrder.map((pinfl, idx) => [pinfl, idx]))
+    return [...baseRows].sort((a, b) => {
+      const ai = orderMap.has(a.pinfl) ? orderMap.get(a.pinfl)! : 9999
+      const bi = orderMap.has(b.pinfl) ? orderMap.get(b.pinfl)! : 9999
+      if (ai !== bi) return ai - bi
+      return fullName(a).localeCompare(fullName(b))
+    })
+  }, [baseRows, studentOrder])
+
+  // Talaba tartibini o'zgartirish (drag & drop yoki ko'chirish)
+  const handleReorder = async (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= rows.length || toIdx >= rows.length) return
+    const copy = [...rows]
+    const [moved] = copy.splice(fromIdx, 1)
+    copy.splice(toIdx, 0, moved)
+    const newOrder = copy.map((s) => s.pinfl)
+    setStudentOrder(newOrder)
+    try {
+      localStorage.setItem(`baholar_order_${guruh}`, JSON.stringify(newOrder))
+    } catch {
+      /* bo'sh */
+    }
+    await fetch('/api/baholar/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guruh, order: newOrder }),
+    }).catch(() => null)
+  }
+
+  const handleResetOrder = async () => {
+    setStudentOrder([])
+    try {
+      localStorage.removeItem(`baholar_order_${guruh}`)
+    } catch {
+      /* bo'sh */
+    }
+    await fetch('/api/baholar/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guruh, order: [] }),
+    }).catch(() => null)
+    notify("Talabalar tartibi alifbo bo'yicha qayta tiklandi", 'info')
+  }
 
   const dirty = Object.keys(edits).length + Object.keys(amEdits).length
   const confirmLeave = useCallback(
@@ -94,21 +275,29 @@ export default function BaholarSection({ students, notify }: { students: Student
   )
   useEffect(() => {
     if (!dirty) return
-    const h = (e: BeforeUnloadEvent) => { e.preventDefault() }
+    const h = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+    }
     window.addEventListener('beforeunload', h)
     return () => window.removeEventListener('beforeunload', h)
   }, [dirty])
 
-  /* ---------------------------- yuklash ---------------------------- */
+  /* ---------------------------- Yuklash ---------------------------- */
 
   const load = useCallback(async () => {
     if (!guruh) return
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${semestr}`, { cache: 'no-store' })
+      const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${semestr}`, {
+        cache: 'no-store',
+      })
       const body = await res.json().catch(() => ({}))
-      if (!res.ok || !body.ok) { setData(null); setError({ text: body.error || `Server ${res.status} qaytardi`, setup: !!body.setup }); return }
+      if (!res.ok || !body.ok) {
+        setData(null)
+        setError({ text: body.error || `Server ${res.status} qaytardi`, setup: !!body.setup })
+        return
+      }
       setData(body as BaholarPayload)
       setEdits({})
       setAmEdits({})
@@ -119,22 +308,32 @@ export default function BaholarSection({ students, notify }: { students: Student
       setLoading(false)
     }
   }, [guruh, semestr])
-  useEffect(() => { if (prefsLoaded && guruh) void load() }, [load, prefsLoaded, guruh])
 
-  const post = useCallback(async (payload: Record<string, unknown>) => {
-    const res = await fetch('/api/baholar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ guruh, semestr, ...payload }),
-    })
-    const body = await res.json().catch(() => ({}))
-    if (!res.ok || !body.ok) throw new Error(body.error || `Server ${res.status} qaytardi`)
-    return body as { ok: true; saved?: number; removed?: number }
-  }, [guruh, semestr])
+  useEffect(() => {
+    if (prefsLoaded && guruh) void load()
+  }, [load, prefsLoaded, guruh])
 
-  /* ---------------------------- o'quv rejasini yuklash ---------------------------- */
+  const post = useCallback(
+    async (payload: Record<string, unknown>) => {
+      const res = await fetch('/api/baholar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guruh, semestr, ...payload }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok || !body.ok) throw new Error(body.error || `Server ${res.status} qaytardi`)
+      return body as { ok: true; saved?: number; removed?: number }
+    },
+    [guruh, semestr],
+  )
+
+  /* ---------------------------- O'quv rejasini yuklash ---------------------------- */
 
   const loadCurriculum = useCallback(async (g: string) => {
-    if (!g) { setCurriculumPlan(null); return }
+    if (!g) {
+      setCurriculumPlan(null)
+      return
+    }
     setCurriculumLoading(true)
     try {
       const res = await fetch(`/api/curriculum?guruh=${encodeURIComponent(g)}`, { cache: 'no-store' })
@@ -190,32 +389,69 @@ export default function BaholarSection({ students, notify }: { students: Student
     }
   }
 
-  /* ---------------------------- fanlar bo'yicha baholar ---------------------------- */
+  /* ---------------------------- Fanlar va Baholar ---------------------------- */
 
   const fanlar: Fan[] = data?.fanlar ?? []
+
+  // Ko'rinadigan fanlar (yashirilmaganlari)
+  const visibleFanlar = useMemo(() => {
+    return fanlar.filter((f) => !hiddenFanlar.includes(f.nom))
+  }, [fanlar, hiddenFanlar])
+
+  const toggleHideFan = (fanNom: string) => {
+    setHiddenFanlar((prev) => {
+      const next = prev.includes(fanNom) ? prev.filter((n) => n !== fanNom) : [...prev, fanNom]
+      try {
+        localStorage.setItem(`baholar_hidden_fanlar_${guruh}_${semestr}`, JSON.stringify(next))
+      } catch {
+        /* bo'sh */
+      }
+      return next
+    })
+  }
+
+  const showAllFanlar = () => {
+    setHiddenFanlar([])
+    try {
+      localStorage.removeItem(`baholar_hidden_fanlar_${guruh}_${semestr}`)
+    } catch {
+      /* bo'sh */
+    }
+    notify("Barcha fanlar ko'rinishga chiqarildi", 'info')
+  }
+
   const bahoMap = useMemo(() => {
     const m = new Map<string, BahoRow>()
     for (const b of data?.baholar ?? []) m.set(`${b.pinfl}|${b.fan}`, b)
     return m
   }, [data])
 
-  const serverText = useCallback((pinfl: string, fan: string, key: Kiritiladigan) => bahoText(bahoMap.get(`${pinfl}|${fan}`)?.[key]), [bahoMap])
-  const shown = useCallback((pinfl: string, fan: string, key: Kiritiladigan) => edits[`${pinfl}|${fan}|${key}`] ?? serverText(pinfl, fan, key), [edits, serverText])
+  const serverText = useCallback(
+    (pinfl: string, fan: string, key: Kiritiladigan) => bahoText(bahoMap.get(`${pinfl}|${fan}`)?.[key]),
+    [bahoMap],
+  )
+  const shown = useCallback(
+    (pinfl: string, fan: string, key: Kiritiladigan) =>
+      edits[`${pinfl}|${fan}|${key}`] ?? serverText(pinfl, fan, key),
+    [edits, serverText],
+  )
 
-  /** Har bir talaba × fan uchun baholar va avtomatik reyting. O'zgartirilmagan qator — bazada saqlangan qiymat bilan. */
+  /** Har bir talaba × fan uchun baholar va reyting. */
   const calc = useMemo(() => {
     const m = new Map<string, Calc>()
     for (const s of rows) {
       for (const f of fanlar) {
         const key = `${s.pinfl}|${f.nom}`
         const stored = bahoMap.get(key)
-        const touched = KIRITILADIGAN.some((k) => `${key}|${k}` in edits)
-        const g = { yakuniy: null, joriy: null, oraliq: null } as Record<Kiritiladigan, number | null>
-        for (const k of KIRITILADIGAN) { const v = parseBaho(edits[`${key}|${k}`] ?? bahoText(stored?.[k])); g[k] = v === undefined ? null : v }
-        const hasStored = !!stored && (stored.yakuniy100 !== null || stored.joriy100 !== null || stored.oraliq100 !== null)
-        const rey: Reyting = !touched && stored && hasStored
-          ? { yakuniy100: stored.yakuniy100, joriy100: stored.joriy100, oraliq100: stored.oraliq100, r100: stored.r100, r_semestr: stored.r_semestr }
-          : hisoblaReyting(reytingSeed(s.pinfl, semestr, f.nom), g)
+        const g = { yakuniy: null, joriy: null, oraliq: null, r_semestr: null } as Record<
+          Kiritiladigan,
+          number | null
+        >
+        for (const k of KIRITILADIGAN) {
+          const v = parseBaho(edits[`${key}|${k}`] ?? bahoText(stored?.[k]))
+          g[k] = v === undefined ? null : v
+        }
+        const rey: Reyting = hisoblaReyting(reytingSeed(s.pinfl, semestr, f.nom), g)
         m.set(key, { g, rey })
       }
     }
@@ -232,10 +468,16 @@ export default function BaholarSection({ students, notify }: { students: Student
     })
   }
 
-  const invalidCount = useMemo(() => Object.values(edits).filter((v) => parseBaho(v) === undefined).length, [edits])
+  const invalidCount = useMemo(
+    () => Object.values(edits).filter((v) => parseBaho(v) === undefined).length,
+    [edits],
+  )
 
   const saveBaholar = async () => {
-    if (invalidCount) { notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error'); return }
+    if (invalidCount) {
+      notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
+      return
+    }
     const pairs = new Set(Object.keys(edits).map((k) => k.split('|').slice(0, 2).join('|')))
     const items = [...pairs].map((p) => {
       const [pinfl, fan] = p.split('|')
@@ -246,7 +488,7 @@ export default function BaholarSection({ students, notify }: { students: Student
     setSaving(true)
     try {
       await post({ action: 'saveBaholar', items })
-      notify(`${items.length} ta qator saqlandi (reyting avtomatik hisoblandi)`)
+      notify(`${items.length} ta qator muvaffaqiyatli saqlandi!`, 'success')
       await load()
     } catch (e) {
       notify(`Saqlanmadi: ${(e as Error).message}`, 'error')
@@ -258,14 +500,17 @@ export default function BaholarSection({ students, notify }: { students: Student
   const addFan = async () => {
     const nom = newFan.trim()
     if (!nom) return
-    if (fanlar.some((f) => f.nom.toLowerCase() === nom.toLowerCase())) { notify(`"${nom}" fani allaqachon bor`, 'warning'); return }
+    if (fanlar.some((f) => f.nom.toLowerCase() === nom.toLowerCase())) {
+      notify(`"${nom}" fani allaqachon mavjud`, 'warning')
+      return
+    }
     try {
       await post({ action: 'addFan', nom })
       setNewFan('')
       const keep = edits
       await load()
       setEdits(keep)
-      notify(`"${nom}" fani qo'shildi`)
+      notify(`"${nom}" fani qo'shildi`, 'success')
     } catch (e) {
       notify(`Fan qo'shilmadi: ${(e as Error).message}`, 'error')
     }
@@ -273,7 +518,12 @@ export default function BaholarSection({ students, notify }: { students: Student
 
   const deleteFan = async (nom: string) => {
     const count = (data?.baholar ?? []).filter((b) => b.fan === nom).length
-    if (!window.confirm(`"${nom}" fani o'chirilsinmi?${count ? ` Unga kiritilgan ${count} ta talabaning baholari ham o'chadi.` : ''}`)) return
+    if (
+      !window.confirm(
+        `"${nom}" fani o'chirilsinmi?${count ? ` Unga kiritilgan ${count} ta talabaning baholari ham o'chadi.` : ''}`,
+      )
+    )
+      return
     try {
       await post({ action: 'deleteFan', nom })
       const keep = Object.fromEntries(Object.entries(edits).filter(([k]) => k.split('|')[1] !== nom))
@@ -285,32 +535,79 @@ export default function BaholarSection({ students, notify }: { students: Student
     }
   }
 
-  /** Strelka/Enter bilan jadvalda yurish: katak (qator:ustun) */
-  const onCellKey = (e: React.KeyboardEvent<HTMLInputElement>, r: number, c: number) => {
-    const d = e.key === 'ArrowDown' || e.key === 'Enter' ? 1 : e.key === 'ArrowUp' ? -1 : 0
-    if (!d) return
-    e.preventDefault()
-    tableRef.current?.querySelector<HTMLInputElement>(`[data-cell="${r + d}:${c}"]`)?.focus()
+  /**
+   * 4-yo'nalishli strelkalar va Enter bilan tezkor katakdan-katakka o'tish (Excel uslubi)
+   */
+  const onCellKey = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    r: number,
+    c: number,
+    totalCols: number,
+    refContainer: React.RefObject<HTMLDivElement | null>,
+  ) => {
+    let nextR = r
+    let nextC = c
+
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      nextR = r + 1
+    } else if (e.key === 'ArrowUp') {
+      nextR = r - 1
+    } else if (e.key === 'ArrowRight') {
+      nextC = c + 1
+      if (nextC >= totalCols && r + 1 < rows.length) {
+        nextC = 0
+        nextR = r + 1
+      }
+    } else if (e.key === 'ArrowLeft') {
+      nextC = c - 1
+      if (nextC < 0 && r > 0) {
+        nextC = totalCols - 1
+        nextR = r - 1
+      }
+    } else {
+      return
+    }
+
+    if (nextR >= 0 && nextR < rows.length && nextC >= 0 && nextC < totalCols) {
+      e.preventDefault()
+      const target = refContainer.current?.querySelector<HTMLInputElement>(
+        `[data-cell="${nextR}:${nextC}"]`,
+      )
+      if (target) {
+        target.focus()
+        target.select()
+      }
+    }
   }
 
   /** Jadvalda ko'rsatiladigan son: 5 ball yoki reyting */
   const cellValue = (c: Calc | undefined, key: (typeof BAHO_TURLARI)[number]['key']): number | null => {
     if (!c) return null
-    if (birlik === 'reyting') return key === 'yakuniy' ? c.rey.yakuniy100 : key === 'joriy' ? c.rey.joriy100 : key === 'oraliq' ? c.rey.oraliq100 : c.rey.r100
-    return key === 'r_semestr' ? c.rey.r_semestr : c.g[key]
+    if (birlik === 'reyting') {
+      return key === 'yakuniy'
+        ? c.rey.yakuniy100
+        : key === 'joriy'
+          ? c.rey.joriy100
+          : key === 'oraliq'
+            ? c.rey.oraliq100
+            : c.rey.r100
+    }
+    return key === 'r_semestr' ? c.g.r_semestr ?? c.rey.r_semestr : c.g[key]
   }
-  const fmt = (v: number | null) => (v === null ? '—' : Number.isInteger(v) ? String(v) : v.toFixed(2))
-  const rangOf = (v: number | null) => (v === null ? 'text-fg-subtle' : BAHO_RANG[birlik === 'reyting' ? bahoOf(v) : Math.round(v)] ?? '')
 
-  /* ---------------------------- malakaviy amaliyot ---------------------------- */
+  const fmt = (v: number | null) => (v === null ? '—' : Number.isInteger(v) ? String(v) : v.toFixed(1))
+  const rangOf = (v: number | null) =>
+    v === null ? 'text-fg-subtle' : BAHO_RANG[birlik === 'reyting' ? bahoOf(v) : Math.round(v)] ?? ''
+
+  /* ---------------------------- Malakaviy amaliyot ---------------------------- */
 
   const amNoms = useMemo(() => {
     const s = new Set((data?.amaliyot ?? []).map((a) => a.nom))
     s.add(amNom)
     return [...s]
   }, [data, amNom])
+
   useEffect(() => {
-    // Yuklangan ma'lumotda amaliyot bo'lsa va tanlangan nom unda yo'q bo'lsa — birinchisini tanlash
     const noms = (data?.amaliyot ?? []).map((a) => a.nom)
     if (noms.length && !noms.includes(amNom) && amNom === DEFAULT_AMALIYOT) setAmNom(noms[0])
   }, [data, amNom])
@@ -320,10 +617,14 @@ export default function BaholarSection({ students, notify }: { students: Student
     for (const a of data?.amaliyot ?? []) m.set(`${a.pinfl}|${a.nom}`, a)
     return m
   }, [data])
-  const amServer = useCallback((pinfl: string, f: AmField, nom = amNom): string => {
-    const r = amMap.get(`${pinfl}|${nom}`)
-    return r ? (f === 'ball' ? bahoText(r.ball) : r[f]) : ''
-  }, [amMap, amNom])
+
+  const amServer = useCallback(
+    (pinfl: string, f: AmField, nom = amNom): string => {
+      const r = amMap.get(`${pinfl}|${nom}`)
+      return r ? (f === 'ball' ? bahoText(r.ball) : r[f]) : ''
+    },
+    [amMap, amNom],
+  )
   const amShown = (pinfl: string, f: AmField) => amEdits[`${pinfl}|${f}`] ?? amServer(pinfl, f)
   const setAm = (pinfl: string, f: AmField, value: string) => {
     const k = `${pinfl}|${f}`
@@ -338,7 +639,7 @@ export default function BaholarSection({ students, notify }: { students: Student
     () => Object.entries(amEdits).filter(([k, v]) => k.endsWith('|ball') && parseBaho(v) === undefined).length,
     [amEdits],
   )
-  /** Amaliyot bahosining reytingi: o'zgartirilmagan — bazadagi, o'zgartirilgan — hisoblangan */
+
   const amReyting = (pinfl: string): number | null => {
     const edited = `${pinfl}|ball` in amEdits
     if (!edited) return amMap.get(`${pinfl}|${amNom}`)?.ball100 ?? null
@@ -378,7 +679,10 @@ export default function BaholarSection({ students, notify }: { students: Student
   }
 
   const saveAmaliyot = async () => {
-    if (amInvalid) { notify("Noto'g'ri baho bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error'); return }
+    if (amInvalid) {
+      notify("Noto'g'ri baho bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
+      return
+    }
     const pinfls = new Set(Object.keys(amEdits).map((k) => k.split('|')[0]))
     const items = [...pinfls].map((pinfl) => {
       const item: Record<string, string> = { pinfl }
@@ -397,7 +701,7 @@ export default function BaholarSection({ students, notify }: { students: Student
     }
   }
 
-  /* ---------------------------- Excel ---------------------------- */
+  /* ---------------------------- Excel Eksport ---------------------------- */
 
   const onExport = async () => {
     try {
@@ -409,15 +713,22 @@ export default function BaholarSection({ students, notify }: { students: Student
           const ball = parseBaho(get('ball'))
           const b = ball === undefined ? null : ball
           const r = {
-            name: fullName(s), nom, joy: get('joy'), boshlanish: get('boshlanish'), tugash: get('tugash'), ball: b,
-            ball100: cur ? amReyting(s.pinfl) : (amMap.get(`${s.pinfl}|${nom}`)?.ball100 ?? null), izoh: get('izoh'),
+            name: fullName(s),
+            nom,
+            joy: get('joy'),
+            boshlanish: get('boshlanish'),
+            tugash: get('tugash'),
+            ball: b,
+            ball100: cur ? amReyting(s.pinfl) : (amMap.get(`${s.pinfl}|${nom}`)?.ball100 ?? null),
+            izoh: get('izoh'),
           }
           if (r.joy || r.boshlanish || r.tugash || r.ball !== null || r.izoh) amaliyot.push(r)
         }
       }
       const yillik = rows.map((s) => /(\d)\s*yillik/i.exec(s.yon || '')?.[1]).find(Boolean)
       await exportBaholar({
-        guruh, semestr,
+        guruh,
+        semestr,
         rahbar: GROUP_SETTINGS[guruh]?.rahbar ?? '',
         davomiylik: yillik ? `${yillik} yillik` : '',
         talabalar: rows.map((s) => ({ name: fullName(s) })),
@@ -425,8 +736,14 @@ export default function BaholarSection({ students, notify }: { students: Student
         grade: (i, fan): ExportGrade => {
           const c = calc.get(`${rows[i].pinfl}|${fan}`)
           return {
-            y: c?.g.yakuniy ?? null, j: c?.g.joriy ?? null, o: c?.g.oraliq ?? null, r: c?.rey.r_semestr ?? null,
-            y100: c?.rey.yakuniy100 ?? null, j100: c?.rey.joriy100 ?? null, o100: c?.rey.oraliq100 ?? null, r100: c?.rey.r100 ?? null,
+            y: c?.g.yakuniy ?? null,
+            j: c?.g.joriy ?? null,
+            o: c?.g.oraliq ?? null,
+            r: c?.g.r_semestr ?? c?.rey.r_semestr ?? null,
+            y100: c?.rey.yakuniy100 ?? null,
+            j100: c?.rey.joriy100 ?? null,
+            o100: c?.rey.oraliq100 ?? null,
+            r100: c?.rey.r100 ?? null,
           }
         },
         amaliyot,
@@ -437,9 +754,118 @@ export default function BaholarSection({ students, notify }: { students: Student
     }
   }
 
-  /* ---------------------------- ko'rinish ---------------------------- */
+  /* ---------------------------- O'qituvchiga ulashish boshqaruvi ---------------------------- */
 
-  const canSave = view === 'baholar' ? Object.keys(edits).length > 0 && !invalidCount : Object.keys(amEdits).length > 0 && !amInvalid
+  const loadGroupShares = useCallback(async () => {
+    if (!guruh) return
+    setSharesLoading(true)
+    try {
+      const res = await fetch(
+        `/api/baholar/share?action=list&guruh=${encodeURIComponent(guruh)}&semestr=${semestr}`,
+        { cache: 'no-store' },
+      )
+      const d = await res.json()
+      if (d.ok && Array.isArray(d.shares)) {
+        setGroupShares(d.shares)
+      }
+    } catch {
+      /* bo'sh */
+    } finally {
+      setSharesLoading(false)
+    }
+  }, [guruh, semestr])
+
+  const openShareModal = () => {
+    setNewShareFan(fanlar[0]?.nom || '')
+    setNewShareTeacher('')
+    setNewShareHiddenPinfls([])
+    setEditingShare(null)
+    setShareModalOpen(true)
+    void loadGroupShares()
+  }
+
+  const handleCreateOrUpdateShare = async () => {
+    if (!newShareFan) {
+      notify('Fanni tanlang', 'error')
+      return
+    }
+
+    try {
+      const action = editingShare ? 'update' : 'create'
+      const payload = editingShare
+        ? {
+            action: 'update',
+            id: editingShare.id,
+            fan: newShareFan,
+            teacherName: newShareTeacher,
+            hiddenPinfls: newShareHiddenPinfls,
+          }
+        : {
+            action: 'create',
+            guruh,
+            semestr,
+            fan: newShareFan,
+            teacherName: newShareTeacher,
+            hiddenPinfls: newShareHiddenPinfls,
+          }
+
+      const res = await fetch('/api/baholar/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const d = await res.json()
+      if (d.ok) {
+        notify(
+          editingShare ? 'Ulashish sozlamalari yangilandi!' : "O'qituvchi uchun yangi havola yaratildi!",
+          'success',
+        )
+        setEditingShare(null)
+        setNewShareTeacher('')
+        setNewShareHiddenPinfls([])
+        await loadGroupShares()
+      } else {
+        notify(d.error || 'Xatolik yuz berdi', 'error')
+      }
+    } catch (e) {
+      notify(`Xatolik: ${(e as Error).message}`, 'error')
+    }
+  }
+
+  const handleDeleteShare = async (id: string) => {
+    if (!confirm("Haqiqatan ham ushbu ulashish havolasini o'chirmoqchimisiz?")) return
+    try {
+      const res = await fetch('/api/baholar/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id }),
+      })
+      const d = await res.json()
+      if (d.ok) {
+        notify("Havola o'chirildi", 'info')
+        await loadGroupShares()
+      }
+    } catch (e) {
+      notify(`Xatolik: ${(e as Error).message}`, 'error')
+    }
+  }
+
+  const copyShareLink = (token: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const url = `${origin}/baholar/ulashilgan?token=${token}`
+    navigator.clipboard.writeText(url)
+    setCopiedToken(token)
+    notify("O'qituvchi havolasi nusxalandi!", 'success')
+    setTimeout(() => setCopiedToken(null), 3000)
+  }
+
+  /* ---------------------------- Ko'rinish va Render ---------------------------- */
+
+  const canSave =
+    view === 'baholar'
+      ? Object.keys(edits).length > 0 && !invalidCount
+      : Object.keys(amEdits).length > 0 && !amInvalid
+
   const groupsByKurs = useMemo(() => {
     const m = new Map<number, string[]>()
     for (const g of groups) m.set(kursOf(g) ?? 0, [...(m.get(kursOf(g) ?? 0) ?? []), g])
@@ -448,41 +874,70 @@ export default function BaholarSection({ students, notify }: { students: Student
 
   return (
     <div className="space-y-4">
-      <div className="panel space-y-3 p-3 sm:p-4">
+      {/* Yuqori Panel: Guruh, Semestr, Rejimlar va Asosiy boshqaruv */}
+      <div className="panel space-y-3 p-3 sm:p-4 bg-ink-900/80 border-line shadow-lg">
         <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-end">
           <div className="sm:w-44">
-            <label className="label" htmlFor="b-guruh">Guruh</label>
+            <label className="label" htmlFor="b-guruh">
+              Guruh
+            </label>
             <select
-              id="b-guruh" className="field cursor-pointer" value={guruh}
-              onChange={(e) => { if (confirmLeave()) setGuruh(e.target.value) }}
+              id="b-guruh"
+              className="field cursor-pointer font-bold"
+              value={guruh}
+              onChange={(e) => {
+                if (confirmLeave()) setGuruh(e.target.value)
+              }}
             >
               {groupsByKurs.map(([k, gs]) => (
                 <optgroup key={k} label={k ? `${k}-kurs` : 'Boshqa'}>
-                  {gs.map((g) => <option key={g} value={g}>{g}</option>)}
+                  {gs.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
                 </optgroup>
               ))}
             </select>
           </div>
-          <div className="sm:w-40">
-            <label className="label" htmlFor="b-sem">Semestr</label>
+
+          <div className="sm:w-36">
+            <label className="label" htmlFor="b-sem">
+              Semestr
+            </label>
             <select
-              id="b-sem" className="field cursor-pointer" value={semestr}
-              onChange={(e) => { if (confirmLeave()) setSemestr(Number(e.target.value)) }}
+              id="b-sem"
+              className="field cursor-pointer font-bold"
+              value={semestr}
+              onChange={(e) => {
+                if (confirmLeave()) setSemestr(Number(e.target.value))
+              }}
             >
-              {SEMESTRLAR.map((s) => <option key={s} value={s}>{s}-semestr</option>)}
+              {SEMESTRLAR.map((s) => (
+                <option key={s} value={s}>
+                  {s}-semestr
+                </option>
+              ))}
             </select>
           </div>
 
-          <div className="col-span-2 flex gap-1 rounded-xl border border-line bg-ink-900/60 p-1 sm:col-span-1">
-            {([
-              ['baholar', ClipboardList, 'Fanlar bo\'yicha baholar', 'Baholar'],
-              ['amaliyot', Briefcase, 'Malakaviy amaliyot', 'Amaliyot'],
-            ] as const).map(([v, Icon, t, short]) => (
+          <div className="col-span-2 flex gap-1 rounded-xl border border-line bg-ink-950 p-1 sm:col-span-1">
+            {(
+              [
+                ['baholar', ClipboardList, "Fanlar bo'yicha baholar", 'Baholar'],
+                ['amaliyot', Briefcase, 'Malakaviy amaliyot', 'Amaliyot'],
+              ] as const
+            ).map(([v, Icon, t, short]) => (
               <button
-                key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
+                key={v}
+                type="button"
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
                 className={cx(
-                  'flex h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[12.5px] font-bold transition-colors sm:flex-none',
-                  view === v ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white' : 'text-fg-muted hover:text-fg',
+                  'flex h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[12.5px] font-bold transition-all sm:flex-none',
+                  view === v
+                    ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white shadow-sm'
+                    : 'text-fg-muted hover:text-fg',
                 )}
               >
                 <Icon size={15} className="shrink-0" />
@@ -492,16 +947,46 @@ export default function BaholarSection({ students, notify }: { students: Student
             ))}
           </div>
 
-          <div className="col-span-2 flex items-center gap-2 sm:ml-auto sm:col-span-1">
-            {dirty > 0 && <span className="chip border-amber/50 bg-amber/10 text-amber">{dirty} ta o'zgarish</span>}
-            <button type="button" className="btn-ghost h-9 px-3" onClick={onExport} disabled={!data || !rows.length} title="Admin uchun Excel: reyting (100 ball), 5 ballik varaq, 1–4-shakl va fan hisobotlari">
-              <FileSpreadsheet size={15} /> <span className="hidden sm:inline">Excel</span>
-            </button>
+          <div className="col-span-2 flex items-center gap-2 sm:ml-auto sm:col-span-1 flex-wrap">
+            {dirty > 0 && (
+              <span className="chip border-amber/50 bg-amber/10 text-amber font-bold">
+                {dirty} ta o'zgarish
+              </span>
+            )}
+
+            {/* O'qituvchiga ulashish tugmasi */}
+            {view === 'baholar' && (
+              <button
+                type="button"
+                onClick={openShareModal}
+                disabled={!fanlar.length}
+                className="btn-ghost h-9 px-3 text-[12.5px] font-bold border border-line bg-ink-950 text-sky-soft hover:bg-sky/10"
+                title="Fan o'qituvchisiga baho qo'yishi uchun havola ulashish"
+              >
+                <Share2 size={14} className="text-sky" />
+                <span>Ulashish</span>
+              </button>
+            )}
+
             <button
-              type="button" className="btn-success h-9 flex-1 px-4 sm:flex-none"
-              onClick={view === 'baholar' ? saveBaholar : saveAmaliyot} disabled={!canSave || saving}
+              type="button"
+              className="btn-ghost h-9 px-3"
+              onClick={onExport}
+              disabled={!data || !rows.length}
+              title="Excel varaqni yuklab olish"
             >
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} Saqlash
+              <FileSpreadsheet size={15} />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn-success h-9 px-4 font-bold shadow-md"
+              onClick={view === 'baholar' ? saveBaholar : saveAmaliyot}
+              disabled={!canSave || saving}
+            >
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              <span>Saqlash</span>
             </button>
           </div>
         </div>
@@ -510,8 +995,8 @@ export default function BaholarSection({ students, notify }: { students: Student
           <div className="flex items-start gap-2 rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 text-[12.5px] text-amber">
             <AlertTriangle size={15} className="mt-0.5 shrink-0" />
             <span>
-              JSHSHIR kiritilmagan talabalarga baho yozib bo'lmaydi ({noPinfl.length} ta): {noPinfl.map(fullName).join(', ')}.
-              Avval Talabalar bo'limida JSHSHIR kiriting.
+              JSHSHIR kiritilmagan talabalarga baho yozib bo'lmaydi ({noPinfl.length} ta):{' '}
+              {noPinfl.map(fullName).join(', ')}.
             </span>
           </div>
         )}
@@ -519,86 +1004,174 @@ export default function BaholarSection({ students, notify }: { students: Student
 
       {error?.setup && (
         <div className="panel space-y-3 border-amber/40 bg-amber/5 p-4 sm:p-5">
-          <div className="flex items-center gap-2 text-[14px] font-bold text-amber"><Database size={16} /> Baholar jadvallari hali yaratilmagan</div>
+          <div className="flex items-center gap-2 text-[14px] font-bold text-amber">
+            <Database size={16} /> Baholar jadvallari hali yaratilmagan
+          </div>
           <ol className="list-decimal space-y-1 pl-5 text-[13px] text-fg-muted">
-            <li>Supabase panelida portal bazasini oching → <b className="text-fg">SQL Editor</b>.</li>
-            <li><code className="mono rounded bg-ink-800 px-1.5 py-0.5 text-sky-soft">web/supabase/baholar.sql</code> faylining butun matnini qo'yib, <b className="text-fg">Run</b> bosing (bir marta yetadi).</li>
-            <li>Shu yerda «Qayta tekshirish» tugmasini bosing.</li>
+            <li>
+              Supabase panelida <b className="text-fg">SQL Editor</b> ni oching.
+            </li>
+            <li>
+              <code className="mono rounded bg-ink-800 px-1.5 py-0.5 text-sky-soft">
+                web/supabase/baholar.sql
+              </code>{' '}
+              faylini ishga tushiring.
+            </li>
           </ol>
-          <button type="button" className="btn-primary h-9 px-4" onClick={load}>Qayta tekshirish</button>
+          <button type="button" className="btn-primary h-9 px-4" onClick={load}>
+            Qayta tekshirish
+          </button>
         </div>
       )}
+
       {error && !error.setup && (
         <div className="panel flex flex-wrap items-center gap-3 border-rose/40 bg-rose/5 p-4 text-[13px] text-rose">
           <AlertTriangle size={16} /> <span className="min-w-0 flex-1">{error.text}</span>
-          <button type="button" className="btn-ghost h-9 px-3" onClick={load}>Qayta urinish</button>
+          <button type="button" className="btn-ghost h-9 px-3" onClick={load}>
+            Qayta urinish
+          </button>
         </div>
       )}
 
       {loading && !data && !error && (
-        <div className="panel flex items-center gap-2 px-4 py-10 text-[13px] text-fg-muted"><Loader2 size={16} className="animate-spin text-sky" /> Baholar yuklanmoqda…</div>
+        <div className="panel flex items-center justify-center gap-2 px-4 py-16 text-[13px] text-fg-muted">
+          <Loader2 size={18} className="animate-spin text-sky" />
+          <span>Baholar yuklanmoqda…</span>
+        </div>
       )}
 
       {data && view === 'baholar' && (
-        <div className="panel overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-            <div className="text-[13px] font-bold text-fg">{guruh} · {semestr}-semestr</div>
-            <span className="chip border-line bg-ink-800/60 text-fg-muted">{rows.length} talaba</span>
-            <span className="chip border-line bg-ink-800/60 text-fg-muted">{fanlar.length} fan</span>
-
-            {/* O'quv reja holati va nishoni */}
-            {curriculumLoading ? (
-              <span className="chip border-line bg-ink-800/40 text-[11px] text-fg-subtle">
-                <Loader2 size={11} className="animate-spin text-sky" /> Reja tekshirilmoqda…
-              </span>
-            ) : curriculumPlan ? (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="chip border-indigo-500/40 bg-indigo-500/15 text-indigo-300 text-[11px] font-bold">
-                  <BookOpen size={12} className="text-indigo-400" />
-                  <span>{curriculumPlan.yonalish} ({curriculumPlan.muddati})</span>
-                </span>
-                {curriculumPlan.semestrlar?.[String(semestr)]?.fanlar?.length ? (
-                  <button
-                    type="button"
-                    onClick={importSubjectsFromPlan}
-                    disabled={importingPlan}
-                    className="chip border-emerald/50 bg-emerald/15 text-emerald-soft text-[11px] font-bold hover:bg-emerald/25 transition-colors"
-                    title={`O'quv rejasidagi ${curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fanni bazaga yuklash / yangilash`}
-                  >
-                    {importingPlan ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} className="text-amber" />}
-                    <span>Rejadagi fanlarni sinxronlash</span>
-                  </button>
-                ) : null}
+        <div className="panel overflow-hidden border-line bg-ink-900/60 shadow-xl">
+          {/* Sub-Header: Holat, Fanlar filtri, Reyting/5-ball switch va Fan qo'shish */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line p-3 bg-ink-950/40">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="text-[13.5px] font-extrabold text-fg">
+                {guruh} · {semestr}-semestr
               </div>
-            ) : (
-              <span className="chip border-amber/30 bg-amber/10 text-amber text-[11px]">
-                Rejaga biriktirilmagan
+              <span className="chip border-line bg-ink-800/80 text-fg-muted font-bold text-[11px]">
+                {rows.length} talaba
               </span>
-            )}
-            {loading && <Loader2 size={14} className="animate-spin text-sky" />}
-            <div className="flex gap-1 rounded-xl border border-line bg-ink-900/60 p-0.5" role="group" aria-label="Ko'rinish">
-              {([['ball5', '5 ball'], ['reyting', 'Reyting (100)']] as const).map(([v, t]) => (
+              <span className="chip border-line bg-ink-800/80 text-fg-muted font-bold text-[11px]">
+                {fanlar.length} fan
+              </span>
+
+              {/* O'quv rejasini sinxronlash */}
+              {curriculumPlan && curriculumPlan.semestrlar?.[String(semestr)]?.fanlar?.length ? (
                 <button
-                  key={v} type="button" aria-pressed={birlik === v} onClick={() => setBirlik(v)}
-                  className={cx('rounded-lg px-2.5 py-1 text-[12px] font-bold transition-colors', birlik === v ? 'bg-ink-700 text-fg' : 'text-fg-muted hover:text-fg')}
-                >{t}</button>
-              ))}
+                  type="button"
+                  onClick={importSubjectsFromPlan}
+                  disabled={importingPlan}
+                  className="chip border-emerald/50 bg-emerald/15 text-emerald-soft text-[11px] font-bold hover:bg-emerald/25 transition-colors"
+                  title="O'quv rejasidagi fanlarni sinxronlash"
+                >
+                  {importingPlan ? (
+                    <Loader2 size={11} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={11} className="text-amber" />
+                  )}
+                  <span>Rejadagi fanlarni sinxronlash</span>
+                </button>
+              ) : null}
+
+              {/* Fanlarni ko'rish / yashirish menyusi */}
+              {fanlar.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFanVisibilityModalOpen(true)}
+                  className={cx(
+                    'chip font-bold text-[11px] cursor-pointer transition-colors',
+                    hiddenFanlar.length > 0
+                      ? 'border-amber/50 bg-amber/10 text-amber'
+                      : 'border-line bg-ink-850 text-fg-muted hover:text-fg',
+                  )}
+                  title="Fanlarni ko'rish yoki yashirish"
+                >
+                  {hiddenFanlar.length > 0 ? <EyeOff size={12} /> : <Eye size={12} />}
+                  <span>
+                    Fanlar: {visibleFanlar.length}/{fanlar.length}
+                    {hiddenFanlar.length > 0 && ` (${hiddenFanlar.length} yashirilgan)`}
+                  </span>
+                </button>
+              )}
+
+              {/* Talabalar tartibi alifbodan o'zgargan bo'lsa tiklash tugmasi */}
+              {studentOrder.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleResetOrder}
+                  className="chip border-line bg-ink-950 text-fg-subtle hover:text-fg text-[10.5px]"
+                  title="Talabalar tartibini asl alifbo tartibiga qaytarish"
+                >
+                  <RotateCcw size={11} />
+                  <span>Alifbo tartibini tiklash</span>
+                </button>
+              )}
             </div>
-            <form className="flex w-full gap-2 sm:ml-auto sm:w-auto" onSubmit={(e) => { e.preventDefault(); void addFan() }}>
-              <input className="field h-9 min-w-0 flex-1 sm:w-60" placeholder="Yangi fan nomi" value={newFan} maxLength={120} onChange={(e) => setNewFan(e.target.value)} aria-label="Yangi fan nomi" />
-              <button type="submit" className="btn-primary h-9 shrink-0 px-3" disabled={!newFan.trim()}><Plus size={15} /> Fan</button>
-            </form>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* 5 ball yoki Reyting (100) tanlagich */}
+              <div
+                className="flex gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5"
+                role="group"
+              >
+                {(
+                  [
+                    ['ball5', '5 ball'],
+                    ['reyting', 'Reyting (100)'],
+                  ] as const
+                ).map(([v, t]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    aria-pressed={birlik === v}
+                    onClick={() => setBirlik(v)}
+                    className={cx(
+                      'rounded-lg px-2.5 py-1 text-[12px] font-bold transition-all',
+                      birlik === v ? 'bg-ink-800 text-fg shadow-sm' : 'text-fg-muted hover:text-fg',
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Yangi fan qo'shish */}
+              <form
+                className="flex gap-1.5"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  void addFan()
+                }}
+              >
+                <input
+                  className="field h-8.5 w-44 sm:w-56 text-[12px]"
+                  placeholder="Yangi fan nomi…"
+                  value={newFan}
+                  maxLength={120}
+                  onChange={(e) => setNewFan(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="btn-primary h-8.5 px-3 text-[12px] font-bold"
+                  disabled={!newFan.trim()}
+                >
+                  <Plus size={14} />
+                  <span>Fan</span>
+                </button>
+              </form>
+            </div>
           </div>
 
           {fanlar.length === 0 ? (
             <div className="grid place-items-center gap-2 px-6 py-14 text-center max-w-lg mx-auto">
               <ClipboardList size={32} className="text-fg-subtle" />
-              <div className="text-[15px] font-bold text-fg">{guruh} guruhida {semestr}-semestr uchun fan hali kiritilmagan</div>
+              <div className="text-[15px] font-bold text-fg">
+                {guruh} guruhida {semestr}-semestr uchun fan kiritilmagan
+              </div>
               {curriculumPlan && curriculumPlan.semestrlar?.[String(semestr)]?.fanlar?.length ? (
                 <div className="space-y-3 pt-1">
                   <div className="text-[12.5px] text-fg-muted">
-                    Ushbu guruh <b className="text-fg">{curriculumPlan.yonalish} ({curriculumPlan.muddati})</b> o'quv rejasiga biriktirilgan.
-                    Rejada {semestr}-semestr uchun <b className="text-sky-soft">{curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fan</b> belgilangan.
+                    Ushbu guruh <b className="text-fg">{curriculumPlan.yonalish}</b> o'quv rejasiga biriktirilgan.
                   </div>
                   <button
                     type="button"
@@ -606,142 +1179,351 @@ export default function BaholarSection({ students, notify }: { students: Student
                     disabled={importingPlan}
                     className="btn-success mx-auto h-10 px-5 text-[13.5px] font-bold shadow-lg"
                   >
-                    {importingPlan ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} className="text-amber" />}
-                    <span>Rejadagi {curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fanni yuklash va jadvalni ochish</span>
+                    {importingPlan ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Sparkles size={16} className="text-amber" />
+                    )}
+                    <span>Rejadagi {curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fanni yuklash</span>
                   </button>
                 </div>
-              ) : (
-                <div className="text-[12.5px] text-fg-muted">
-                  Yuqoridagi formadan fan nomini yozib «Fan» tugmasini bosing yoki O'quv reja bo'limidan ushbu guruhga o'quv reja biriktiring.
-                </div>
-              )}
+              ) : null}
             </div>
           ) : rows.length === 0 ? (
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>
           ) : (
+            /* ASOSIY JADVAL */
             <div ref={tableRef} className="max-h-[62vh] sm:max-h-[72vh] overflow-auto">
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
                 <thead className="sticky top-0 z-20">
                   <tr>
-                    <th rowSpan={2} className="sticky left-0 z-30 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-2 text-center text-[11px] font-bold text-fg-subtle">№</th>
-                    <th rowSpan={2} className="sticky left-8 sm:left-10 z-30 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-2 text-left text-[11px] font-bold tracking-wider text-fg-subtle uppercase">F.I.Sh.</th>
-                    {fanlar.map((f) => (
-                      <th key={f.nom} colSpan={4} className="border-b border-r border-line bg-ink-900 px-2 py-1.5 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className="max-w-[14rem] truncate text-[12.5px] font-bold text-fg" title={f.nom}>{f.nom}</span>
-                          <button type="button" onClick={() => deleteFan(f.nom)} className="rounded p-0.5 text-fg-subtle hover:bg-rose/15 hover:text-rose" title={`"${f.nom}" fanini o'chirish`} aria-label={`${f.nom} fanini o'chirish`}>
-                            <Trash2 size={12} />
+                    <th
+                      rowSpan={2}
+                      className="sticky left-0 z-30 w-12 border-b border-r border-line bg-ink-900 px-1 py-2 text-center text-[11px] font-bold text-fg-subtle select-none"
+                      title="Qatorni ushlab tepaga/pastga sudrab tartibni o'zgartirish mumkin"
+                    >
+                      <div className="flex items-center justify-center gap-0.5">
+                        <GripVertical size={12} className="text-fg-subtle/60" />
+                        <span>№</span>
+                      </div>
+                    </th>
+
+                    <th
+                      rowSpan={2}
+                      className="sticky left-12 z-30 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-none border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-2 text-left text-[11px] font-bold tracking-wider text-fg-subtle uppercase"
+                    >
+                      F.I.Sh.
+                    </th>
+
+                    {visibleFanlar.map((f) => (
+                      <th
+                        key={f.nom}
+                        colSpan={4}
+                        className="border-b border-r border-line bg-ink-900 px-2 py-1.5 text-center group"
+                      >
+                        <div className="flex items-center justify-between gap-1.5">
+                          {/* Fanni bosganda alohida ochib baholash */}
+                          <button
+                            type="button"
+                            onClick={() => setFocusedFan(f.nom)}
+                            className="text-left font-extrabold text-[12.5px] text-fg hover:text-sky-soft flex items-center gap-1 truncate transition-colors"
+                            title={`"${f.nom}" fanini alohida ochib baholash`}
+                          >
+                            <span className="truncate max-w-[13rem]">{f.nom}</span>
+                            <Maximize2 size={11} className="opacity-0 group-hover:opacity-100 text-sky shrink-0" />
                           </button>
+
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            {/* Fanni yashirish */}
+                            <button
+                              type="button"
+                              onClick={() => toggleHideFan(f.nom)}
+                              className="size-6 grid place-items-center rounded text-fg-subtle hover:text-fg hover:bg-ink-800"
+                              title={`"${f.nom}" fanini vaqtincha yashirish`}
+                            >
+                              <EyeOff size={12} />
+                            </button>
+                            {/* O'chirish */}
+                            <button
+                              type="button"
+                              onClick={() => deleteFan(f.nom)}
+                              className="size-6 grid place-items-center rounded text-fg-subtle hover:text-rose hover:bg-rose/10"
+                              title={`"${f.nom}" fanini o'chirish`}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                       </th>
                     ))}
-                    <th rowSpan={2} className="border-b border-line bg-ink-900 px-3 py-2 text-center text-[11px] font-bold tracking-wider text-fg-subtle uppercase">O'rtacha<br />R-semestr</th>
+
+                    <th
+                      rowSpan={2}
+                      className="border-b border-line bg-ink-900 px-3 py-2 text-center text-[11px] font-bold tracking-wider text-fg-subtle uppercase"
+                    >
+                      O'rtacha
+                      <br />
+                      R-semestr
+                    </th>
                   </tr>
+
+                  {/* Ichki Ustunlar: Yakuniy, Joriy, Oraliq, R-semestr */}
                   <tr>
-                    {fanlar.map((f) => BAHO_TURLARI.map((t, ti) => (
-                      <th key={f.nom + t.key} className={cx('border-b border-line px-1 py-1 text-center text-[10.5px] font-bold', t.key === 'r_semestr' ? 'bg-amber/10 text-amber' : 'bg-ink-850 text-fg-muted', ti === BAHO_TURLARI.length - 1 && 'border-r')}>{t.label}</th>
-                    )))}
+                    {visibleFanlar.map((f) =>
+                      BAHO_TURLARI.map((t, ti) => (
+                        <th
+                          key={f.nom + t.key}
+                          className={cx(
+                            'border-b border-line px-1 py-1 text-center text-[10.5px] font-bold',
+                            t.key === 'r_semestr'
+                              ? 'bg-amber/10 text-amber'
+                              : 'bg-ink-850 text-fg-muted',
+                            ti === BAHO_TURLARI.length - 1 && 'border-r',
+                          )}
+                        >
+                          {t.label}
+                        </th>
+                      )),
+                    )}
                   </tr>
                 </thead>
+
                 <tbody>
                   {rows.map((s, r) => {
-                    const rs = fanlar.map((f) => cellValue(calc.get(`${s.pinfl}|${f.nom}`), 'r_semestr'))
+                    const rs = visibleFanlar.map((f) => cellValue(calc.get(`${s.pinfl}|${f.nom}`), 'r_semestr'))
                     const m = mean(rs, birlik === 'reyting' ? 2 : 1)
+                    const totalCols = visibleFanlar.length * 4
+
                     return (
-                      <tr key={s.row} className="group">
-                        <td className="sticky left-0 z-10 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-1 text-center text-[11.5px] sm:text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">{r + 1}</td>
-                        <td className="sticky left-8 sm:left-10 z-10 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-medium text-fg group-hover:bg-ink-800" title={fullName(s)}>{fullName(s)}</td>
-                        {fanlar.map((f, fi) => BAHO_TURLARI.map((t, ti) => {
-                          const last = ti === BAHO_TURLARI.length - 1
-                          const c = calc.get(`${s.pinfl}|${f.nom}`)
-                          if (t.key === 'r_semestr' || birlik === 'reyting') {
-                            const v = cellValue(c, t.key)
+                      <tr
+                        key={s.pinfl}
+                        className={cx(
+                          'group transition-colors',
+                          draggedPinfl === s.pinfl ? 'opacity-40 bg-sky/20' : 'hover:bg-ink-850/50',
+                        )}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          const fromIdx = Number(e.dataTransfer.getData('text/plain'))
+                          if (!isNaN(fromIdx)) void handleReorder(fromIdx, r)
+                          setDraggedPinfl(null)
+                        }}
+                      >
+                        {/* 1. Tartib raqami va Sudrab ko'chirish ushlagichi */}
+                        <td
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', String(r))
+                            setDraggedPinfl(s.pinfl)
+                          }}
+                          onDragEnd={() => setDraggedPinfl(null)}
+                          className="sticky left-0 z-10 w-12 border-b border-r border-line bg-ink-900 px-1 py-1 text-center text-[11.5px] font-mono tabular-nums text-fg-subtle group-hover:bg-ink-800 cursor-grab active:cursor-grabbing select-none"
+                          title="Ushlab yuqoriga/pastga sudrang"
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <GripVertical size={11} className="opacity-30 group-hover:opacity-100 text-sky shrink-0" />
+                            <span>{r + 1}</span>
+                          </div>
+                        </td>
+
+                        {/* 2. Talaba F.I.Sh. */}
+                        <td
+                          className="sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold text-fg group-hover:bg-ink-800"
+                          title={fullName(s)}
+                        >
+                          {fullName(s)}
+                        </td>
+
+                        {/* 3. Fanlar ustunlari */}
+                        {visibleFanlar.map((f, fi) =>
+                          BAHO_TURLARI.map((t, ti) => {
+                            const colIdx = fi * 4 + ti
+                            const last = ti === BAHO_TURLARI.length - 1
+                            const c = calc.get(`${s.pinfl}|${f.nom}`)
+
+                            // Reyting (100) ko'rinishida barcha kataklar hisoblangan reytingni ko'rsatadi
+                            if (birlik === 'reyting') {
+                              const v = cellValue(c, t.key)
+                              return (
+                                <td
+                                  key={f.nom + t.key}
+                                  className={cx(
+                                    'border-b border-line px-1 py-1 text-center tabular-nums font-semibold',
+                                    rangOf(v),
+                                    last && 'border-r',
+                                  )}
+                                >
+                                  {fmt(v)}
+                                </td>
+                              )
+                            }
+
+                            // 5 ball ko'rinishida BARCHA 4 TA KATAK (shu jumladan R-semestr) FOYDALANUVCHI TOMONIDAN TAHRIRLANADI
+                            const key = t.key as Kiritiladigan
+                            const v = shown(s.pinfl, f.nom, key)
+                            const changed = `${s.pinfl}|${f.nom}|${key}` in edits
+
                             return (
-                              <td key={f.nom + t.key} className={cx('border-b border-line px-1 py-1 text-center tabular-nums', t.key === 'r_semestr' ? 'bg-amber/5 font-bold' : 'font-semibold', rangOf(v), last && 'border-r')}
-                                title={t.key === 'r_semestr' ? 'Avtomatik: uchala bahoning o\'rtachasi' : 'Avtomatik hosil qilingan reyting'}>
-                                {fmt(v)}
+                              <td
+                                key={f.nom + t.key}
+                                className={cx(
+                                  'border-b border-line px-0.5 py-1 text-center',
+                                  t.key === 'r_semestr' && 'bg-amber/5',
+                                  last && 'border-r',
+                                )}
+                              >
+                                <input
+                                  data-cell={`${r}:${colIdx}`}
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                  maxLength={1}
+                                  value={v}
+                                  className={cx(
+                                    cellCls(changed, parseBaho(v) === undefined),
+                                    t.key === 'r_semestr' && 'border-amber/40 text-amber font-bold',
+                                  )}
+                                  aria-label={`${fullName(s)} — ${f.nom} — ${t.label}`}
+                                  onChange={(e) => setCell(s.pinfl, f.nom, key, e.target.value)}
+                                  onKeyDown={(e) => onCellKey(e, r, colIdx, totalCols, tableRef)}
+                                  onFocus={(e) => e.currentTarget.select()}
+                                />
                               </td>
                             )
-                          }
-                          const key = t.key as Kiritiladigan
-                          const v = shown(s.pinfl, f.nom, key)
-                          const changed = `${s.pinfl}|${f.nom}|${key}` in edits
-                          return (
-                            <td key={f.nom + t.key} className="border-b border-line px-0.5 py-1 text-center">
-                              <input
-                                data-cell={`${r}:${fi * 4 + ti}`}
-                                inputMode="numeric" autoComplete="off" maxLength={1} value={v}
-                                className={cellCls(changed, parseBaho(v) === undefined)}
-                                aria-label={`${fullName(s)} — ${f.nom} — ${t.label}`}
-                                onChange={(e) => setCell(s.pinfl, f.nom, key, e.target.value)}
-                                onKeyDown={(e) => onCellKey(e, r, fi * 4 + ti)}
-                                onFocus={(e) => e.currentTarget.select()}
-                              />
-                            </td>
-                          )
-                        }))}
-                        <td className={cx('border-b border-line px-3 py-1 text-center font-bold tabular-nums', rangOf(m))}>{m ?? '—'}</td>
+                          }),
+                        )}
+
+                        {/* O'rtacha R-semestr */}
+                        <td
+                          className={cx(
+                            'border-b border-line px-3 py-1 text-center font-bold tabular-nums',
+                            rangOf(m),
+                          )}
+                        >
+                          {m ?? '—'}
+                        </td>
                       </tr>
                     )
                   })}
                 </tbody>
-                <tfoot className="sticky bottom-0 z-20">
-                  <tr>
-                    <td className="sticky left-0 z-30 w-8 sm:w-10 border-t border-r border-line bg-ink-850" />
-                    <td className="sticky left-8 sm:left-10 z-30 min-w-[8.5rem] sm:min-w-[13rem] border-t border-r border-line bg-ink-850 px-2 sm:px-3 py-1.5 text-[11.5px] sm:text-[12px] font-bold text-fg-muted">Guruh o'rtachasi</td>
-                    {fanlar.map((f) => BAHO_TURLARI.map((t, ti) => {
-                      const a = mean(rows.map((s) => cellValue(calc.get(`${s.pinfl}|${f.nom}`), t.key)), birlik === 'reyting' ? 1 : 2)
-                      return <td key={f.nom + t.key} className={cx('border-t border-line bg-ink-850 py-1.5 text-center text-[12px] font-semibold tabular-nums text-fg-muted', ti === BAHO_TURLARI.length - 1 && 'border-r')}>{a ?? '—'}</td>
-                    }))}
-                    <td className="border-t border-line bg-ink-850 px-3 py-1.5 text-center text-[12px] font-bold tabular-nums text-emerald-soft">
-                      {mean(rows.map((s) => mean(fanlar.map((f) => cellValue(calc.get(`${s.pinfl}|${f.nom}`), 'r_semestr')), 2)), 2) ?? '—'}
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           )}
-          <div className="border-t border-line px-3 py-2 text-[11.5px] leading-relaxed text-fg-subtle">
-            {birlik === 'ball5'
-              ? <>Baho 5 ballik: faqat 2, 3, 4 yoki 5. R-semestr avtomatik (uchala bahoning o'rtachasi). Katakdan katakka ↑ ↓ / Enter bilan yuring. Sariq katak — saqlanmagan o'zgarish.</>
-              : <>Reyting (100 ball) — admin uchun: har bir baho o'z oralig'idan ball oladi (5 → 87–95, 4 → 71–85, 3 → 65–70, 2 → 45–54), R-semestr — uchala reytingning o'rtachasi. Ballar avtomatik hosil qilinadi va bazada saqlanadi; tahrirlash uchun «5 ball» ko'rinishiga o'ting.</>}
+
+          {/* Pastki eslatma */}
+          <div className="border-t border-line px-3 py-2 text-[11.5px] leading-relaxed text-fg-subtle flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span className="font-bold text-sky-soft">Tezkor boshqaruv:</span> Kataklar orasida{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">↑</kbd>{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">↓</kbd>{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">←</kbd>{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">→</kbd> yoki{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Enter</kbd> bilan yuring. Talaba
+              tartibini o'zgartirish uchun raqam ustidan ushlab sudrang.
+            </div>
+            {hiddenFanlar.length > 0 && (
+              <button
+                type="button"
+                onClick={showAllFanlar}
+                className="text-amber hover:underline font-bold"
+              >
+                {hiddenFanlar.length} ta yashirilgan fanni ko'rsatish
+              </button>
+            )}
           </div>
         </div>
       )}
 
+      {/* AMALIYOT BO'LIMI */}
       {data && view === 'amaliyot' && (
         <div className="panel overflow-hidden">
           <div className="space-y-3 border-b border-line p-3">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="text-[13px] font-bold text-fg">{guruh} · {semestr}-semestr</div>
+              <div className="text-[13px] font-bold text-fg">
+                {guruh} · {semestr}-semestr
+              </div>
               {loading && <Loader2 size={14} className="animate-spin text-sky" />}
               <div className="flex flex-wrap gap-1.5">
                 {amNoms.map((n) => (
                   <button
-                    key={n} type="button" onClick={() => pickAm(n)} aria-pressed={n === amNom}
-                    className={cx('chip cursor-pointer', n === amNom ? 'border-sky/50 bg-sky/15 text-sky-soft' : 'border-line bg-ink-800/60 text-fg-muted hover:text-fg')}
-                  >{n}</button>
+                    key={n}
+                    type="button"
+                    onClick={() => pickAm(n)}
+                    aria-pressed={n === amNom}
+                    className={cx(
+                      'chip cursor-pointer',
+                      n === amNom
+                        ? 'border-sky/50 bg-sky/15 text-sky-soft'
+                        : 'border-line bg-ink-800/60 text-fg-muted hover:text-fg',
+                    )}
+                  >
+                    {n}
+                  </button>
                 ))}
               </div>
-              <form className="flex w-full gap-2 sm:ml-auto sm:w-auto" onSubmit={(e) => { e.preventDefault(); createAm() }}>
-                <input className="field h-9 min-w-0 flex-1 sm:w-60" placeholder="Yangi amaliyot nomi" value={newAm} maxLength={120} onChange={(e) => setNewAm(e.target.value)} aria-label="Yangi amaliyot nomi" />
-                <button type="submit" className="btn-primary h-9 shrink-0 px-3" disabled={!newAm.trim()}><Plus size={15} /> Amaliyot</button>
+              <form
+                className="flex w-full gap-2 sm:ml-auto sm:w-auto"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  createAm()
+                }}
+              >
+                <input
+                  className="field h-9 min-w-0 flex-1 sm:w-60"
+                  placeholder="Yangi amaliyot nomi"
+                  value={newAm}
+                  maxLength={120}
+                  onChange={(e) => setNewAm(e.target.value)}
+                />
+                <button type="submit" className="btn-primary h-9 shrink-0 px-3" disabled={!newAm.trim()}>
+                  <Plus size={15} /> Amaliyot
+                </button>
               </form>
             </div>
             <div className="grid gap-2 sm:grid-cols-[1fr_9rem_9rem_auto] sm:items-end">
               <div>
-                <label className="label" htmlFor="bulk-joy">Hammaga: amaliyot joyi</label>
-                <input id="bulk-joy" className="field h-9" placeholder="Masalan: Shahrisabz tuman tibbiyot birlashmasi" value={bulk.joy} onChange={(e) => setBulk((b) => ({ ...b, joy: e.target.value }))} />
+                <label className="label" htmlFor="bulk-joy">
+                  Hammaga: amaliyot joyi
+                </label>
+                <input
+                  id="bulk-joy"
+                  className="field h-9"
+                  placeholder="Masalan: Shahrisabz tuman tibbiyot birlashmasi"
+                  value={bulk.joy}
+                  onChange={(e) => setBulk((b) => ({ ...b, joy: e.target.value }))}
+                />
               </div>
               <div>
-                <label className="label" htmlFor="bulk-bosh">Boshlanish</label>
-                <input id="bulk-bosh" type="date" className="field h-9" value={bulk.boshlanish} onChange={(e) => setBulk((b) => ({ ...b, boshlanish: e.target.value }))} />
+                <label className="label" htmlFor="bulk-bosh">
+                  Boshlanish
+                </label>
+                <input
+                  id="bulk-bosh"
+                  type="date"
+                  className="field h-9"
+                  value={bulk.boshlanish}
+                  onChange={(e) => setBulk((b) => ({ ...b, boshlanish: e.target.value }))}
+                />
               </div>
               <div>
-                <label className="label" htmlFor="bulk-tug">Tugash</label>
-                <input id="bulk-tug" type="date" className="field h-9" value={bulk.tugash} onChange={(e) => setBulk((b) => ({ ...b, tugash: e.target.value }))} />
+                <label className="label" htmlFor="bulk-tug">
+                  Tugash
+                </label>
+                <input
+                  id="bulk-tug"
+                  type="date"
+                  className="field h-9"
+                  value={bulk.tugash}
+                  onChange={(e) => setBulk((b) => ({ ...b, tugash: e.target.value }))}
+                />
               </div>
-              <button type="button" className="btn-ghost h-9 px-3" onClick={applyBulk} disabled={!bulk.joy.trim() && !bulk.boshlanish && !bulk.tugash}>Hammaga qo'llash</button>
+              <button
+                type="button"
+                className="btn-ghost h-9 px-3"
+                onClick={applyBulk}
+                disabled={!bulk.joy.trim() && !bulk.boshlanish && !bulk.tugash}
+              >
+                Hammaga qo'llash
+              </button>
             </div>
           </div>
 
@@ -752,14 +1534,24 @@ export default function BaholarSection({ students, notify }: { students: Student
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
                 <thead className="sticky top-0 z-20">
                   <tr className="text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
-                    <th className="sticky left-0 z-30 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-2">№</th>
-                    <th className="sticky left-8 sm:left-10 z-30 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-2 text-left">F.I.Sh.</th>
-                    <th className="min-w-[16rem] border-b border-line bg-ink-900 px-2 py-2 text-left">Amaliyot joyi</th>
+                    <th className="sticky left-0 z-30 w-10 border-b border-r border-line bg-ink-900 px-2 py-2">
+                      №
+                    </th>
+                    <th className="sticky left-10 z-30 min-w-[13rem] border-b border-r border-line bg-ink-900 px-3 py-2 text-left">
+                      F.I.Sh.
+                    </th>
+                    <th className="min-w-[16rem] border-b border-line bg-ink-900 px-2 py-2 text-left">
+                      Amaliyot joyi
+                    </th>
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Boshlanish</th>
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Tugash</th>
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Baho</th>
-                    <th className="border-b border-line bg-ink-900 px-2 py-2" title="Avtomatik hosil qilinadi">Reyting</th>
-                    <th className="min-w-[12rem] border-b border-line bg-ink-900 px-2 py-2 text-left">Izoh</th>
+                    <th className="border-b border-line bg-ink-900 px-2 py-2" title="Avtomatik hosil qilinadi">
+                      Reyting
+                    </th>
+                    <th className="min-w-[12rem] border-b border-line bg-ink-900 px-2 py-2 text-left">
+                      Izoh
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -767,26 +1559,72 @@ export default function BaholarSection({ students, notify }: { students: Student
                     const ch = (f: AmField) => `${s.pinfl}|${f}` in amEdits
                     const ball = amShown(s.pinfl, 'ball')
                     const rey = amReyting(s.pinfl)
-                    const txt = (f: AmField, extra = '') => cx('field h-8 py-0', extra, ch(f) && 'border-amber/60 bg-amber/10')
+                    const txt = (f: AmField, extra = '') =>
+                      cx('field h-8 py-0', extra, ch(f) && 'border-amber/60 bg-amber/10')
                     return (
-                      <tr key={s.row} className="group">
-                        <td className="sticky left-0 z-10 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-1 text-center text-[11.5px] sm:text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">{r + 1}</td>
-                        <td className="sticky left-8 sm:left-10 z-10 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-medium text-fg group-hover:bg-ink-800" title={fullName(s)}>{fullName(s)}</td>
-                        <td className="border-b border-line px-1 py-1"><input className={txt('joy')} value={amShown(s.pinfl, 'joy')} maxLength={200} onChange={(e) => setAm(s.pinfl, 'joy', e.target.value)} aria-label={`${fullName(s)} — amaliyot joyi`} /></td>
-                        <td className="border-b border-line px-1 py-1"><input type="date" className={txt('boshlanish', 'w-[9.5rem]')} value={amShown(s.pinfl, 'boshlanish')} onChange={(e) => setAm(s.pinfl, 'boshlanish', e.target.value)} aria-label={`${fullName(s)} — boshlanish`} /></td>
-                        <td className="border-b border-line px-1 py-1"><input type="date" className={txt('tugash', 'w-[9.5rem]')} value={amShown(s.pinfl, 'tugash')} onChange={(e) => setAm(s.pinfl, 'tugash', e.target.value)} aria-label={`${fullName(s)} — tugash`} /></td>
+                      <tr key={s.pinfl} className="group hover:bg-ink-850/50">
+                        <td className="sticky left-0 z-10 w-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">
+                          {r + 1}
+                        </td>
+                        <td
+                          className="sticky left-10 z-10 min-w-[13rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1 font-semibold text-fg group-hover:bg-ink-800"
+                          title={fullName(s)}
+                        >
+                          {fullName(s)}
+                        </td>
+                        <td className="border-b border-line px-1 py-1">
+                          <input
+                            className={txt('joy')}
+                            value={amShown(s.pinfl, 'joy')}
+                            maxLength={200}
+                            onChange={(e) => setAm(s.pinfl, 'joy', e.target.value)}
+                          />
+                        </td>
+                        <td className="border-b border-line px-1 py-1">
+                          <input
+                            type="date"
+                            className={txt('boshlanish', 'w-[9.5rem]')}
+                            value={amShown(s.pinfl, 'boshlanish')}
+                            onChange={(e) => setAm(s.pinfl, 'boshlanish', e.target.value)}
+                          />
+                        </td>
+                        <td className="border-b border-line px-1 py-1">
+                          <input
+                            type="date"
+                            className={txt('tugash', 'w-[9.5rem]')}
+                            value={amShown(s.pinfl, 'tugash')}
+                            onChange={(e) => setAm(s.pinfl, 'tugash', e.target.value)}
+                          />
+                        </td>
                         <td className="border-b border-line px-1 py-1 text-center">
                           <input
-                            data-cell={`${r}:0`} inputMode="numeric" autoComplete="off" maxLength={1} value={ball}
+                            data-cell={`${r}:0`}
+                            inputMode="numeric"
+                            autoComplete="off"
+                            maxLength={1}
+                            value={ball}
                             className={cellCls(ch('ball'), parseBaho(ball) === undefined)}
-                            aria-label={`${fullName(s)} — baho`}
                             onChange={(e) => setAm(s.pinfl, 'ball', e.target.value)}
-                            onKeyDown={(e) => onCellKey(e, r, 0)}
+                            onKeyDown={(e) => onCellKey(e, r, 0, 1, tableRef)}
                             onFocus={(e) => e.currentTarget.select()}
                           />
                         </td>
-                        <td className={cx('border-b border-line px-2 py-1 text-center font-semibold tabular-nums', rey === null ? 'text-fg-subtle' : BAHO_RANG[bahoOf(rey)])}>{rey ?? '—'}</td>
-                        <td className="border-b border-line px-1 py-1"><input className={txt('izoh')} value={amShown(s.pinfl, 'izoh')} maxLength={500} onChange={(e) => setAm(s.pinfl, 'izoh', e.target.value)} aria-label={`${fullName(s)} — izoh`} /></td>
+                        <td
+                          className={cx(
+                            'border-b border-line px-2 py-1 text-center font-semibold tabular-nums',
+                            rey === null ? 'text-fg-subtle' : BAHO_RANG[bahoOf(rey)],
+                          )}
+                        >
+                          {rey ?? '—'}
+                        </td>
+                        <td className="border-b border-line px-1 py-1">
+                          <input
+                            className={txt('izoh')}
+                            value={amShown(s.pinfl, 'izoh')}
+                            maxLength={500}
+                            onChange={(e) => setAm(s.pinfl, 'izoh', e.target.value)}
+                          />
+                        </td>
                       </tr>
                     )
                   })}
@@ -794,8 +1632,424 @@ export default function BaholarSection({ students, notify }: { students: Student
               </table>
             </div>
           )}
-          <div className="border-t border-line px-3 py-2 text-[11.5px] text-fg-subtle">
-            «{amNom}» — {rows.filter((s) => amShown(s.pinfl, 'ball')).length}/{rows.length} talabaga baho qo'yilgan (2–5). Reyting (100 ball) avtomatik hosil qilinadi. Bo'sh qoldirilgan qator bazadan o'chiriladi.
+        </div>
+      )}
+
+      {/* ----------------- MODAL: Bitta fanni alohida ochib baholash (Fokus rejimi) ----------------- */}
+      {focusedFan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-fade-in">
+          <div
+            className="fixed inset-0 bg-ink-950/85 backdrop-blur-md"
+            onClick={() => setFocusedFan(null)}
+          />
+          <div className="relative w-full max-w-4xl rounded-2xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Sarlavhasi */}
+            <div className="p-4 border-b border-line bg-ink-950 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <BookOpen size={18} className="text-sky" />
+                  <h3 className="text-[17px] font-black text-fg">{focusedFan}</h3>
+                </div>
+                <div className="text-[12px] text-fg-muted mt-0.5">
+                  Guruh: <b className="text-fg">{guruh}</b> · Semestr: <b className="text-fg">{semestr}</b> ·{' '}
+                  <span className="text-emerald-soft font-bold">{rows.length} nafar talaba</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={saveBaholar}
+                  disabled={saving || !dirty}
+                  className="btn-success h-9 px-4 text-[13px] font-bold flex items-center gap-1.5"
+                >
+                  {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  <span>Saqlash</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFocusedFan(null)}
+                  className="grid size-9 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Alohida Fan Jadvali */}
+            <div ref={focusTableRef} className="overflow-auto flex-1 p-3">
+              <table className="w-full text-left text-[13px] border-collapse">
+                <thead className="sticky top-0 z-10 bg-ink-950 text-[11px] font-bold text-fg-subtle uppercase border-b border-line">
+                  <tr>
+                    <th className="py-2.5 px-3 w-12 text-center">№</th>
+                    <th className="py-2.5 px-4 min-w-[200px]">Talaba F.I.Sh.</th>
+                    <th className="py-2.5 px-2 w-20 text-center">Yakuniy</th>
+                    <th className="py-2.5 px-2 w-20 text-center">Joriy</th>
+                    <th className="py-2.5 px-2 w-20 text-center">Oraliq</th>
+                    <th className="py-2.5 px-2 w-24 text-center text-amber">R-semestr</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/40">
+                  {rows.map((s, r) => {
+                    const focusCols: Kiritiladigan[] = ['yakuniy', 'joriy', 'oraliq', 'r_semestr']
+                    return (
+                      <tr key={s.pinfl} className="hover:bg-ink-850/60 transition-colors">
+                        <td className="py-2.5 px-3 text-center text-[12px] font-mono text-fg-subtle">
+                          {r + 1}
+                        </td>
+                        <td className="py-2.5 px-4 font-semibold text-fg">{fullName(s)}</td>
+                        {focusCols.map((colKey, c) => {
+                          const v = shown(s.pinfl, focusedFan, colKey)
+                          const changed = `${s.pinfl}|${focusedFan}|${colKey}` in edits
+                          return (
+                            <td key={colKey} className="py-2 px-2 text-center">
+                              <input
+                                data-cell={`${r}:${c}`}
+                                inputMode="numeric"
+                                autoComplete="off"
+                                maxLength={1}
+                                value={v}
+                                className={cx(
+                                  cellCls(changed, parseBaho(v) === undefined),
+                                  colKey === 'r_semestr' && 'border-amber/40 text-amber font-bold',
+                                )}
+                                onChange={(e) => setCell(s.pinfl, focusedFan, colKey, e.target.value)}
+                                onKeyDown={(e) => onCellKey(e, r, c, 4, focusTableRef)}
+                                onFocus={(e) => e.currentTarget.select()}
+                              />
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-3 bg-ink-950 border-t border-line text-[11.5px] text-fg-subtle flex items-center justify-between">
+              <span>
+                Klaviatura strelkalari (<kbd className="font-mono text-fg">↑</kbd>{' '}
+                <kbd className="font-mono text-fg">↓</kbd> <kbd className="font-mono text-fg">←</kbd>{' '}
+                <kbd className="font-mono text-fg">→</kbd> / Enter) orqali tezkor harakatlaning.
+              </span>
+              <button
+                type="button"
+                onClick={() => setFocusedFan(null)}
+                className="btn-ghost h-7 px-2.5 text-[11.5px] text-sky-soft hover:text-sky font-bold"
+              >
+                Barcha fanlarga qaytish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- MODAL: Fanlarni yashirish / ko'rsatish ----------------- */}
+      {fanVisibilityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div
+            className="fixed inset-0 bg-ink-950/80 backdrop-blur-sm"
+            onClick={() => setFanVisibilityModalOpen(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div>
+                <h3 className="text-[15.5px] font-extrabold text-fg">Fanlarni ko'rish yoki yashirish</h3>
+                <p className="text-[11.5px] text-fg-muted mt-0.5">
+                  Keraksiz fanlarni jadvaldan vaqtincha yashirishingiz mumkin
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFanVisibilityModalOpen(false)}
+                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-1.5 max-h-[50vh] overflow-y-auto pr-1">
+              {fanlar.map((f) => {
+                const isVisible = !hiddenFanlar.includes(f.nom)
+                return (
+                  <label
+                    key={f.nom}
+                    className="flex items-center gap-2.5 p-2 rounded-xl border border-line bg-ink-950/70 hover:bg-ink-850 cursor-pointer select-none"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isVisible}
+                      onChange={() => toggleHideFan(f.nom)}
+                      className="size-4 rounded accent-sky"
+                    />
+                    <span className="text-[13px] font-semibold text-fg flex-1">{f.nom}</span>
+                    {!isVisible && (
+                      <span className="text-[10.5px] text-amber font-bold">Yashirilgan</span>
+                    )}
+                  </label>
+                )
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-line">
+              <button
+                type="button"
+                onClick={showAllFanlar}
+                className="btn-ghost h-8 px-2 text-[12px] text-sky-soft hover:text-sky font-semibold"
+              >
+                Hammasini ko'rsatish
+              </button>
+              <button
+                type="button"
+                onClick={() => setFanVisibilityModalOpen(false)}
+                className="btn-primary h-8 px-4 text-[12.5px] font-bold"
+              >
+                Tayyor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- MODAL: Fan o'qituvchisiga ulashish ----------------- */}
+      {shareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+          <div
+            className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
+            onClick={() => setShareModalOpen(false)}
+          />
+          <div className="relative w-full max-w-2xl rounded-2xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+            <div className="p-4 border-b border-line bg-ink-950 flex items-center justify-between">
+              <div>
+                <h3 className="text-[16px] font-extrabold text-fg flex items-center gap-2">
+                  <Share2 size={17} className="text-sky" />
+                  <span>Fan o'qituvchisiga baholash havolasini ulashish</span>
+                </h3>
+                <p className="text-[11.5px] text-fg-muted mt-0.5">
+                  Guruh: <b className="text-fg">{guruh}</b> ({semestr}-semestr)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShareModalOpen(false)}
+                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-4 sm:p-5 space-y-5 flex-1">
+              {/* Yangi havola shakli */}
+              <div className="panel p-4 bg-ink-950/70 border-line space-y-3.5">
+                <div className="text-[13px] font-bold text-fg flex items-center justify-between">
+                  <span>{editingShare ? 'Havolani tahrirlash' : 'Yangi havola yaratish'}</span>
+                  {editingShare && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingShare(null)
+                        setNewShareTeacher('')
+                        setNewShareHiddenPinfls([])
+                      }}
+                      className="text-[11px] text-amber hover:underline"
+                    >
+                      Bekor qilish (Yangi yaratish)
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Fanni tanlang</label>
+                    <select
+                      value={newShareFan}
+                      onChange={(e) => setNewShareFan(e.target.value)}
+                      className="field h-9.5 font-bold cursor-pointer"
+                    >
+                      {fanlar.map((f) => (
+                        <option key={f.nom} value={f.nom}>
+                          {f.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="label">O'qituvchi F.I.Sh. yoki izoh (ixtiyoriy)</label>
+                    <input
+                      type="text"
+                      placeholder="Masalan: Alimova D."
+                      value={newShareTeacher}
+                      onChange={(e) => setNewShareTeacher(e.target.value)}
+                      className="field h-9.5"
+                    />
+                  </div>
+                </div>
+
+                {/* Talabalar ko'rinishi sozlamalari (Yashirish/Ko'rsatish) */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="font-bold text-fg">
+                      Ko'rinadigan talabalar ({rows.length - newShareHiddenPinfls.length}/{rows.length})
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNewShareHiddenPinfls([])}
+                        className="text-[11px] text-sky-soft hover:text-sky font-semibold"
+                      >
+                        Hammasi ko'rinsin
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewShareHiddenPinfls(rows.map((s) => s.pinfl))}
+                        className="text-[11px] text-rose/80 hover:text-rose font-semibold"
+                      >
+                        Hammasini yashirish
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-44 overflow-y-auto border border-line rounded-xl p-2 bg-ink-900/80 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {rows.map((s) => {
+                      const isHidden = newShareHiddenPinfls.includes(s.pinfl)
+                      return (
+                        <label
+                          key={s.pinfl}
+                          className={cx(
+                            'flex items-center gap-2 p-1.5 rounded-lg border text-[12px] cursor-pointer select-none transition-colors',
+                            isHidden
+                              ? 'border-line/40 bg-ink-950/40 text-fg-subtle line-through'
+                              : 'border-line bg-ink-950 text-fg hover:bg-ink-850',
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!isHidden}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setNewShareHiddenPinfls(newShareHiddenPinfls.filter((p) => p !== s.pinfl))
+                              } else {
+                                setNewShareHiddenPinfls([...newShareHiddenPinfls, s.pinfl])
+                              }
+                            }}
+                            className="size-3.5 rounded accent-sky"
+                          />
+                          <span className="truncate flex-1">{fullName(s)}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-1 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleCreateOrUpdateShare}
+                    className="btn-primary h-9 px-4 text-[13px] font-bold"
+                  >
+                    {editingShare ? 'Saqlash' : 'Havolani yaratish'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mavjud havolalar ro'yxati */}
+              <div className="space-y-2.5">
+                <div className="text-[13px] font-bold text-fg flex items-center justify-between">
+                  <span>Mavjud ulashish havolalari ({groupShares.length})</span>
+                  {sharesLoading && <Loader2 size={13} className="animate-spin text-sky" />}
+                </div>
+
+                {groupShares.length === 0 ? (
+                  <div className="text-center py-6 text-[12.5px] text-fg-subtle border border-line/60 rounded-xl bg-ink-950/40">
+                    Hozircha faol ulashish havolasi yo'q.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {groupShares.map((sh) => {
+                      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+                      const url = `${origin}/baholar/ulashilgan?token=${sh.token}`
+                      const isCopied = copiedToken === sh.token
+                      const visibleCount = rows.length - (sh.hiddenPinfls?.length || 0)
+
+                      return (
+                        <div
+                          key={sh.id}
+                          className="panel p-3 border-line bg-ink-950/80 flex flex-wrap items-center justify-between gap-2.5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-extrabold text-[13.5px] text-fg">{sh.fan}</span>
+                              {sh.teacherName && (
+                                <span className="chip border-line bg-ink-900 text-sky-soft text-[11px] font-bold">
+                                  {sh.teacherName}
+                                </span>
+                              )}
+                              <span className="chip border-emerald/40 bg-emerald/10 text-emerald-soft text-[10.5px]">
+                                {visibleCount}/{rows.length} talaba ko'rinadi
+                              </span>
+                            </div>
+                            <div className="text-[11px] font-mono text-fg-subtle truncate mt-1">
+                              {url}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => copyShareLink(sh.token)}
+                              className={cx(
+                                'btn-ghost h-8 px-2.5 text-[12px] font-bold border transition-all',
+                                isCopied
+                                  ? 'border-emerald text-emerald-soft bg-emerald/10'
+                                  : 'border-line text-sky-soft hover:bg-sky/10',
+                              )}
+                            >
+                              {isCopied ? <Check size={13} /> : <Copy size={13} />}
+                              <span>{isCopied ? 'Nusxalandi!' : 'Nusxa olish'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingShare(sh)
+                                setNewShareFan(sh.fan)
+                                setNewShareTeacher(sh.teacherName || '')
+                                setNewShareHiddenPinfls(sh.hiddenPinfls || [])
+                              }}
+                              className="size-8 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800"
+                              title="Tahrirlash"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteShare(sh.id)}
+                              className="size-8 grid place-items-center rounded-lg text-rose/70 hover:text-rose hover:bg-rose/10"
+                              title="O'chirish"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-3 bg-ink-950 border-t border-line flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShareModalOpen(false)}
+                className="btn-ghost h-8 px-4 text-[12.5px]"
+              >
+                Yopish
+              </button>
+            </div>
           </div>
         </div>
       )}
