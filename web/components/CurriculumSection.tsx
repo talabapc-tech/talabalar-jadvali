@@ -68,6 +68,7 @@ export default function CurriculumSection({
   // Yangi/tahrirlanadigan reja modal holati
   const [planModalOpen, setPlanModalOpen] = useState(false)
   const [editingPlan, setEditingPlan] = useState<Partial<OquvReja> | null>(null)
+  const [isCustomYonalish, setIsCustomYonalish] = useState(false)
 
   // Yangi o'quv yili kiritish modal holati
   const [newYearModalOpen, setNewYearModalOpen] = useState(false)
@@ -149,6 +150,7 @@ export default function CurriculumSection({
   /* ---------------------------- Reja bilan amallar ---------------------------- */
 
   const openNewPlanModal = () => {
+    setIsCustomYonalish(false)
     setEditingPlan({
       id: genId('plan'),
       oquvYili: selectedYear,
@@ -171,6 +173,8 @@ export default function CurriculumSection({
   }
 
   const openEditPlanModal = (p: OquvReja) => {
+    const isStd = (STANDART_YONALISHLAR as readonly string[]).includes(p.yonalish)
+    setIsCustomYonalish(!isStd)
     setEditingPlan(JSON.parse(JSON.stringify(p)))
     setPlanModalOpen(true)
   }
@@ -802,7 +806,7 @@ export default function CurriculumSection({
                   </div>
 
                   {/* Yangi fan qo'shish qatori */}
-                  <div className="p-3 bg-ink-950/80 border-t border-line flex flex-wrap items-center gap-2">
+                  <div className="p-3 bg-ink-950/90 border-t border-line flex flex-wrap items-center gap-2.5">
                     <input
                       type="text"
                       placeholder="Yangi fan nomi (masalan: Ichki kasalliklar parvarishi)…"
@@ -814,22 +818,22 @@ export default function CurriculumSection({
                           handleAddSubject()
                         }
                       }}
-                      className="input h-9 flex-1 min-w-[200px] text-[13px]"
+                      className="field h-10 flex-1 min-w-[220px]"
                     />
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center gap-1 bg-ink-900 px-2 py-1 rounded-xl border border-line">
-                        <Clock size={13} className="text-fg-subtle" />
+                      <div className="flex items-center gap-1.5 bg-ink-900/90 px-3 py-1.5 rounded-xl border border-line">
+                        <Clock size={14} className="text-sky" />
                         <input
                           type="number"
                           value={newSubject.soat}
                           onChange={(e) =>
                             setNewSubject({ ...newSubject, soat: Number(e.target.value) || 0 })
                           }
-                          className="w-14 bg-transparent text-center text-[12.5px] font-semibold text-fg outline-none tabular-nums"
+                          className="w-12 bg-transparent text-center text-[13px] font-bold text-fg outline-none tabular-nums"
                           title="Soat yuklamasi"
                         />
-                        <span className="text-[11px] text-fg-subtle">soat</span>
+                        <span className="text-[11px] text-fg-muted font-medium">soat</span>
                       </div>
 
                       <select
@@ -840,7 +844,7 @@ export default function CurriculumSection({
                             nazorat: e.target.value as never,
                           })
                         }
-                        className="input h-9 w-32 text-[12.5px]"
+                        className="field h-10 w-36 cursor-pointer font-medium"
                       >
                         {NAZORAT_TURLARI.map((t) => (
                           <option key={t} value={t}>
@@ -853,9 +857,9 @@ export default function CurriculumSection({
                         type="button"
                         onClick={handleAddSubject}
                         disabled={saving || !newSubject.nom.trim()}
-                        className="btn-success h-9 px-3 text-[12.5px] font-semibold"
+                        className="btn-success h-10 px-4 text-[13px] font-bold"
                       >
-                        <Plus size={14} />
+                        <Plus size={15} />
                         <span>Qo'shish</span>
                       </button>
                     </div>
@@ -890,52 +894,73 @@ export default function CurriculumSection({
               </button>
             </div>
 
-            <div className="space-y-3.5 text-[13px]">
+            <div className="space-y-4">
               <div>
-                <label className="block text-[11.5px] font-bold text-fg-subtle mb-1 uppercase">
+                <label className="label">
                   O'quv yili
                 </label>
                 <select
                   value={editingPlan.oquvYili || selectedYear}
                   onChange={(e) => setEditingPlan({ ...editingPlan, oquvYili: e.target.value })}
-                  className="input w-full h-10"
+                  className="field h-10 cursor-pointer font-bold"
                 >
                   {availableYears.map((yr) => (
                     <option key={yr} value={yr}>
-                      {yr}
+                      {yr} o'quv yili
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-[11.5px] font-bold text-fg-subtle mb-1 uppercase">
+                <label className="label">
                   Yo'nalish / Mutaxassislik nomi
                 </label>
-                <input
-                  type="text"
-                  value={editingPlan.yonalish || ''}
-                  onChange={(e) => setEditingPlan({ ...editingPlan, yonalish: e.target.value })}
-                  placeholder="Masalan: Hamshiralik ishi"
-                  list="yonalish-list"
-                  className="input w-full h-10"
-                />
-                <datalist id="yonalish-list">
+                <select
+                  value={isCustomYonalish ? '__custom__' : editingPlan.yonalish || 'Hamshiralik ishi'}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === '__custom__') {
+                      setIsCustomYonalish(true)
+                      setEditingPlan({ ...editingPlan, yonalish: '' })
+                    } else {
+                      setIsCustomYonalish(false)
+                      setEditingPlan({ ...editingPlan, yonalish: val })
+                    }
+                  }}
+                  className="field h-10 cursor-pointer font-semibold"
+                >
                   {STANDART_YONALISHLAR.map((y) => (
-                    <option key={y} value={y} />
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
                   ))}
-                </datalist>
+                  <option value="__custom__">Boshqa yo'nalish (qo'lda kiritish)...</option>
+                </select>
+
+                {isCustomYonalish && (
+                  <div className="mt-2 animate-fade-in">
+                    <input
+                      type="text"
+                      value={editingPlan.yonalish || ''}
+                      onChange={(e) => setEditingPlan({ ...editingPlan, yonalish: e.target.value })}
+                      placeholder="Yo'nalish nomini aniq kiriting (masalan: Stomatologiya ishi)…"
+                      className="field h-10 font-semibold"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11.5px] font-bold text-fg-subtle mb-1 uppercase">
+                  <label className="label">
                     Ta'lim muddati
                   </label>
                   <select
                     value={editingPlan.muddati || '3 yillik'}
                     onChange={(e) => setEditingPlan({ ...editingPlan, muddati: e.target.value })}
-                    className="input w-full h-10"
+                    className="field h-10 cursor-pointer font-semibold"
                   >
                     {STANDART_MUDDATLAR.map((m) => (
                       <option key={m} value={m}>
@@ -946,7 +971,7 @@ export default function CurriculumSection({
                 </div>
 
                 <div>
-                  <label className="block text-[11.5px] font-bold text-fg-subtle mb-1 uppercase">
+                  <label className="label">
                     Mutaxassislik kodi
                   </label>
                   <input
@@ -954,13 +979,13 @@ export default function CurriculumSection({
                     value={editingPlan.kod || ''}
                     onChange={(e) => setEditingPlan({ ...editingPlan, kod: e.target.value })}
                     placeholder="Masalan: 5510101"
-                    className="input w-full h-10 font-mono"
+                    className="field h-10 mono"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11.5px] font-bold text-fg-subtle mb-1 uppercase">
+                <label className="label">
                   Tavsif / Qo'shimcha izoh
                 </label>
                 <textarea
@@ -968,7 +993,7 @@ export default function CurriculumSection({
                   onChange={(e) => setEditingPlan({ ...editingPlan, tavsif: e.target.value })}
                   placeholder="O'quv rejasi bo'yicha qo'shimcha ma'lumotlar…"
                   rows={2}
-                  className="input w-full p-2.5 text-[12.5px]"
+                  className="field resize-none"
                 />
               </div>
             </div>
@@ -1015,7 +1040,7 @@ export default function CurriculumSection({
             </div>
 
             <div>
-              <label className="block text-[11.5px] font-bold text-fg-subtle mb-1 uppercase">
+              <label className="label">
                 O'quv yili (YYYY/YYYY)
               </label>
               <input
@@ -1023,7 +1048,8 @@ export default function CurriculumSection({
                 placeholder="Masalan: 2027/2028"
                 value={customYearInput}
                 onChange={(e) => setCustomYearInput(e.target.value)}
-                className="input w-full h-10 font-mono text-[14px]"
+                className="field h-10 mono text-[14px]"
+                autoFocus
               />
             </div>
 

@@ -281,6 +281,8 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
         activeTab={mainTab}
         onTabChange={handleTabChange}
         students={data.students}
+        pendingCount={data.pendingCount}
+        notify={notify}
         mobileOpen={sidebarOpen}
         onMobileClose={() => setSidebarOpen(false)}
         onOpenSettings={() => setSettingsOpen(true)}
@@ -288,16 +290,14 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <div className={cx('transition-all duration-200 min-h-screen flex flex-col', sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[250px] xl:lg:pl-[260px]')}>
+      <div className={cx('transition-all duration-150 min-h-screen flex flex-col', sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[240px]')}>
         <Header
           students={data.students}
-          pendingCount={data.pendingCount}
           onRefresh={onRefresh}
           refreshing={refreshing}
           onAdd={() => setAdding(true)}
           onAddStaff={() => setStaffAddOpen(true)}
           onExportStaff={() => setStaffExportOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
           notify={notify}
           activeTab={mainTab}
           onOpenSidebar={() => setSidebarOpen(true)}

@@ -1,9 +1,9 @@
 {
-  "version": "2.0.580",
-  "build": 580,
-  "commit": "c211d09",
-  "commitDate": "2026-11-02T21:15:06+05:00",
-  "lastPushDate": "2026-11-02T21:15:06+05:00",
-  "commitMessage": "UI/UX responsivlik: 1366x768, 1920x1080 va mobile ekranlarga to'liq moslashtirish",
-  "generatedAt": "2026-11-02T16:38:41.484Z"
+  "version": "2.0.581",
+  "build": 581,
+  "commit": "4f7cd24",
+  "commitDate": "2026-11-02T21:39:35+05:00",
+  "lastPushDate": "2026-11-02T21:39:35+05:00",
+  "commitMessage": "feat: O'quv reja moduli, guruhlarga biriktirish, baholar integratsiyasi va chap navigatsiya stats bar",
+  "generatedAt": "2026-11-02T16:52:15.526Z"
 }

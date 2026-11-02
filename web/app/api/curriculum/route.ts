@@ -23,7 +23,7 @@ async function getFilePath(): Promise<string> {
   }
 }
 
-async function readPlans(): Promise<OquvReja[]> {
+async function readLocalPlans(): Promise<OquvReja[]> {
   const fp = await getFilePath()
   try {
     const raw = await fs.readFile(fp, 'utf-8')
@@ -33,16 +33,77 @@ async function readPlans(): Promise<OquvReja[]> {
   }
 }
 
-async function writePlans(plans: OquvReja[]): Promise<void> {
+async function writeLocalPlans(plans: OquvReja[]): Promise<void> {
   const fp = await getFilePath()
   const dir = path.dirname(fp)
   await fs.mkdir(dir, { recursive: true })
   await fs.writeFile(fp, JSON.stringify(plans, null, 2), 'utf-8')
 }
 
+/** Supabase dan yoki fayldan o'qish */
+async function getPlans(): Promise<OquvReja[]> {
+  const db = getServiceSupabase()
+  try {
+    const res = await db.from('oquv_rejalari').select('*').order('created_at', { ascending: false })
+    if (!res.error && res.data && res.data.length > 0) {
+      return res.data.map((r) => ({
+        id: r.id,
+        oquvYili: r.oquv_yili,
+        yonalish: r.yonalish,
+        muddati: r.muddati || '3 yillik',
+        kod: r.kod || '',
+        daraja: r.daraja || "O'rta maxsus professional",
+        tavsif: r.tavsif || '',
+        groups: Array.isArray(r.groups) ? r.groups : [],
+        semestrlar: typeof r.semestrlar === 'object' && r.semestrlar ? r.semestrlar : {},
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      }))
+    }
+  } catch {
+    // Supabase da jadval hali yaratilmagan bo'lsa lokal faylga o'tiladi
+  }
+
+  // Fallback: lokal fayl
+  const local = await readLocalPlans()
+  return local
+}
+
+/** Saqlash: ham Supabase ga, ham lokal faylga */
+async function savePlanToStore(plan: OquvReja, allPlans: OquvReja[]): Promise<void> {
+  // 1. Lokal faylga yozish
+  try {
+    await writeLocalPlans(allPlans)
+  } catch {
+    // fayl tizimi read-only bo'lishi mumkin (Vercel)
+  }
+
+  // 2. Supabase ga yozish
+  try {
+    const db = getServiceSupabase()
+    await db.from('oquv_rejalari').upsert(
+      {
+        id: plan.id,
+        oquv_yili: plan.oquvYili,
+        yonalish: plan.yonalish,
+        muddati: plan.muddati,
+        kod: plan.kod || '',
+        daraja: plan.daraja || "O'rta maxsus professional",
+        tavsif: plan.tavsif || '',
+        groups: plan.groups || [],
+        semestrlar: plan.semestrlar || {},
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' },
+    )
+  } catch {
+    // Supabase xatosi bo'lsa ham lokal fayl yetarli
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
-    const plans = await readPlans()
+    const plans = await getPlans()
     const guruh = req.nextUrl.searchParams.get('guruh')
     const oquvYili = req.nextUrl.searchParams.get('oquvYili')
 
@@ -53,7 +114,10 @@ export async function GET(req: NextRequest) {
     if (guruh) {
       const target = guruh.trim()
       const found = filtered.find((p) => p.groups && p.groups.includes(target))
-      return Response.json({ ok: true, plan: found || null, plans: filtered }, { headers: { 'Cache-Control': 'no-store' } })
+      return Response.json(
+        { ok: true, plan: found || null, plans: filtered },
+        { headers: { 'Cache-Control': 'no-store' } },
+      )
     }
 
     return Response.json({ ok: true, plans: filtered }, { headers: { 'Cache-Control': 'no-store' } })
@@ -70,7 +134,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { action } = body
-    const plans = await readPlans()
+    const plans = await getPlans()
 
     if (action === 'savePlan') {
       const plan: OquvReja = body.plan
@@ -78,10 +142,7 @@ export async function POST(req: NextRequest) {
         return Response.json({ ok: false, error: "O'quv reja ma'lumotlari to'liq emas" }, { status: 400 })
       }
 
-      // Agar bir xil guruh boshqa rejada bo'lsa, qaysi birida qolishini tartibga solish
       const assignedGroups = new Set(plan.groups || [])
-
-      const existingIdx = plans.findIndex((p) => p.id === plan.id)
       const now = new Date().toISOString()
       const updatedPlan: OquvReja = {
         ...plan,
@@ -89,20 +150,21 @@ export async function POST(req: NextRequest) {
         updatedAt: now,
       }
 
-      // Boshqa rejalardan shu guruhlarni olib tashlash (bitta guruh faqat 1 ta rejaga birikadi)
+      // Boshqa rejalardan shu guruhlarni olib tashlash
       for (const p of plans) {
         if (p.id !== plan.id && p.groups && p.groups.some((g) => assignedGroups.has(g))) {
           p.groups = p.groups.filter((g) => !assignedGroups.has(g))
         }
       }
 
+      const existingIdx = plans.findIndex((p) => p.id === plan.id)
       if (existingIdx >= 0) {
         plans[existingIdx] = updatedPlan
       } else {
         plans.push(updatedPlan)
       }
 
-      await writePlans(plans)
+      await savePlanToStore(updatedPlan, plans)
       return Response.json({ ok: true, plan: updatedPlan, plans })
     }
 
@@ -110,7 +172,16 @@ export async function POST(req: NextRequest) {
       const { id } = body
       if (!id) return Response.json({ ok: false, error: 'Reja ID si berilmagan' }, { status: 400 })
       const nextPlans = plans.filter((p) => p.id !== id)
-      await writePlans(nextPlans)
+
+      try {
+        await writeLocalPlans(nextPlans)
+      } catch { /* bo'sh */ }
+
+      try {
+        const db = getServiceSupabase()
+        await db.from('oquv_rejalari').delete().eq('id', id)
+      } catch { /* bo'sh */ }
+
       return Response.json({ ok: true, plans: nextPlans })
     }
 
@@ -121,29 +192,39 @@ export async function POST(req: NextRequest) {
       }
 
       const assigned = new Set(groups)
+      let targetPlan: OquvReja | undefined
       for (const p of plans) {
         if (p.id === planId) {
           p.groups = groups
           p.updatedAt = new Date().toISOString()
+          targetPlan = p
         } else if (p.groups) {
-          // boshqa rejalardan olib tashlash
           p.groups = p.groups.filter((g) => !assigned.has(g))
         }
       }
 
-      await writePlans(plans)
+      try {
+        await writeLocalPlans(plans)
+      } catch { /* bo'sh */ }
+
+      if (targetPlan) {
+        await savePlanToStore(targetPlan, plans)
+      }
+
       return Response.json({ ok: true, plans })
     }
 
     if (action === 'syncSubjectsToGrades') {
-      // Rejadagi fanlarni tanlangan guruh va semestr uchun Supabase 'fanlar' jadvaliga to'g'ridan-to'g'ri yozish
-      const { guruh, semestr, fanlar } = body as { guruh: string; semestr: number; fanlar: { nom: string; tartib: number }[] }
+      const { guruh, semestr, fanlar } = body as {
+        guruh: string
+        semestr: number
+        fanlar: { nom: string; tartib: number }[]
+      }
       if (!guruh || !semestr || !Array.isArray(fanlar) || !fanlar.length) {
         return Response.json({ ok: false, error: 'Guruh, semestr va fanlar kerak' }, { status: 400 })
       }
 
       const db = getServiceSupabase()
-      // Har bir fanni upsert qilish
       const rows = fanlar.map((f, i) => ({
         guruh: guruh.trim(),
         semestr,
@@ -151,9 +232,13 @@ export async function POST(req: NextRequest) {
         tartib: f.tartib ?? i + 1,
       }))
 
-      const { error } = await db.from('fanlar').upsert(rows, { onConflict: 'guruh,semestr,nom', ignoreDuplicates: true })
+      const { error } = await db
+        .from('fanlar')
+        .upsert(rows, { onConflict: 'guruh,semestr,nom', ignoreDuplicates: true })
+
       if (error) {
-        return Response.json({ ok: false, error: error.message }, { status: 500 })
+        // Agar fanlar jadvali bo'lmasa, tushunarli xabar
+        return Response.json({ ok: false, error: `Supabase xatosi: ${error.message}` }, { status: 500 })
       }
 
       return Response.json({ ok: true, count: rows.length })
