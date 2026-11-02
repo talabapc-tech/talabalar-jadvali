@@ -17,6 +17,7 @@ import StudentModal from './StudentModal'
 import AddStudentModal from './AddStudentModal'
 import SettingsModal from './SettingsModal'
 import StaffSection from './StaffSection'
+import BaholarSection from './BaholarSection'
 import { Toasts, useToasts } from './Toast'
 import { cx } from './ui'
 
@@ -71,7 +72,7 @@ function BackToSearch({ target }: { target: React.RefObject<HTMLDivElement | nul
   )
 }
 
-export default function Portal({ initialTab = 'students' }: { initialTab?: 'students' | 'staff' } = {}) {
+export default function Portal({ initialTab = 'students' }: { initialTab?: 'students' | 'staff' | 'grades' } = {}) {
   const data = useStudents()
   const { toasts, notify } = useToasts()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -87,8 +88,9 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [mainTab, setMainTab] = useState<'students' | 'staff'>(() => {
+  const [mainTab, setMainTab] = useState<'students' | 'staff' | 'grades'>(() => {
     if (typeof window !== 'undefined') {
+      if (window.location.pathname.includes('/baholar')) return 'grades'
       if (window.location.pathname.includes('/xodimlar')) return 'staff'
       if (window.location.pathname.includes('/talabalar')) return 'students'
     }
@@ -97,7 +99,9 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
 
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.pathname.includes('/xodimlar')) {
+      if (window.location.pathname.includes('/baholar')) {
+        setMainTab('grades')
+      } else if (window.location.pathname.includes('/xodimlar')) {
         setMainTab('staff')
       } else if (window.location.pathname.includes('/talabalar')) {
         setMainTab('students')
@@ -107,10 +111,10 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const handleTabChange = useCallback((tab: 'students' | 'staff') => {
+  const handleTabChange = useCallback((tab: 'students' | 'staff' | 'grades') => {
     setMainTab(tab)
     if (typeof window !== 'undefined') {
-      const targetPath = tab === 'staff' ? '/xodimlar' : '/talabalar'
+      const targetPath = tab === 'staff' ? '/xodimlar' : tab === 'grades' ? '/baholar' : '/talabalar'
       if (window.location.pathname !== targetPath) {
         window.history.pushState(null, '', targetPath)
       }
@@ -273,7 +277,22 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
       />
 
       <main className="mx-auto max-w-[1680px] space-y-5 px-4 py-5 sm:px-6">
-        {mainTab === 'staff' ? (
+        {mainTab === 'grades' ? (
+          data.state === 'ready' ? (
+            <BaholarSection students={data.students} notify={notify} />
+          ) : data.state === 'error' ? (
+            <div className="panel grid place-items-center gap-3 px-6 py-20 text-center">
+              <ServerCrash size={32} className="text-rose" />
+              <div className="text-[15px] font-semibold text-fg">Talabalar ro'yxatini yuklab bo'lmadi</div>
+              <div className="max-w-lg text-[13px] text-fg-muted">{data.error}</div>
+              <button type="button" className="btn-primary mt-2" onClick={onRefresh}>Qayta urinish</button>
+            </div>
+          ) : (
+            <div className="panel flex items-center gap-2 px-4 py-10 text-[13px] text-fg-muted" aria-busy="true">
+              <Loader2 size={16} className="animate-spin text-sky" /> Talabalar ro'yxati yuklanmoqda…
+            </div>
+          )
+        ) : mainTab === 'staff' ? (
           <StaffSection
             notify={notify}
             addOpen={staffAddOpen}

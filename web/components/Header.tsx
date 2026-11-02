@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { CalendarCheck, ChevronDown, CloudCheck, CloudOff, CloudUpload, FileSpreadsheet, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users, X } from 'lucide-react'
+import { Award, CalendarCheck, ChevronDown, CloudCheck, CloudOff, CloudUpload, FileSpreadsheet, GraduationCap, Loader2, LogOut, Moon, RefreshCw, Download, Send, Settings, Sun, UserPlus, Users, X } from 'lucide-react'
 import { exportRole, ROLE_META, sendRoleToTelegram, type Role } from '@/lib/excel'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
@@ -238,7 +238,7 @@ function ThemeButton() {
   )
 }
 
-type MainTab = 'students' | 'staff'
+type MainTab = 'students' | 'staff' | 'grades'
 
 function SettingsButton({ onClick }: { onClick: () => void }) {
   return (
@@ -254,9 +254,10 @@ function TabSwitch({ activeTab, onTabChange }: { activeTab: MainTab; onTabChange
   const tabs = [
     { id: 'students' as const, href: '/talabalar', label: 'Talabalar', icon: GraduationCap, on: 'border-sky/40 bg-sky/20 text-sky-soft' },
     { id: 'staff' as const, href: '/xodimlar', label: 'Xodimlar', icon: Users, on: 'border-emerald/40 bg-emerald/20 text-emerald-soft' },
+    { id: 'grades' as const, href: '/baholar', label: 'Baholar', icon: Award, on: 'border-amber/40 bg-amber/20 text-amber' },
   ]
   return (
-    <div className="grid w-full grid-cols-2 rounded-xl border border-line bg-ink-900/90 p-1 shadow-inner sm:flex sm:w-auto">
+    <div className="grid w-full grid-cols-3 rounded-xl border border-line bg-ink-900/90 p-1 shadow-inner sm:flex sm:w-auto">
       {tabs.map(({ id, href, label, icon: Icon, on }) => (
         <Link
           key={id}
@@ -293,6 +294,7 @@ export default function Header({
   onExportStaff?: () => void
 }) {
   const staff = activeTab === 'staff'
+  const grades = activeTab === 'grades'
   return (
     // Telefonda sarlavha yopishmaydi (joy tejaladi); backdrop-blur faqat kompyuterda — u ichidagi
     // fixed menyuning (pastdan chiqadigan) joylashuvini buzadi
@@ -306,7 +308,7 @@ export default function Header({
           <div className="min-w-0 flex-1">
             <div className="truncate text-[10.5px] font-bold tracking-[0.12em] text-emerald-soft uppercase sm:text-[11px] sm:tracking-[0.14em]">Shahrisabz Tibbiyot Texnikumi</div>
             <h1 className="truncate text-[16px] font-extrabold tracking-tight text-fg sm:text-[17px]">
-              {staff ? 'Xodimlar boshqaruvi' : 'Talabalar portali'} <span className="hidden font-semibold text-fg-subtle min-[400px]:inline">· 2026/2027</span>
+              {staff ? 'Xodimlar boshqaruvi' : grades ? 'Baholar' : 'Talabalar portali'} <span className="hidden font-semibold text-fg-subtle min-[400px]:inline">· 2026/2027</span>
             </h1>
           </div>
           <div className="flex items-center gap-1.5 sm:hidden">
@@ -319,7 +321,7 @@ export default function Header({
         {onTabChange && <TabSwitch activeTab={activeTab} onTabChange={onTabChange} />}
 
         <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2">
-          {staff ? (
+          {grades ? null : staff ? (
             <>
               {onAddStaff && (
                 <button type="button" className="btn-success h-9 flex-1 px-3 sm:flex-none" onClick={onAddStaff} title="Yangi xodim qo'shish">
@@ -353,7 +355,7 @@ export default function Header({
           </button>
           {onOpenSettings && <span className="hidden sm:contents"><SettingsButton onClick={onOpenSettings} /></span>}
           <span className="hidden sm:contents"><ThemeButton /></span>
-          {!staff && <ExportMenu students={students} notify={notify} />}
+          {!staff && !grades && <ExportMenu students={students} notify={notify} />}
           <span className="hidden sm:contents"><LogoutButton /></span>
         </div>
       </div>
