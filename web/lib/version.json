@@ -1,9 +1,9 @@
 {
-  "version": "2.0.581",
-  "build": 581,
-  "commit": "4f7cd24",
-  "commitDate": "2026-11-02T21:39:35+05:00",
-  "lastPushDate": "2026-11-02T21:39:35+05:00",
-  "commitMessage": "feat: O'quv reja moduli, guruhlarga biriktirish, baholar integratsiyasi va chap navigatsiya stats bar",
-  "generatedAt": "2026-11-02T16:52:15.526Z"
+  "version": "2.0.582",
+  "build": 582,
+  "commit": "6d5ce68",
+  "commitDate": "2026-11-02T21:52:57+05:00",
+  "lastPushDate": "2026-11-02T21:52:57+05:00",
+  "commitMessage": "fix: O'quv reja modal UI to'g'rilandi, statistika o'rniga GitHub yangilanishi sidebarga ko'chirildi va Supabase setup_all.sql yaratildi",
+  "generatedAt": "2026-11-02T17:18:54.534Z"
 }
