@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 564,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "60802085590029",
+      "ism": "Shermatova Gulsun"
+    },
+    "id": "chg_1793629747350_2x880",
+    "created_at": "2026-11-02T14:29:07.350Z"
+  }
+]
