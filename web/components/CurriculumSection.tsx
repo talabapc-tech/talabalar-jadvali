@@ -2,20 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  AlertCircle,
   ArrowDown,
   ArrowUp,
   Award,
   BookOpen,
   Calendar,
   Check,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  Copy,
   Edit2,
-  FileCheck,
-  FileSpreadsheet,
   Layers,
   Link as LinkIcon,
   Loader2,
@@ -24,13 +17,10 @@ import {
   Save,
   Trash2,
   X,
-  Zap,
 } from 'lucide-react'
 import {
   type FanReja,
   type OquvReja,
-  type SemestrReja,
-  NAZORAT_TURLARI,
   STANDART_MUDDATLAR,
   STANDART_OQUV_YILLARI,
   STANDART_YONALISHLAR,
@@ -58,7 +48,6 @@ export default function CurriculumSection({
   const [plans, setPlans] = useState<OquvReja[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [syncingToGrades, setSyncingToGrades] = useState(false)
 
   // Tanlangan filtrlar va holatlar
   const [selectedYear, setSelectedYear] = useState<string>('2026/2027')
@@ -74,16 +63,8 @@ export default function CurriculumSection({
   const [newYearModalOpen, setNewYearModalOpen] = useState(false)
   const [customYearInput, setCustomYearInput] = useState('')
 
-  // Yangi fan qo'shish qatori
-  const [newSubject, setNewSubject] = useState<{
-    nom: string
-    soat: number
-    nazorat: 'Imtihon' | 'Sinov' | 'Yakuniy' | 'Diferensial sinov' | 'Reyting'
-  }>({
-    nom: '',
-    soat: 60,
-    nazorat: 'Sinov',
-  })
+  // Yangi fan qo'shish nomi
+  const [newSubjectName, setNewSubjectName] = useState('')
 
   // Guruhlarni biriktirish modal holati
   const [assignModalOpen, setAssignModalOpen] = useState(false)
@@ -261,7 +242,7 @@ export default function CurriculumSection({
       const data = await res.json()
       if (data.ok) {
         setPlans(data.plans)
-        notify("Fanlar ro'yxati saqlandi", 'success')
+        notify("Fanlar ro'yxati yangilandi", 'success')
       } else {
         notify(data.error || 'Xatolik yuz berdi', 'error')
       }
@@ -273,22 +254,22 @@ export default function CurriculumSection({
   }
 
   const handleAddSubject = async () => {
-    if (!newSubject.nom.trim()) {
+    if (!newSubjectName.trim()) {
       notify('Fan nomini kiriting', 'error')
       return
     }
 
     const nextItem: FanReja = {
       id: genId('fan'),
-      nom: newSubject.nom.trim(),
-      soat: Number(newSubject.soat) || 60,
-      nazorat: newSubject.nazorat,
+      nom: newSubjectName.trim(),
+      soat: 0,
+      nazorat: 'Sinov',
       tartib: currentSubjects.length + 1,
     }
 
     const updated = [...currentSubjects, nextItem]
     await saveUpdatedPlanSubjects(updated)
-    setNewSubject({ nom: '', soat: 60, nazorat: 'Sinov' })
+    setNewSubjectName('')
   }
 
   const handleDeleteSubject = async (subjectId: string) => {
@@ -351,53 +332,17 @@ export default function CurriculumSection({
     }
   }
 
-  /* ---------------------------- Baholar bazasiga to'g'ridan-to'g'ri sinxronlash ---------------------------- */
-
-  const handleSyncToGradesForGroup = async (groupName: string) => {
-    if (!activePlan || !currentSubjects.length) {
-      notify("Bu semestrda fanlar yo'q", 'error')
-      return
-    }
-
-    setSyncingToGrades(true)
-    try {
-      const res = await fetch('/api/curriculum', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'syncSubjectsToGrades',
-          guruh: groupName,
-          semestr: activeSemestr,
-          fanlar: currentSubjects.map((s) => ({ nom: s.nom, tartib: s.tartib })),
-        }),
-      })
-      const data = await res.json()
-      if (data.ok) {
-        notify(
-          `${groupName} guruhi uchun ${data.count} ta fan baholar bazasiga kiritildi!`,
-          'success',
-        )
-      } else {
-        notify(data.error || 'Sinxronlashda xatolik', 'error')
-      }
-    } catch (e) {
-      notify(`Xatolik: ${(e as Error).message}`, 'error')
-    } finally {
-      setSyncingToGrades(false)
-    }
-  }
-
   return (
-    <div className="space-y-5 animate-fade-in pb-12">
-      {/* 1-qator: O'quv yili tanlagich va Asosiy boshqaruv */}
-      <div className="panel p-4 flex flex-wrap items-center justify-between gap-3 bg-ink-900/60 border-line">
+    <div className="space-y-4 animate-fade-in pb-12">
+      {/* 1-qator: O'quv yili tanlagich va Yangilash */}
+      <div className="panel p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-ink-900/60 border-line">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 text-fg-muted font-bold text-[13px] mr-2">
+          <div className="flex items-center gap-2 text-fg-muted font-bold text-[13px] mr-1">
             <Calendar size={16} className="text-sky" />
             <span>O'quv yili:</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-ink-950 p-1">
+          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-line bg-ink-950 p-1">
             {availableYears.map((yr) => (
               <button
                 key={yr}
@@ -418,7 +363,7 @@ export default function CurriculumSection({
           <button
             type="button"
             onClick={() => setNewYearModalOpen(true)}
-            className="btn-ghost h-8 px-2.5 text-[12px] text-sky-soft hover:text-sky"
+            className="btn-ghost h-8 px-2.5 text-[12px] text-sky-soft hover:text-sky font-semibold"
             title="Yangi o'quv yili qo'shish"
           >
             <Plus size={14} />
@@ -426,24 +371,18 @@ export default function CurriculumSection({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={openNewPlanModal}
-            className="btn-success h-9 px-3 text-[13px] font-semibold"
-          >
-            <Plus size={15} />
-            <span>Yangi o'quv reja</span>
-          </button>
-
+        <div className="flex items-center gap-2.5">
+          <span className="text-[12px] text-fg-muted hidden sm:inline">
+            Jami: <b className="text-fg">{yearPlans.length} ta</b> yo'nalish rejasi
+          </span>
           <button
             type="button"
             onClick={loadPlans}
             disabled={loading}
-            className="btn-ghost size-9 p-0 text-fg-muted hover:text-fg"
+            className="btn-ghost size-8 p-0 text-fg-muted hover:text-fg rounded-lg"
             title="Yangilash"
           >
-            <RefreshCw size={15} className={cx(loading && 'animate-spin')} />
+            <RefreshCw size={14} className={cx(loading && 'animate-spin')} />
           </button>
         </div>
       </div>
@@ -460,7 +399,7 @@ export default function CurriculumSection({
             {selectedYear} o'quv yili uchun o'quv reja topilmadi
           </div>
           <p className="text-[13px] text-fg-muted max-w-md mx-auto">
-            Ushbu o'quv yili uchun yangi namunaviy o'quv rejasi va uning fanlarini kiritishingiz mumkin.
+            Ushbu o'quv yili uchun yangi yo'nalish o'quv rejasi va fanlarini kiritishingiz mumkin.
           </p>
           <button
             type="button"
@@ -478,7 +417,15 @@ export default function CurriculumSection({
           <div className="lg:col-span-4 space-y-3">
             <div className="flex items-center justify-between px-1 text-[12px] font-bold text-fg-subtle uppercase tracking-wider">
               <span>Yo'nalishlar ({yearPlans.length})</span>
-              <span>{selectedYear}</span>
+              <button
+                type="button"
+                onClick={openNewPlanModal}
+                className="btn-ghost h-6 px-2 text-[11px] text-sky-soft hover:text-sky font-bold flex items-center gap-1"
+                title="Yangi o'quv reja qo'shish"
+              >
+                <Plus size={13} />
+                <span>Qo'shish</span>
+              </button>
             </div>
 
             <div className="space-y-2.5">
@@ -497,7 +444,7 @@ export default function CurriculumSection({
                     className={cx(
                       'panel p-3.5 transition-all cursor-pointer border text-left relative group',
                       isSelected
-                        ? 'border-sky/60 bg-gradient-to-r from-blue/15 to-sky/10 ring-1 ring-sky/30 shadow-md'
+                        ? 'border-sky/60 bg-gradient-to-r from-blue/15 to-sky/10 ring-1 ring-sky/30 shadow-md border-l-4 border-l-sky'
                         : 'border-line hover:border-line-strong hover:bg-ink-850/80',
                     )}
                   >
@@ -520,14 +467,14 @@ export default function CurriculumSection({
                       </div>
 
                       {/* Tahrirlash va o'chirish tezkor tugmalari */}
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
                             openEditPlanModal(p)
                           }}
-                          className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-700/60"
+                          className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-700/60 transition-colors"
                           title="Tahrirlash"
                         >
                           <Edit2 size={13} />
@@ -538,7 +485,7 @@ export default function CurriculumSection({
                             e.stopPropagation()
                             handleDeletePlan(p)
                           }}
-                          className="size-7 grid place-items-center rounded-lg text-rose/70 hover:text-rose hover:bg-rose/10"
+                          className="size-7 grid place-items-center rounded-lg text-rose/70 hover:text-rose hover:bg-rose/10 transition-colors"
                           title="O'chirish"
                         >
                           <Trash2 size={13} />
@@ -570,7 +517,7 @@ export default function CurriculumSection({
                         {p.groups.map((g) => (
                           <span
                             key={g}
-                            className="rounded bg-ink-800 px-1.5 py-0.5 text-[10.5px] font-bold text-fg-muted"
+                            className="rounded bg-ink-800/80 px-1.5 py-0.5 text-[10.5px] font-mono font-bold text-fg-muted"
                           >
                             {g}
                           </span>
@@ -584,7 +531,7 @@ export default function CurriculumSection({
 
             {/* Guruhlarni biriktirish paneli kartochkasi */}
             {activePlan && (
-              <div className="panel p-3.5 bg-ink-900/40 border-line space-y-2.5">
+              <div className="panel p-3.5 bg-ink-900/40 border-line space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="text-[12px] font-bold text-fg flex items-center gap-1.5">
                     <LinkIcon size={14} className="text-emerald" />
@@ -593,21 +540,21 @@ export default function CurriculumSection({
                   <button
                     type="button"
                     onClick={openAssignModal}
-                    className="btn-ghost h-7 px-2 text-[11.5px] text-sky-soft hover:text-sky"
+                    className="btn-ghost h-6 px-2 text-[11px] text-sky-soft hover:text-sky font-bold"
                   >
                     O'zgartirish
                   </button>
                 </div>
                 <p className="text-[11.5px] text-fg-muted leading-relaxed">
                   Ushbu rejaga biriktirilgan guruhlar Baholar bo'limida barcha semestr fanlarini avtomatik
-                  oladi va reyting jadvali shakllanadi.
+                  oladi va baholar jadvali shakllanadi.
                 </p>
-                <div className="flex flex-wrap gap-1 pt-1">
+                <div className="flex flex-wrap gap-1 pt-0.5">
                   {activePlan.groups?.length ? (
                     activePlan.groups.map((g) => (
                       <span
                         key={g}
-                        className="rounded-lg border border-emerald/40 bg-emerald/10 px-2 py-0.5 text-[11px] font-bold text-emerald-soft"
+                        className="rounded-lg border border-emerald/40 bg-emerald/10 px-2 py-0.5 text-[11px] font-mono font-bold text-emerald-soft"
                       >
                         {g}
                       </span>
@@ -630,45 +577,49 @@ export default function CurriculumSection({
                 <div className="panel p-4 space-y-3.5 bg-ink-900/60 border-line">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h2 className="text-[17px] font-black text-fg tracking-tight">
                           {activePlan.yonalish}
                         </h2>
-                        <span className="chip border-sky/40 bg-sky/10 text-sky-soft text-[11px]">
+                        <span className="chip border-sky/40 bg-sky/10 text-sky-soft text-[11px] font-bold">
                           {activePlan.muddati}
                         </span>
+                        {activePlan.kod && (
+                          <span className="chip border-line bg-ink-950 text-fg-subtle text-[11px] font-mono">
+                            Kodi: {activePlan.kod}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[12px] text-fg-muted mt-0.5">
-                        O'quv yili: <b className="text-fg">{activePlan.oquvYili}</b> · Biriktirilgan:{' '}
-                        <b className="text-fg">{activePlan.groups?.length || 0} ta guruh</b>
+                      <div className="text-[12px] text-fg-muted mt-1 flex items-center gap-2 flex-wrap">
+                        <span>O'quv yili: <b className="text-fg">{activePlan.oquvYili}</b></span>
+                        <span>·</span>
+                        <span>
+                          Biriktirilgan: <b className="text-fg">{activePlan.groups?.length || 0} ta guruh</b>
+                        </span>
+                        {activePlan.groups && activePlan.groups.length > 0 && (
+                          <span className="text-fg-subtle font-mono text-[11px]">
+                            ({activePlan.groups.join(', ')})
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Baholar bo'limiga tezkor sinxronlash */}
-                    {activePlan.groups && activePlan.groups.length > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-fg-subtle hidden sm:inline">Tezkor bazaga:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {activePlan.groups.slice(0, 3).map((g) => (
-                            <button
-                              key={g}
-                              type="button"
-                              onClick={() => handleSyncToGradesForGroup(g)}
-                              disabled={syncingToGrades}
-                              title={`${g} guruhining ${activeSemestr}-semestriga fanlarni yozish`}
-                              className="btn-ghost h-7 px-2 text-[11px] border border-line bg-ink-950 font-bold text-emerald-soft hover:bg-emerald/10"
-                            >
-                              <Zap size={11} className="text-amber" />
-                              <span>{g} ({activeSemestr}-s)</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    {/* Guruhlarni biriktirish tugmasi */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={openAssignModal}
+                        className="btn-ghost h-8 px-3 text-[12px] border border-line bg-ink-950 font-bold text-fg-muted hover:text-fg hover:border-emerald/40 hover:bg-emerald/5 transition-all"
+                        title="Ushbu reja asosida o'qiydigan guruhlarni tanlash"
+                      >
+                        <LinkIcon size={13} className="text-emerald" />
+                        <span>Guruhlarni biriktirish ({activePlan.groups?.length || 0})</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Semestrlar tugmalari (1-dan 6-semestrgacha) */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 border-t border-line/60">
+                  {/* Semestrlar tugmalari (1-dan 6-semestrgacha) - 1366 va mobile ga moslashuvchan grid */}
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-2 border-t border-line/60">
                     {[1, 2, 3, 4, 5, 6].map((sem) => {
                       const count = activePlan.semestrlar?.[String(sem)]?.fanlar?.length || 0
                       const isActive = activeSemestr === sem
@@ -678,16 +629,16 @@ export default function CurriculumSection({
                           type="button"
                           onClick={() => setActiveSemestr(sem)}
                           className={cx(
-                            'flex items-center gap-2 rounded-xl px-3 py-1.5 text-[12.5px] font-bold transition-all shrink-0',
+                            'flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-2 text-[12.5px] font-bold transition-all',
                             isActive
-                              ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white shadow-sm'
-                              : 'border border-line bg-ink-950 text-fg-muted hover:text-fg hover:bg-ink-850',
+                              ? 'bg-gradient-to-r from-blue/90 to-sky/90 text-white shadow-sm ring-1 ring-sky/50'
+                              : 'border border-line bg-ink-950/80 text-fg-muted hover:text-fg hover:bg-ink-850',
                           )}
                         >
                           <span>{sem}-semestr</span>
                           <span
                             className={cx(
-                              'rounded-md px-1.5 py-0.2 text-[10.5px] tabular-nums',
+                              'rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold tabular-nums',
                               isActive ? 'bg-white/20 text-white' : 'bg-ink-800 text-fg-subtle',
                             )}
                           >
@@ -700,82 +651,67 @@ export default function CurriculumSection({
                 </div>
 
                 {/* Fanlar ro'yxati va yangi fan qo'shish */}
-                <div className="panel overflow-hidden border-line bg-ink-900/60">
-                  <div className="p-3.5 border-b border-line flex items-center justify-between gap-3">
+                <div className="panel overflow-hidden border-line bg-ink-900/60 shadow-lg">
+                  <div className="p-3.5 border-b border-line flex items-center justify-between gap-3 bg-ink-950/40">
                     <div className="flex items-center gap-2">
                       <Award size={16} className="text-amber" />
-                      <span className="text-[13.5px] font-bold text-fg">
-                        {activeSemestr}-semestr fanlari ({currentSubjects.length} ta fan)
+                      <span className="text-[14px] font-bold text-fg">
+                        {activeSemestr}-semestr fanlari
                       </span>
-                    </div>
-
-                    <div className="text-[12px] text-fg-muted">
-                      Jami soat:{' '}
-                      <b className="text-fg tabular-nums">
-                        {currentSubjects.reduce((acc, s) => acc + (s.soat || 0), 0)} soat
-                      </b>
+                      <span className="chip border-line bg-ink-950 text-fg-muted text-[11px] font-bold px-2 py-0.5">
+                        {currentSubjects.length} ta fan
+                      </span>
                     </div>
                   </div>
 
-                  {/* Fanlar jadvali */}
+                  {/* Fanlar jadvali: Faqat Tartib, Fan nomi va Amallar */}
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-[13px] border-collapse">
                       <thead>
                         <tr className="border-b border-line bg-ink-950/70 text-[11px] font-bold text-fg-subtle uppercase tracking-wider">
-                          <th className="py-2.5 px-3 w-10 text-center">#</th>
-                          <th className="py-2.5 px-3 min-w-[240px]">Fan nomi</th>
-                          <th className="py-2.5 px-3 w-24 text-center">Soat</th>
-                          <th className="py-2.5 px-3 w-32 text-center">Nazorat shakli</th>
-                          <th className="py-2.5 px-3 w-24 text-right">Amallar</th>
+                          <th className="py-2.5 px-4 w-12 text-center">#</th>
+                          <th className="py-2.5 px-4 min-w-[200px]">Fan nomi</th>
+                          <th className="py-2.5 px-4 w-28 text-right">Amallar</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-line/40">
                         {currentSubjects.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="py-10 text-center text-fg-subtle text-[13px]">
-                              Ushbu {activeSemestr}-semestr uchun hali fan kiritilmagan.
-                              Quyidagi formadan yangi fan qo'shing.
+                            <td colSpan={3} className="py-12 text-center text-fg-subtle text-[13px]">
+                              <div className="max-w-xs mx-auto space-y-1.5">
+                                <BookOpen size={28} className="mx-auto text-fg-subtle/50 mb-2" />
+                                <div className="font-semibold text-fg">Hali fanlar kiritilmagan</div>
+                                <div className="text-[12px] text-fg-muted">
+                                  Ushbu {activeSemestr}-semestr uchun pastdagi maydondan yangi fan qo'shishingiz mumkin.
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         ) : (
                           currentSubjects.map((sub, index) => (
                             <tr
                               key={sub.id}
-                              className="hover:bg-ink-850/50 transition-colors group"
+                              className="hover:bg-ink-850/60 transition-colors group"
                             >
-                              <td className="py-2.5 px-3 text-center text-fg-subtle font-mono text-[12px] font-bold">
-                                {sub.tartib}
-                              </td>
-                              <td className="py-2.5 px-3 font-semibold text-fg">
-                                {sub.nom}
-                              </td>
-                              <td className="py-2.5 px-3 text-center tabular-nums text-fg-muted">
-                                {sub.soat ? `${sub.soat} soat` : '—'}
-                              </td>
-                              <td className="py-2.5 px-3 text-center">
-                                <span
-                                  className={cx(
-                                    'inline-block px-2 py-0.5 rounded-full text-[11px] font-bold',
-                                    sub.nazorat === 'Imtihon'
-                                      ? 'border border-rose/30 bg-rose/10 text-rose'
-                                      : sub.nazorat === 'Yakuniy'
-                                        ? 'border border-amber/30 bg-amber/10 text-amber'
-                                        : sub.nazorat === 'Reyting'
-                                          ? 'border border-indigo-500/30 bg-indigo-500/10 text-indigo-300'
-                                          : 'border border-sky/30 bg-sky/10 text-sky-soft',
-                                  )}
-                                >
-                                  {sub.nazorat || 'Sinov'}
+                              <td className="py-3 px-4 text-center">
+                                <span className="inline-flex size-6 items-center justify-center rounded-md bg-ink-950 border border-line/80 text-[11.5px] font-mono font-bold text-fg-muted group-hover:border-sky/50 group-hover:text-sky">
+                                  {sub.tartib}
                                 </span>
                               </td>
-                              <td className="py-2.5 px-3 text-right">
+                              <td className="py-3 px-4 font-semibold text-fg text-[13.5px]">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="size-1.5 rounded-full bg-sky/70 shrink-0" />
+                                  <span className="group-hover:text-sky-soft transition-colors">{sub.nom}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-right">
                                 <div className="flex items-center justify-end gap-1">
                                   <button
                                     type="button"
                                     onClick={() => handleMoveSubject(index, 'up')}
                                     disabled={index === 0}
-                                    className="size-7 grid place-items-center rounded text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
-                                    title="Yuqoriga"
+                                    className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20 transition-all"
+                                    title="Yuqoriga ko'chirish"
                                   >
                                     <ArrowUp size={13} />
                                   </button>
@@ -783,15 +719,15 @@ export default function CurriculumSection({
                                     type="button"
                                     onClick={() => handleMoveSubject(index, 'down')}
                                     disabled={index === currentSubjects.length - 1}
-                                    className="size-7 grid place-items-center rounded text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
-                                    title="Pastga"
+                                    className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20 transition-all"
+                                    title="Pastga ko'chirish"
                                   >
                                     <ArrowDown size={13} />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteSubject(sub.id)}
-                                    className="size-7 grid place-items-center rounded text-rose/70 hover:text-rose hover:bg-rose/10"
+                                    className="size-7 grid place-items-center rounded-lg text-rose/60 hover:text-rose hover:bg-rose/10 transition-all"
                                     title="O'chirish"
                                   >
                                     <Trash2 size={13} />
@@ -805,64 +741,43 @@ export default function CurriculumSection({
                     </table>
                   </div>
 
-                  {/* Yangi fan qo'shish qatori */}
-                  <div className="p-3 bg-ink-950/90 border-t border-line flex flex-wrap items-center gap-2.5">
-                    <input
-                      type="text"
-                      placeholder="Yangi fan nomi (masalan: Ichki kasalliklar parvarishi)…"
-                      value={newSubject.nom}
-                      onChange={(e) => setNewSubject({ ...newSubject, nom: e.target.value })}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddSubject()
-                        }
-                      }}
-                      className="field h-10 flex-1 min-w-[220px]"
-                    />
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center gap-1.5 bg-ink-900/90 px-3 py-1.5 rounded-xl border border-line">
-                        <Clock size={14} className="text-sky" />
-                        <input
-                          type="number"
-                          value={newSubject.soat}
-                          onChange={(e) =>
-                            setNewSubject({ ...newSubject, soat: Number(e.target.value) || 0 })
+                  {/* Yangi fan qo'shish qatori: Toza, sodda input va Qo'shish tugmasi */}
+                  <div className="p-3 bg-ink-950/90 border-t border-line flex items-center gap-2.5">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        placeholder={`${activeSemestr}-semestr uchun yangi fan nomini kiriting (masalan: Xorijiy til)...`}
+                        value={newSubjectName}
+                        onChange={(e) => setNewSubjectName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleAddSubject()
                           }
-                          className="w-12 bg-transparent text-center text-[13px] font-bold text-fg outline-none tabular-nums"
-                          title="Soat yuklamasi"
-                        />
-                        <span className="text-[11px] text-fg-muted font-medium">soat</span>
-                      </div>
-
-                      <select
-                        value={newSubject.nazorat}
-                        onChange={(e) =>
-                          setNewSubject({
-                            ...newSubject,
-                            nazorat: e.target.value as never,
-                          })
-                        }
-                        className="field h-10 w-36 cursor-pointer font-medium"
-                      >
-                        {NAZORAT_TURLARI.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-
-                      <button
-                        type="button"
-                        onClick={handleAddSubject}
-                        disabled={saving || !newSubject.nom.trim()}
-                        className="btn-success h-10 px-4 text-[13px] font-bold"
-                      >
-                        <Plus size={15} />
-                        <span>Qo'shish</span>
-                      </button>
+                        }}
+                        className="field h-10 w-full pl-3.5 pr-10 text-[13px] font-medium"
+                        autoComplete="off"
+                      />
+                      {newSubjectName && (
+                        <button
+                          type="button"
+                          onClick={() => setNewSubjectName('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg p-1"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddSubject}
+                      disabled={saving || !newSubjectName.trim()}
+                      className="btn-success h-10 px-4 text-[13px] font-bold shrink-0 flex items-center gap-1.5"
+                    >
+                      <Plus size={15} />
+                      <span>Qo'shish</span>
+                    </button>
                   </div>
                 </div>
               </>
@@ -875,20 +790,25 @@ export default function CurriculumSection({
       {planModalOpen && editingPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="fixed inset-0 bg-ink-950/75 backdrop-blur-sm"
+            className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
             onClick={() => setPlanModalOpen(false)}
           />
-          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4">
+          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-ink-900 p-6 shadow-2xl space-y-5 animate-scale-up">
             <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="text-[16px] font-extrabold text-fg">
-                {editingPlan.id && yearPlans.some((p) => p.id === editingPlan.id)
-                  ? "O'quv rejasini tahrirlash"
-                  : "Yangi o'quv reja yaratish"}
-              </h3>
+              <div>
+                <h3 className="text-[16px] font-extrabold text-fg">
+                  {editingPlan.id && yearPlans.some((p) => p.id === editingPlan.id)
+                    ? "O'quv rejasini tahrirlash"
+                    : "Yangi o'quv reja yaratish"}
+                </h3>
+                <p className="text-[12px] text-fg-muted mt-0.5">
+                  Yo'nalish va ta'lim muddati bo'yicha namunaviy reja
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setPlanModalOpen(false)}
-                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-ink-800"
+                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 transition-colors"
               >
                 <X size={16} />
               </button>
@@ -902,7 +822,7 @@ export default function CurriculumSection({
                 <select
                   value={editingPlan.oquvYili || selectedYear}
                   onChange={(e) => setEditingPlan({ ...editingPlan, oquvYili: e.target.value })}
-                  className="field h-10 cursor-pointer font-bold"
+                  className="field h-10 cursor-pointer font-bold w-full"
                 >
                   {availableYears.map((yr) => (
                     <option key={yr} value={yr}>
@@ -928,7 +848,8 @@ export default function CurriculumSection({
                       setEditingPlan({ ...editingPlan, yonalish: val })
                     }
                   }}
-                  className="field h-10 cursor-pointer font-semibold"
+                  className="field h-10 cursor-pointer font-semibold w-full"
+                  autoComplete="off"
                 >
                   {STANDART_YONALISHLAR.map((y) => (
                     <option key={y} value={y}>
@@ -945,8 +866,9 @@ export default function CurriculumSection({
                       value={editingPlan.yonalish || ''}
                       onChange={(e) => setEditingPlan({ ...editingPlan, yonalish: e.target.value })}
                       placeholder="Yo'nalish nomini aniq kiriting (masalan: Stomatologiya ishi)…"
-                      className="field h-10 font-semibold"
+                      className="field h-10 font-semibold w-full"
                       autoFocus
+                      autoComplete="off"
                     />
                   </div>
                 )}
@@ -960,7 +882,7 @@ export default function CurriculumSection({
                   <select
                     value={editingPlan.muddati || '3 yillik'}
                     onChange={(e) => setEditingPlan({ ...editingPlan, muddati: e.target.value })}
-                    className="field h-10 cursor-pointer font-semibold"
+                    className="field h-10 cursor-pointer font-semibold w-full"
                   >
                     {STANDART_MUDDATLAR.map((m) => (
                       <option key={m} value={m}>
@@ -979,26 +901,27 @@ export default function CurriculumSection({
                     value={editingPlan.kod || ''}
                     onChange={(e) => setEditingPlan({ ...editingPlan, kod: e.target.value })}
                     placeholder="Masalan: 5510101"
-                    className="field h-10 mono"
+                    className="field h-10 mono w-full"
+                    autoComplete="off"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="label">
-                  Tavsif / Qo'shimcha izoh
+                  Tavsif / Qo'shimcha izoh (ixtiyoriy)
                 </label>
                 <textarea
                   value={editingPlan.tavsif || ''}
                   onChange={(e) => setEditingPlan({ ...editingPlan, tavsif: e.target.value })}
                   placeholder="O'quv rejasi bo'yicha qo'shimcha ma'lumotlar…"
                   rows={2}
-                  className="field resize-none"
+                  className="field resize-none w-full"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-line">
               <button
                 type="button"
                 onClick={() => setPlanModalOpen(false)}
@@ -1010,7 +933,7 @@ export default function CurriculumSection({
                 type="button"
                 onClick={handleSavePlanModal}
                 disabled={saving || !editingPlan.yonalish}
-                className="btn-primary h-9 px-4 text-[13px] font-bold"
+                className="btn-primary h-9 px-5 text-[13px] font-bold"
               >
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                 <span>Saqlash</span>
@@ -1024,16 +947,16 @@ export default function CurriculumSection({
       {newYearModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="fixed inset-0 bg-ink-950/75 backdrop-blur-sm"
+            className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
             onClick={() => setNewYearModalOpen(false)}
           />
-          <div className="relative w-full max-w-sm rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4">
+          <div className="relative w-full max-w-sm rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4 animate-scale-up">
             <div className="flex items-center justify-between border-b border-line pb-2.5">
               <h3 className="text-[15px] font-bold text-fg">Yangi o'quv yili kiritish</h3>
               <button
                 type="button"
                 onClick={() => setNewYearModalOpen(false)}
-                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-ink-800"
+                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
               >
                 <X size={16} />
               </button>
@@ -1048,8 +971,9 @@ export default function CurriculumSection({
                 placeholder="Masalan: 2027/2028"
                 value={customYearInput}
                 onChange={(e) => setCustomYearInput(e.target.value)}
-                className="field h-10 mono text-[14px]"
+                className="field h-10 mono text-[14px] w-full"
                 autoFocus
+                autoComplete="off"
               />
             </div>
 
@@ -1085,10 +1009,10 @@ export default function CurriculumSection({
       {assignModalOpen && activePlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="fixed inset-0 bg-ink-950/75 backdrop-blur-sm"
+            className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
             onClick={() => setAssignModalOpen(false)}
           />
-          <div className="relative w-full max-w-xl rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4">
+          <div className="relative w-full max-w-xl rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4 animate-scale-up">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h3 className="text-[16px] font-extrabold text-fg">
@@ -1101,7 +1025,7 @@ export default function CurriculumSection({
               <button
                 type="button"
                 onClick={() => setAssignModalOpen(false)}
-                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-ink-800"
+                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
               >
                 <X size={16} />
               </button>
@@ -1172,7 +1096,7 @@ export default function CurriculumSection({
                   type="button"
                   onClick={handleSaveAssignedGroups}
                   disabled={saving}
-                  className="btn-success h-9 px-4 text-[13px] font-bold"
+                  className="btn-success h-9 px-4 text-[13px] font-bold flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
                   <span>Biriktirishni saqlash</span>

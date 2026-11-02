@@ -1,9 +1,9 @@
 {
-  "version": "2.0.582",
-  "build": 582,
-  "commit": "6d5ce68",
-  "commitDate": "2026-11-02T21:52:57+05:00",
-  "lastPushDate": "2026-11-02T21:52:57+05:00",
-  "commitMessage": "fix: O'quv reja modal UI to'g'rilandi, statistika o'rniga GitHub yangilanishi sidebarga ko'chirildi va Supabase setup_all.sql yaratildi",
-  "generatedAt": "2026-11-02T17:18:54.534Z"
+  "version": "2.0.583",
+  "build": 583,
+  "commit": "56979fa",
+  "commitDate": "2026-11-02T22:19:40+05:00",
+  "lastPushDate": "2026-11-02T22:19:40+05:00",
+  "commitMessage": "feat: 2026/2027 Farmatsiya (26-01) va Hamshiralik ishi (26-02..26-07 hamda 25-16,17,18,23) o'quv rejalari va barcha semestr fanlari bazaga to'liq kiritildi",
+  "generatedAt": "2026-11-02T17:31:39.108Z"
 }
