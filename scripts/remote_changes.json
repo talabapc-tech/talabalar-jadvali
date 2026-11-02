@@ -10,5 +10,17 @@
     },
     "id": "chg_1793629747350_2x880",
     "created_at": "2026-11-02T14:29:07.350Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 567,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "41609932560069",
+      "ism": "Ataullayeva Farida"
+    },
+    "id": "chg_1793629752925_xtvu2",
+    "created_at": "2026-11-02T14:29:12.925Z"
   }
 ]
