@@ -154,5 +154,17 @@
     },
     "id": "chg_1793630416202_jnafp",
     "created_at": "2026-11-02T14:40:16.202Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 181,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "60106035590029",
+      "ism": "Irgasheva Dinora"
+    },
+    "id": "chg_1793630416927_rogsx",
+    "created_at": "2026-11-02T14:40:16.927Z"
   }
 ]
