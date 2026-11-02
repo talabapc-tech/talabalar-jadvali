@@ -21,11 +21,13 @@ import {
   Loader2,
   Maximize2,
   Plus,
+  Redo2,
   RotateCcw,
   Save,
   Share2,
   Sparkles,
   Trash2,
+  Undo2,
   Users,
   X,
   Zap,
@@ -45,6 +47,7 @@ import {
   hisoblaReyting,
   parseBaho,
   reytingSeed,
+  type AmField,
   type AmaliyotRow,
   type BahoRow,
   type BaholarPayload,
@@ -60,7 +63,6 @@ type SubView = 'baholar' | 'amaliyot'
 type Birlik = 'ball5' | 'reyting'
 const PREF_KEY = 'baholar_prefs_v2'
 const AM_FIELDS = ['joy', 'boshlanish', 'tugash', 'ball', 'izoh'] as const
-type AmField = (typeof AM_FIELDS)[number]
 
 interface ShareLinkItem {
   id: string
@@ -126,8 +128,15 @@ export default function BaholarSection({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<{ text: string; setup: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
-  const [edits, setEdits] = useState<Record<string, string>>({}) // baholar: pinfl|fan|key
+
+  // Baholar tahrirlari
+  const [edits, setEdits] = useState<Record<string, string>>({}) // key: pinfl|fan|key
   const [amEdits, setAmEdits] = useState<Record<string, string>>({}) // amaliyot: pinfl|field
+
+  // Bekor qilish (Undo) va Qaytarish (Redo) tarixi
+  const [undoStack, setUndoStack] = useState<Record<string, string>[]>([])
+  const [redoStack, setRedoStack] = useState<Record<string, string>[]>([])
+
   const [newFan, setNewFan] = useState('')
   const [amNom, setAmNom] = useState(DEFAULT_AMALIYOT)
   const [newAm, setNewAm] = useState('')
@@ -301,6 +310,8 @@ export default function BaholarSection({
       setData(body as BaholarPayload)
       setEdits({})
       setAmEdits({})
+      setUndoStack([])
+      setRedoStack([])
     } catch (e) {
       setData(null)
       setError({ text: (e as Error).message, setup: false })
@@ -458,8 +469,17 @@ export default function BaholarSection({
     return m
   }, [rows, fanlar, bahoMap, edits, semestr])
 
+  /* ---------------------------- Undo / Redo Tizimi ---------------------------- */
+
   const setCell = (pinfl: string, fan: string, key: Kiritiladigan, value: string) => {
     const k = `${pinfl}|${fan}|${key}`
+    const curVal = edits[k] ?? serverText(pinfl, fan, key)
+    if (curVal === value.trim()) return
+
+    // O'zgarishdan oldingi holatni Undo tarixiga yozish
+    setUndoStack((u) => [...u.slice(-50), edits])
+    setRedoStack([])
+
     setEdits((e) => {
       const next = { ...e }
       if (value.trim() === serverText(pinfl, fan, key)) delete next[k]
@@ -468,12 +488,38 @@ export default function BaholarSection({
     })
   }
 
+  const handleUndo = useCallback(() => {
+    setUndoStack((u) => {
+      if (!u.length) return u
+      const prev = u[u.length - 1]
+      const nextU = u.slice(0, -1)
+      setEdits((currentEdits) => {
+        setRedoStack((r) => [...r.slice(-50), currentEdits])
+        return prev
+      })
+      return nextU
+    })
+  }, [])
+
+  const handleRedo = useCallback(() => {
+    setRedoStack((r) => {
+      if (!r.length) return r
+      const next = r[r.length - 1]
+      const nextR = r.slice(0, -1)
+      setEdits((currentEdits) => {
+        setUndoStack((u) => [...u.slice(-50), currentEdits])
+        return next
+      })
+      return nextR
+    })
+  }, [])
+
   const invalidCount = useMemo(
     () => Object.values(edits).filter((v) => parseBaho(v) === undefined).length,
     [edits],
   )
 
-  const saveBaholar = async () => {
+  const saveBaholar = useCallback(async () => {
     if (invalidCount) {
       notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
       return
@@ -494,6 +540,187 @@ export default function BaholarSection({
       notify(`Saqlanmadi: ${(e as Error).message}`, 'error')
     } finally {
       setSaving(false)
+    }
+  }, [invalidCount, edits, shown, post, notify, load])
+
+
+  const amInvalid = useMemo(
+    () => Object.entries(amEdits).filter(([k, v]) => k.endsWith('|ball') && parseBaho(v) === undefined).length,
+    [amEdits],
+  )
+
+  const canSave =
+    view === 'baholar'
+      ? Object.keys(edits).length > 0 && !invalidCount
+      : Object.keys(amEdits).length > 0 && !amInvalid
+
+  /* ---------------------------- Global Tezkor Klavishlar (MS Office / Excel) ---------------------------- */
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement as HTMLElement | null
+      const isInput = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA'
+      const isCellInput = activeEl?.hasAttribute('data-cell')
+
+      // 1. Ctrl + S: Tezkor saqlash
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (canSave && !saving) {
+          if (view === 'baholar') void saveBaholar()
+        }
+        return
+      }
+
+      // 2. Ctrl + Z: Bekor qilish (Undo)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (isInput && !isCellInput) return // Oddiy input bo'lsa brauzerning o'zi ishlaydi
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+        return
+      }
+
+      // 3. Ctrl + Y: Qaytarish (Redo)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        if (isInput && !isCellInput) return
+        e.preventDefault()
+        handleRedo()
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [handleUndo, handleRedo, canSave, saving, view, saveBaholar])
+
+  /* ---------------------------- Kataklararo Harakatlanish va Excel Paste ---------------------------- */
+
+  const cellColsMap = useMemo(() => {
+    const arr: { fan: string; key: Kiritiladigan }[] = []
+    for (const f of visibleFanlar) {
+      arr.push({ fan: f.nom, key: 'yakuniy' })
+      arr.push({ fan: f.nom, key: 'joriy' })
+      arr.push({ fan: f.nom, key: 'oraliq' })
+      arr.push({ fan: f.nom, key: 'r_semestr' })
+    }
+    return arr
+  }, [visibleFanlar])
+
+  const onCellKey = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    r: number,
+    c: number,
+    totalCols: number,
+    refContainer: React.RefObject<HTMLDivElement | null>,
+  ) => {
+    let nextR = r
+    let nextC = c
+
+    if (e.key === 'ArrowDown') {
+      nextR = r + 1
+    } else if (e.key === 'ArrowUp') {
+      nextR = r - 1
+    } else if (e.key === 'ArrowRight') {
+      nextC = c + 1
+      if (nextC >= totalCols && r + 1 < rows.length) {
+        nextC = 0
+        nextR = r + 1
+      }
+    } else if (e.key === 'ArrowLeft') {
+      nextC = c - 1
+      if (nextC < 0 && r > 0) {
+        nextC = totalCols - 1
+        nextR = r - 1
+      }
+    } else if (e.key === 'Enter') {
+      // Excel uslubi: Enter pastga, Shift+Enter tepaga
+      nextR = e.shiftKey ? r - 1 : r + 1
+    } else if (e.key === 'Tab') {
+      // Excel uslubi: Tab o'ngga, Shift+Tab chapga
+      nextC = e.shiftKey ? c - 1 : c + 1
+      if (nextC >= totalCols && r + 1 < rows.length) {
+        nextC = 0
+        nextR = r + 1
+      } else if (nextC < 0 && r > 0) {
+        nextC = totalCols - 1
+        nextR = r - 1
+      }
+    } else if (e.key === 'Home') {
+      if (e.ctrlKey) {
+        nextR = 0
+        nextC = 0
+      } else {
+        nextC = 0
+      }
+    } else if (e.key === 'End') {
+      if (e.ctrlKey) {
+        nextR = rows.length - 1
+        nextC = totalCols - 1
+      } else {
+        nextC = totalCols - 1
+      }
+    } else if (e.key === 'PageDown') {
+      nextR = Math.min(r + 10, rows.length - 1)
+    } else if (e.key === 'PageUp') {
+      nextR = Math.max(r - 10, 0)
+    } else if (e.key === 'Escape') {
+      e.currentTarget.blur()
+      return
+    } else {
+      return
+    }
+
+    if (nextR >= 0 && nextR < rows.length && nextC >= 0 && nextC < totalCols) {
+      e.preventDefault()
+      const target = refContainer.current?.querySelector<HTMLInputElement>(
+        `[data-cell="${nextR}:${nextC}"]`,
+      )
+      if (target) {
+        target.focus()
+        target.select()
+      }
+    }
+  }
+
+  // Excel'dan ko'chirilgan ustun/satr baholarni to'g'ridan-to'g'ri jadvalga joylash (Paste)
+  const handlePaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    startR: number,
+    startC: number,
+    colsList: { fan: string; key: Kiritiladigan }[],
+  ) => {
+    const clip = e.clipboardData.getData('text')
+    if (!clip) return
+
+    const lines = clip.split(/\r?\n/).filter((l) => l.trim() !== '')
+    if (lines.length > 1 || lines[0].includes('\t')) {
+      e.preventDefault()
+      const newItems: Record<string, string> = {}
+      lines.forEach((line, rOffset) => {
+        const targetR = startR + rOffset
+        if (targetR >= rows.length) return
+        const values = line.split('\t')
+        values.forEach((v, cOffset) => {
+          const targetC = startC + cOffset
+          if (targetC >= colsList.length) return
+          const clean = v.trim()
+          const p = parseBaho(clean)
+          if (p !== undefined && p !== null) {
+            const colInfo = colsList[targetC]
+            newItems[`${rows[targetR].pinfl}|${colInfo.fan}|${colInfo.key}`] = String(p)
+          }
+        })
+      })
+
+      if (Object.keys(newItems).length > 0) {
+        setUndoStack((u) => [...u.slice(-50), edits])
+        setRedoStack([])
+        setEdits((prev) => ({ ...prev, ...newItems }))
+        notify(`${Object.keys(newItems).length} ta baho Excel'dan jadvalga joylandi!`, 'success')
+      }
     }
   }
 
@@ -532,51 +759,6 @@ export default function BaholarSection({
       notify(`"${nom}" fani o'chirildi`, 'warning')
     } catch (e) {
       notify(`O'chirilmadi: ${(e as Error).message}`, 'error')
-    }
-  }
-
-  /**
-   * 4-yo'nalishli strelkalar va Enter bilan tezkor katakdan-katakka o'tish (Excel uslubi)
-   */
-  const onCellKey = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    r: number,
-    c: number,
-    totalCols: number,
-    refContainer: React.RefObject<HTMLDivElement | null>,
-  ) => {
-    let nextR = r
-    let nextC = c
-
-    if (e.key === 'ArrowDown' || e.key === 'Enter') {
-      nextR = r + 1
-    } else if (e.key === 'ArrowUp') {
-      nextR = r - 1
-    } else if (e.key === 'ArrowRight') {
-      nextC = c + 1
-      if (nextC >= totalCols && r + 1 < rows.length) {
-        nextC = 0
-        nextR = r + 1
-      }
-    } else if (e.key === 'ArrowLeft') {
-      nextC = c - 1
-      if (nextC < 0 && r > 0) {
-        nextC = totalCols - 1
-        nextR = r - 1
-      }
-    } else {
-      return
-    }
-
-    if (nextR >= 0 && nextR < rows.length && nextC >= 0 && nextC < totalCols) {
-      e.preventDefault()
-      const target = refContainer.current?.querySelector<HTMLInputElement>(
-        `[data-cell="${nextR}:${nextC}"]`,
-      )
-      if (target) {
-        target.focus()
-        target.select()
-      }
     }
   }
 
@@ -635,10 +817,6 @@ export default function BaholarSection({
       return next
     })
   }
-  const amInvalid = useMemo(
-    () => Object.entries(amEdits).filter(([k, v]) => k.endsWith('|ball') && parseBaho(v) === undefined).length,
-    [amEdits],
-  )
 
   const amReyting = (pinfl: string): number | null => {
     const edited = `${pinfl}|ball` in amEdits
@@ -859,13 +1037,6 @@ export default function BaholarSection({
     setTimeout(() => setCopiedToken(null), 3000)
   }
 
-  /* ---------------------------- Ko'rinish va Render ---------------------------- */
-
-  const canSave =
-    view === 'baholar'
-      ? Object.keys(edits).length > 0 && !invalidCount
-      : Object.keys(amEdits).length > 0 && !amInvalid
-
   const groupsByKurs = useMemo(() => {
     const m = new Map<number, string[]>()
     for (const g of groups) m.set(kursOf(g) ?? 0, [...(m.get(kursOf(g) ?? 0) ?? []), g])
@@ -874,7 +1045,7 @@ export default function BaholarSection({
 
   return (
     <div className="space-y-4">
-      {/* Yuqori Panel: Guruh, Semestr, Rejimlar va Asosiy boshqaruv */}
+      {/* Yuqori Panel: Guruh, Semestr, Rejimlar, Undo/Redo va Asosiy boshqaruv */}
       <div className="panel space-y-3 p-3 sm:p-4 bg-ink-900/80 border-line shadow-lg">
         <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-end">
           <div className="sm:w-44">
@@ -947,7 +1118,33 @@ export default function BaholarSection({
             ))}
           </div>
 
-          <div className="col-span-2 flex items-center gap-2 sm:ml-auto sm:col-span-1 flex-wrap">
+          <div className="col-span-2 flex items-center gap-1.5 sm:gap-2 sm:ml-auto sm:col-span-1 flex-wrap">
+            {/* Bekor qilish (Undo) va Qaytarish (Redo) tugmalari */}
+            {view === 'baholar' && (
+              <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={undoStack.length === 0}
+                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                  title="Bekor qilish (Ctrl + Z)"
+                  aria-label="Bekor qilish"
+                >
+                  <Undo2 size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                  title="Qaytarish (Ctrl + Y yoki Ctrl + Shift + Z)"
+                  aria-label="Qaytarish"
+                >
+                  <Redo2 size={15} />
+                </button>
+              </div>
+            )}
+
             {dirty > 0 && (
               <span className="chip border-amber/50 bg-amber/10 text-amber font-bold">
                 {dirty} ta o'zgarish
@@ -981,9 +1178,10 @@ export default function BaholarSection({
 
             <button
               type="button"
-              className="btn-success h-9 px-4 font-bold shadow-md"
+              className="btn-success h-9 px-4 font-bold shadow-md flex items-center gap-1.5"
               onClick={view === 'baholar' ? saveBaholar : saveAmaliyot}
               disabled={!canSave || saving}
+              title="Saqlash (Ctrl + S)"
             >
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
               <span>Saqlash</span>
@@ -1358,7 +1556,7 @@ export default function BaholarSection({
                               )
                             }
 
-                            // 5 ball ko'rinishida BARCHA 4 TA KATAK (shu jumladan R-semestr) FOYDALANUVCHI TOMONIDAN TAHRIRLANADI
+                            // 5 ball ko'rinishida BARCHA 4 TA KATAK FOYDALANUVCHI TOMONIDAN TAHRIRLANADI
                             const key = t.key as Kiritiladigan
                             const v = shown(s.pinfl, f.nom, key)
                             const changed = `${s.pinfl}|${f.nom}|${key}` in edits
@@ -1385,6 +1583,7 @@ export default function BaholarSection({
                                   aria-label={`${fullName(s)} — ${f.nom} — ${t.label}`}
                                   onChange={(e) => setCell(s.pinfl, f.nom, key, e.target.value)}
                                   onKeyDown={(e) => onCellKey(e, r, colIdx, totalCols, tableRef)}
+                                  onPaste={(e) => handlePaste(e, r, colIdx, cellColsMap)}
                                   onFocus={(e) => e.currentTarget.select()}
                                 />
                               </td>
@@ -1412,13 +1611,16 @@ export default function BaholarSection({
           {/* Pastki eslatma */}
           <div className="border-t border-line px-3 py-2 text-[11.5px] leading-relaxed text-fg-subtle flex flex-wrap items-center justify-between gap-2">
             <div>
-              <span className="font-bold text-sky-soft">Tezkor boshqaruv:</span> Kataklar orasida{' '}
+              <span className="font-bold text-sky-soft">Tezkor klaviatura (Excel):</span>{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + Z</kbd> (bekor qilish),{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + Y</kbd> (qaytarish),{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + S</kbd> (saqlash),{' '}
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + V</kbd> (Excel'dan joylash). Kataklar orasida{' '}
               <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">↑</kbd>{' '}
               <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">↓</kbd>{' '}
               <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">←</kbd>{' '}
               <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">→</kbd> yoki{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Enter</kbd> bilan yuring. Talaba
-              tartibini o'zgartirish uchun raqam ustidan ushlab sudrang.
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Enter</kbd> / <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Tab</kbd> bilan yuring.
             </div>
             {hiddenFanlar.length > 0 && (
               <button
@@ -1657,11 +1859,34 @@ export default function BaholarSection({
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Fokus oynasida ham Undo / Redo */}
+                <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-900 p-0.5">
+                  <button
+                    type="button"
+                    onClick={handleUndo}
+                    disabled={undoStack.length === 0}
+                    className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25"
+                    title="Bekor qilish (Ctrl + Z)"
+                  >
+                    <Undo2 size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRedo}
+                    disabled={redoStack.length === 0}
+                    className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25"
+                    title="Qaytarish (Ctrl + Y)"
+                  >
+                    <Redo2 size={14} />
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={saveBaholar}
                   disabled={saving || !dirty}
                   className="btn-success h-9 px-4 text-[13px] font-bold flex items-center gap-1.5"
+                  title="Saqlash (Ctrl + S)"
                 >
                   {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                   <span>Saqlash</span>
@@ -1692,6 +1917,8 @@ export default function BaholarSection({
                 <tbody className="divide-y divide-line/40">
                   {rows.map((s, r) => {
                     const focusCols: Kiritiladigan[] = ['yakuniy', 'joriy', 'oraliq', 'r_semestr']
+                    const focusColsList = focusCols.map((k) => ({ fan: focusedFan, key: k }))
+
                     return (
                       <tr key={s.pinfl} className="hover:bg-ink-850/60 transition-colors">
                         <td className="py-2.5 px-3 text-center text-[12px] font-mono text-fg-subtle">
@@ -1715,6 +1942,7 @@ export default function BaholarSection({
                                 )}
                                 onChange={(e) => setCell(s.pinfl, focusedFan, colKey, e.target.value)}
                                 onKeyDown={(e) => onCellKey(e, r, c, 4, focusTableRef)}
+                                onPaste={(e) => handlePaste(e, r, c, focusColsList)}
                                 onFocus={(e) => e.currentTarget.select()}
                               />
                             </td>
@@ -1729,9 +1957,10 @@ export default function BaholarSection({
 
             <div className="p-3 bg-ink-950 border-t border-line text-[11.5px] text-fg-subtle flex items-center justify-between">
               <span>
-                Klaviatura strelkalari (<kbd className="font-mono text-fg">↑</kbd>{' '}
-                <kbd className="font-mono text-fg">↓</kbd> <kbd className="font-mono text-fg">←</kbd>{' '}
-                <kbd className="font-mono text-fg">→</kbd> / Enter) orqali tezkor harakatlaning.
+                Klaviatura: <kbd className="font-mono text-fg">Ctrl+Z</kbd> (bekor qilish),{' '}
+                <kbd className="font-mono text-fg">Ctrl+Y</kbd> (qaytarish),{' '}
+                <kbd className="font-mono text-fg">Ctrl+S</kbd> (saqlash),{' '}
+                <kbd className="font-mono text-fg">Ctrl+V</kbd> (Excel'dan joylash).
               </span>
               <button
                 type="button"

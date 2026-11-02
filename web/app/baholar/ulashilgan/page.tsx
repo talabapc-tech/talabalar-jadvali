@@ -9,7 +9,9 @@ import {
   CheckCircle2,
   GraduationCap,
   Loader2,
+  Redo2,
   Save,
+  Undo2,
   Users,
 } from 'lucide-react'
 import { parseBaho } from '@/lib/baholar'
@@ -47,6 +49,11 @@ function TeacherGradesContent() {
   const [students, setStudents] = useState<StudentItem[]>([])
   const [gradesMap, setGradesMap] = useState<Record<string, GradeRow>>({})
   const [edits, setEdits] = useState<Record<string, string>>({}) // key: pinfl|col
+
+  // Undo / Redo
+  const [undoStack, setUndoStack] = useState<Record<string, string>[]>([])
+  const [redoStack, setRedoStack] = useState<Record<string, string>[]>([])
+
   const [saving, setSaving] = useState(false)
   const [savedSuccess, setSavedSuccess] = useState(false)
   const tableRef = useRef<HTMLDivElement>(null)
@@ -79,6 +86,8 @@ function TeacherGradesContent() {
       }
       setGradesMap(map)
       setEdits({})
+      setUndoStack([])
+      setRedoStack([])
     } catch (err) {
       setError(`Server bilan aloqa xatosi: ${(err as Error).message}`)
     } finally {
@@ -104,6 +113,12 @@ function TeacherGradesContent() {
     const key = `${pinfl}|${col}`
     const original = gradesMap[pinfl]?.[col]
     const origStr = original !== null && original !== undefined ? String(original) : ''
+    if ((edits[key] ?? origStr) === val.trim()) return
+
+    // Undo stack
+    setUndoStack((u) => [...u.slice(-50), edits])
+    setRedoStack([])
+
     setEdits((prev) => {
       const next = { ...prev }
       if (val.trim() === origStr) {
@@ -115,52 +130,37 @@ function TeacherGradesContent() {
     })
   }
 
-  const handleKeyNav = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    rowIndex: number,
-    colIndex: number,
-  ) => {
-    let nextRow = rowIndex
-    let nextCol = colIndex
+  const handleUndo = useCallback(() => {
+    setUndoStack((u) => {
+      if (!u.length) return u
+      const prev = u[u.length - 1]
+      const nextU = u.slice(0, -1)
+      setEdits((cur) => {
+        setRedoStack((r) => [...r.slice(-50), cur])
+        return prev
+      })
+      return nextU
+    })
+  }, [])
 
-    if (e.key === 'ArrowDown' || e.key === 'Enter') {
-      nextRow = rowIndex + 1
-    } else if (e.key === 'ArrowUp') {
-      nextRow = rowIndex - 1
-    } else if (e.key === 'ArrowRight') {
-      nextCol = colIndex + 1
-      if (nextCol >= cols.length && rowIndex + 1 < students.length) {
-        nextCol = 0
-        nextRow = rowIndex + 1
-      }
-    } else if (e.key === 'ArrowLeft') {
-      nextCol = colIndex - 1
-      if (nextCol < 0 && rowIndex > 0) {
-        nextCol = cols.length - 1
-        nextRow = rowIndex - 1
-      }
-    } else {
-      return
-    }
-
-    if (nextRow >= 0 && nextRow < students.length && nextCol >= 0 && nextCol < cols.length) {
-      e.preventDefault()
-      const target = tableRef.current?.querySelector<HTMLInputElement>(
-        `[data-cell="${nextRow}:${nextCol}"]`,
-      )
-      if (target) {
-        target.focus()
-        target.select()
-      }
-    }
-  }
+  const handleRedo = useCallback(() => {
+    setRedoStack((r) => {
+      if (!r.length) return r
+      const next = r[r.length - 1]
+      const nextR = r.slice(0, -1)
+      setEdits((cur) => {
+        setUndoStack((u) => [...u.slice(-50), cur])
+        return next
+      })
+      return nextR
+    })
+  }, [])
 
   const dirtyCount = Object.keys(edits).length
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!dirtyCount || !token) return
 
-    // Tekshirish: faqat 2, 3, 4, 5 yoki bo'sh
     for (const [k, v] of Object.entries(edits)) {
       if (v.trim() !== '' && parseBaho(v) === undefined) {
         alert("Noto'g'ri baho kiritilgan! Faqat 2, 3, 4 yoki 5 bo'lishi kerak.")
@@ -200,6 +200,144 @@ function TeacherGradesContent() {
       alert(`Xatolik: ${(err as Error).message}`)
     } finally {
       setSaving(false)
+    }
+  }, [dirtyCount, token, edits, loadData])
+
+  // Global tezkor klavishlar
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ctrl + S: Saqlash
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (dirtyCount && !saving) void handleSave()
+        return
+      }
+
+      // Ctrl + Z: Undo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) handleRedo()
+        else handleUndo()
+        return
+      }
+
+      // Ctrl + Y: Redo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        handleRedo()
+        return
+      }
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+  }, [handleUndo, handleRedo, handleSave, dirtyCount, saving])
+
+  const handleKeyNav = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    rowIndex: number,
+    colIndex: number,
+  ) => {
+    let nextRow = rowIndex
+    let nextCol = colIndex
+
+    if (e.key === 'ArrowDown') {
+      nextRow = rowIndex + 1
+    } else if (e.key === 'ArrowUp') {
+      nextRow = rowIndex - 1
+    } else if (e.key === 'ArrowRight') {
+      nextCol = colIndex + 1
+      if (nextCol >= cols.length && rowIndex + 1 < students.length) {
+        nextCol = 0
+        nextRow = rowIndex + 1
+      }
+    } else if (e.key === 'ArrowLeft') {
+      nextCol = colIndex - 1
+      if (nextCol < 0 && rowIndex > 0) {
+        nextCol = cols.length - 1
+        nextRow = rowIndex - 1
+      }
+    } else if (e.key === 'Enter') {
+      nextRow = e.shiftKey ? rowIndex - 1 : rowIndex + 1
+    } else if (e.key === 'Tab') {
+      nextCol = e.shiftKey ? colIndex - 1 : colIndex + 1
+      if (nextCol >= cols.length && rowIndex + 1 < students.length) {
+        nextCol = 0
+        nextRow = rowIndex + 1
+      } else if (nextCol < 0 && rowIndex > 0) {
+        nextCol = cols.length - 1
+        nextRow = rowIndex - 1
+      }
+    } else if (e.key === 'Home') {
+      if (e.ctrlKey) {
+        nextRow = 0
+        nextCol = 0
+      } else {
+        nextCol = 0
+      }
+    } else if (e.key === 'End') {
+      if (e.ctrlKey) {
+        nextRow = students.length - 1
+        nextCol = cols.length - 1
+      } else {
+        nextCol = cols.length - 1
+      }
+    } else if (e.key === 'PageDown') {
+      nextRow = Math.min(rowIndex + 10, students.length - 1)
+    } else if (e.key === 'PageUp') {
+      nextRow = Math.max(rowIndex - 10, 0)
+    } else if (e.key === 'Escape') {
+      e.currentTarget.blur()
+      return
+    } else {
+      return
+    }
+
+    if (nextRow >= 0 && nextRow < students.length && nextCol >= 0 && nextCol < cols.length) {
+      e.preventDefault()
+      const target = tableRef.current?.querySelector<HTMLInputElement>(
+        `[data-cell="${nextRow}:${nextCol}"]`,
+      )
+      if (target) {
+        target.focus()
+        target.select()
+      }
+    }
+  }
+
+  // Excel paste
+  const handlePaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    startR: number,
+    startC: number,
+  ) => {
+    const clip = e.clipboardData.getData('text')
+    if (!clip) return
+
+    const lines = clip.split(/\r?\n/).filter((l) => l.trim() !== '')
+    if (lines.length > 1 || lines[0].includes('\t')) {
+      e.preventDefault()
+      const newEdits: Record<string, string> = {}
+      lines.forEach((line, rOffset) => {
+        const targetR = startR + rOffset
+        if (targetR >= students.length) return
+        const values = line.split('\t')
+        values.forEach((v, cOffset) => {
+          const targetC = startC + cOffset
+          if (targetC >= cols.length) return
+          const clean = v.trim()
+          const p = parseBaho(clean)
+          if (p !== undefined && p !== null) {
+            newEdits[`${students[targetR].pinfl}|${cols[targetC]}`] = String(p)
+          }
+        })
+      })
+
+      if (Object.keys(newEdits).length > 0) {
+        setUndoStack((u) => [...u.slice(-50), edits])
+        setRedoStack([])
+        setEdits((prev) => ({ ...prev, ...newEdits }))
+      }
     }
   }
 
@@ -258,6 +396,28 @@ function TeacherGradesContent() {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Undo / Redo */}
+              <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={undoStack.length === 0}
+                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                  title="Bekor qilish (Ctrl + Z)"
+                >
+                  <Undo2 size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={redoStack.length === 0}
+                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                  title="Qaytarish (Ctrl + Y)"
+                >
+                  <Redo2 size={14} />
+                </button>
+              </div>
+
               {dirtyCount > 0 && (
                 <span className="chip border-amber/50 bg-amber/10 text-amber font-bold">
                   {dirtyCount} ta o'zgarish
@@ -274,6 +434,7 @@ function TeacherGradesContent() {
                 onClick={handleSave}
                 disabled={saving || !dirtyCount}
                 className="btn-success h-10 px-5 text-[13.5px] font-bold shadow-lg flex items-center gap-1.5"
+                title="Saqlash (Ctrl + S)"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 <span>Saqlash</span>
@@ -287,7 +448,7 @@ function TeacherGradesContent() {
               <span>Talabalar soni: <b className="text-fg">{students.length} nafar</b></span>
             </div>
             <div className="hidden sm:inline">
-              Kataklar orasida <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">↑</kbd> <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">↓</kbd> <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">←</kbd> <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">→</kbd> yoki <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Enter</kbd> bilan tezkor yuring
+              Tezkor: <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Ctrl+Z</kbd> bekor qilish, <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Ctrl+Y</kbd> qaytarish, <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Ctrl+S</kbd> saqlash, <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Ctrl+V</kbd> Excel'dan joylash.
             </div>
           </div>
         </div>
@@ -330,6 +491,7 @@ function TeacherGradesContent() {
                             value={val}
                             onChange={(e) => handleCellChange(s.pinfl, col, e.target.value)}
                             onKeyDown={(e) => handleKeyNav(e, r, c)}
+                            onPaste={(e) => handlePaste(e, r, c)}
                             onFocus={(e) => e.currentTarget.select()}
                             className={`h-9 w-12 rounded-lg border text-center text-[14px] font-bold tabular-nums outline-none transition-all ${
                               isInvalid
