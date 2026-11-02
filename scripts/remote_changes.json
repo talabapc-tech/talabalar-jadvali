@@ -286,5 +286,17 @@
     },
     "id": "chg_1793630424908_7qssg",
     "created_at": "2026-11-02T14:40:24.908Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 571,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "62103095680022",
+      "ism": "Xayrullayeva Asila"
+    },
+    "id": "chg_1793630428460_pw8ks",
+    "created_at": "2026-11-02T14:40:28.460Z"
   }
 ]
