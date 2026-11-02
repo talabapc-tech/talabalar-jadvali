@@ -142,5 +142,17 @@
     },
     "id": "chg_1793630415279_o3zb6",
     "created_at": "2026-11-02T14:40:15.279Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 180,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "61008085680019",
+      "ism": "Qulmatova Shabbona"
+    },
+    "id": "chg_1793630416202_jnafp",
+    "created_at": "2026-11-02T14:40:16.202Z"
   }
 ]
