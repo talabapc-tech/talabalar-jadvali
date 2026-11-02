@@ -46,5 +46,17 @@
     },
     "id": "chg_1793629794576_y2e73",
     "created_at": "2026-11-02T14:29:54.576Z"
+  },
+  {
+    "type": "baza_student",
+    "data": {
+      "row": 572,
+      "status": "KIRITILDI",
+      "shnum": "334",
+      "pinfl": "62603085590057",
+      "ism": "Xurramova Nilufar"
+    },
+    "id": "chg_1793630000573_rsdd2",
+    "created_at": "2026-11-02T14:33:20.573Z"
   }
 ]
