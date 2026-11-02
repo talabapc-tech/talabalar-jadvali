@@ -130,5 +130,17 @@
     },
     "id": "chg_1793630407665_ej7pk",
     "created_at": "2026-11-02T14:40:07.665Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 79,
+      "status": "TASDIQLANDI",
+      "shnum": "25",
+      "pinfl": "42708915590028",
+      "ism": "Murtazayeva Kamola"
+    },
+    "id": "chg_1793630415279_o3zb6",
+    "created_at": "2026-11-02T14:40:15.279Z"
   }
 ]
