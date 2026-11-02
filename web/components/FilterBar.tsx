@@ -24,7 +24,7 @@ function Select({ label, value, onChange, options }: {
 }) {
   return (
     <label className="min-w-0">
-      <span className="label">{label}</span>
+      <span className="label truncate" title={label}>{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className={cx('field cursor-pointer pr-8', value && 'border-sky/50 text-sky-soft')}>
         <option value="">Barchasi</option>
         {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
@@ -118,7 +118,7 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
         </div>
       </div>
 
-      <div className={cx('mt-3 grid-cols-2 gap-3 md:grid md:grid-cols-4 xl:grid-cols-7', open ? 'grid' : 'hidden')}>
+      <div className={cx('mt-3 grid-cols-2 gap-2 sm:gap-3 md:grid md:grid-cols-4 xl:grid-cols-7', open ? 'grid' : 'hidden')}>
         <Select label="Guruh" value={filters.group} onChange={(v) => onFilter({ group: v })}
           options={[
             // Kontingent plitkalarida Ctrl bilan bir nechta guruh tanlanganda

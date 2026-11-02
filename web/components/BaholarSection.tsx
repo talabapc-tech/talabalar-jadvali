@@ -506,12 +506,12 @@ export default function BaholarSection({ students, notify }: { students: Student
           ) : rows.length === 0 ? (
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>
           ) : (
-            <div ref={tableRef} className="max-h-[72vh] overflow-auto">
+            <div ref={tableRef} className="max-h-[62vh] sm:max-h-[72vh] overflow-auto">
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
                 <thead className="sticky top-0 z-20">
                   <tr>
-                    <th rowSpan={2} className="sticky left-0 z-30 w-10 border-b border-r border-line bg-ink-900 px-2 py-2 text-center text-[11px] font-bold text-fg-subtle">№</th>
-                    <th rowSpan={2} className="sticky left-10 z-30 min-w-[13rem] border-b border-r border-line bg-ink-900 px-3 py-2 text-left text-[11px] font-bold tracking-wider text-fg-subtle uppercase">F.I.Sh.</th>
+                    <th rowSpan={2} className="sticky left-0 z-30 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-2 text-center text-[11px] font-bold text-fg-subtle">№</th>
+                    <th rowSpan={2} className="sticky left-8 sm:left-10 z-30 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-2 text-left text-[11px] font-bold tracking-wider text-fg-subtle uppercase">F.I.Sh.</th>
                     {fanlar.map((f) => (
                       <th key={f.nom} colSpan={4} className="border-b border-r border-line bg-ink-900 px-2 py-1.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
@@ -536,8 +536,8 @@ export default function BaholarSection({ students, notify }: { students: Student
                     const m = mean(rs, birlik === 'reyting' ? 2 : 1)
                     return (
                       <tr key={s.row} className="group">
-                        <td className="sticky left-0 z-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">{r + 1}</td>
-                        <td className="sticky left-10 z-10 border-b border-r border-line bg-ink-900 px-3 py-1 font-medium text-fg group-hover:bg-ink-800">{fullName(s)}</td>
+                        <td className="sticky left-0 z-10 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-1 text-center text-[11.5px] sm:text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">{r + 1}</td>
+                        <td className="sticky left-8 sm:left-10 z-10 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-medium text-fg group-hover:bg-ink-800" title={fullName(s)}>{fullName(s)}</td>
                         {fanlar.map((f, fi) => BAHO_TURLARI.map((t, ti) => {
                           const last = ti === BAHO_TURLARI.length - 1
                           const c = calc.get(`${s.pinfl}|${f.nom}`)
@@ -574,8 +574,8 @@ export default function BaholarSection({ students, notify }: { students: Student
                 </tbody>
                 <tfoot className="sticky bottom-0 z-20">
                   <tr>
-                    <td className="sticky left-0 z-30 border-t border-r border-line bg-ink-850" />
-                    <td className="sticky left-10 z-30 border-t border-r border-line bg-ink-850 px-3 py-1.5 text-[12px] font-bold text-fg-muted">Guruh o'rtachasi</td>
+                    <td className="sticky left-0 z-30 w-8 sm:w-10 border-t border-r border-line bg-ink-850" />
+                    <td className="sticky left-8 sm:left-10 z-30 min-w-[8.5rem] sm:min-w-[13rem] border-t border-r border-line bg-ink-850 px-2 sm:px-3 py-1.5 text-[11.5px] sm:text-[12px] font-bold text-fg-muted">Guruh o'rtachasi</td>
                     {fanlar.map((f) => BAHO_TURLARI.map((t, ti) => {
                       const a = mean(rows.map((s) => cellValue(calc.get(`${s.pinfl}|${f.nom}`), t.key)), birlik === 'reyting' ? 1 : 2)
                       return <td key={f.nom + t.key} className={cx('border-t border-line bg-ink-850 py-1.5 text-center text-[12px] font-semibold tabular-nums text-fg-muted', ti === BAHO_TURLARI.length - 1 && 'border-r')}>{a ?? '—'}</td>
@@ -635,12 +635,12 @@ export default function BaholarSection({ students, notify }: { students: Student
           {rows.length === 0 ? (
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>
           ) : (
-            <div ref={tableRef} className="max-h-[68vh] overflow-auto">
+            <div ref={tableRef} className="max-h-[60vh] sm:max-h-[68vh] overflow-auto">
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
                 <thead className="sticky top-0 z-20">
                   <tr className="text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
-                    <th className="sticky left-0 z-30 w-10 border-b border-r border-line bg-ink-900 px-2 py-2">№</th>
-                    <th className="sticky left-10 z-30 min-w-[13rem] border-b border-r border-line bg-ink-900 px-3 py-2 text-left">F.I.Sh.</th>
+                    <th className="sticky left-0 z-30 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-2">№</th>
+                    <th className="sticky left-8 sm:left-10 z-30 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-2 text-left">F.I.Sh.</th>
                     <th className="min-w-[16rem] border-b border-line bg-ink-900 px-2 py-2 text-left">Amaliyot joyi</th>
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Boshlanish</th>
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Tugash</th>
@@ -657,8 +657,8 @@ export default function BaholarSection({ students, notify }: { students: Student
                     const txt = (f: AmField, extra = '') => cx('field h-8 py-0', extra, ch(f) && 'border-amber/60 bg-amber/10')
                     return (
                       <tr key={s.row} className="group">
-                        <td className="sticky left-0 z-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">{r + 1}</td>
-                        <td className="sticky left-10 z-10 border-b border-r border-line bg-ink-900 px-3 py-1 font-medium text-fg group-hover:bg-ink-800">{fullName(s)}</td>
+                        <td className="sticky left-0 z-10 w-8 sm:w-10 border-b border-r border-line bg-ink-900 px-1.5 sm:px-2 py-1 text-center text-[11.5px] sm:text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">{r + 1}</td>
+                        <td className="sticky left-8 sm:left-10 z-10 min-w-[8.5rem] sm:min-w-[13rem] max-w-[10.5rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-medium text-fg group-hover:bg-ink-800" title={fullName(s)}>{fullName(s)}</td>
                         <td className="border-b border-line px-1 py-1"><input className={txt('joy')} value={amShown(s.pinfl, 'joy')} maxLength={200} onChange={(e) => setAm(s.pinfl, 'joy', e.target.value)} aria-label={`${fullName(s)} — amaliyot joyi`} /></td>
                         <td className="border-b border-line px-1 py-1"><input type="date" className={txt('boshlanish', 'w-[9.5rem]')} value={amShown(s.pinfl, 'boshlanish')} onChange={(e) => setAm(s.pinfl, 'boshlanish', e.target.value)} aria-label={`${fullName(s)} — boshlanish`} /></td>
                         <td className="border-b border-line px-1 py-1"><input type="date" className={txt('tugash', 'w-[9.5rem]')} value={amShown(s.pinfl, 'tugash')} onChange={(e) => setAm(s.pinfl, 'tugash', e.target.value)} aria-label={`${fullName(s)} — tugash`} /></td>

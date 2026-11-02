@@ -265,7 +265,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
       {/* 2. Filtrlar va qidiruv paneli */}
       <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-line bg-ink-900/80 p-3">
         {/* Qidiruv */}
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative w-full sm:w-auto sm:min-w-[220px] flex-1">
           <Search size={15} className="absolute top-1/2 left-3 -translate-y-1/2 text-fg-subtle" />
           <input
             value={query}
@@ -279,7 +279,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="field h-9 w-auto min-w-[170px] py-1 text-[12px] font-medium cursor-pointer border-emerald-500/30 text-emerald-300 bg-emerald-500/5"
+          className="field h-9 w-full sm:w-auto min-w-[155px] flex-1 sm:flex-none py-1 text-[12px] font-medium cursor-pointer border-emerald-500/30 text-emerald-300 bg-emerald-500/5"
         >
           {STAFF_CATEGORIES.map((c) => (
             <option key={c} value={c} className="bg-ink-900 text-fg">
@@ -292,7 +292,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
         <select
           value={dept}
           onChange={(e) => setDept(e.target.value)}
-          className="field h-9 w-auto min-w-[140px] py-1 text-[12px] cursor-pointer"
+          className="field h-9 w-full sm:w-auto min-w-[130px] flex-1 sm:flex-none py-1 text-[12px] cursor-pointer"
         >
           {STAFF_DEPARTMENTS.map((d) => (
             <option key={d} value={d} className="bg-ink-900 text-fg">Bo'lim: {d}</option>
@@ -366,7 +366,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
       ) : (
         <div className="overflow-hidden rounded-2xl border border-line bg-ink-900 shadow-md">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-[12.5px]">
+            <table className="w-full text-left text-[12.5px] min-w-[560px] sm:min-w-full">
               <thead className="border-b border-line bg-ink-850/80 text-[11px] font-bold text-fg-muted uppercase tracking-wider">
                 <tr>
                   <th className="py-3.5 px-4 w-12 text-center">№</th>

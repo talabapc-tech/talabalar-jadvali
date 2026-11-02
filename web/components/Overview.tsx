@@ -37,7 +37,7 @@ function Tile({
       onClick={onClick}
       aria-pressed={!!active}
       className={cx(
-        'panel group flex items-center gap-3.5 p-3 text-left transition-colors hover:border-line-strong hover:bg-ink-850 sm:p-4',
+        'panel group flex items-center gap-2.5 p-2.5 text-left transition-colors hover:border-line-strong hover:bg-ink-850 sm:gap-3.5 sm:p-4',
         active && 'border-sky/50 bg-ink-850 ring-1 ring-sky/30',
         className,
       )}
@@ -94,7 +94,7 @@ function Overview({ students, groups, filters, onFilter, onGroupSettings }: Prop
   return (
     <section className="space-y-4">
       {/* 7 ta plitka: telefonda 2 ustun, kompyuterda 4 — "Hujjati chala" ikki ustunni egallab bo'sh joy qoldirmaydi */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 2xl:grid-cols-7">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 2xl:grid-cols-7">
         <Tile icon={Users} tone="blue" label={filters.kurs ? `${filters.kurs}-kurs kontingenti` : 'Rasmiy kontingent'} value={stats.official} sub={`${groups.length} ta akademik guruh`}
           active={!filters.group && !filters.verified && !filters.baza && !filters.status} onClick={() => onFilter({ group: '', verified: '', baza: '', status: '' })} />
         <Tile icon={BadgeCheck} tone="emerald" label="Tasdiqlangan" value={<>{stats.verified}<span className="text-[15px] text-fg-subtle"> / {stats.official}</span></>}

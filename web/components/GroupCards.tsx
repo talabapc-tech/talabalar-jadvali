@@ -134,7 +134,7 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
       {/* Ustun kengligi guruhlar soniga mos — ko'p guruhli kurs kengroq, ustunlar balandligi teng */}
       <div
         className="grid gap-3 lg:grid-cols-[var(--cols)]"
-        style={{ '--cols': columns.map((c) => `minmax(0,${Math.max(2, Math.ceil(c.list.length / 2))}fr)`).join(' ') } as React.CSSProperties}
+        style={{ '--cols': columns.map((c) => `minmax(15.5rem,${Math.max(2, Math.ceil(c.list.length / 2))}fr)`).join(' ') } as React.CSSProperties}
       >
         {columns.map((c) => {
           const tone = TONE[c.k]
@@ -149,7 +149,7 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
               >
                 <span className={cx('mono text-[24px] leading-none font-extrabold', tone.text)}>{ROMAN[c.k]}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[14px] font-bold text-fg">{c.k}-kurs</span>
+                  <span className="block text-[14px] font-bold whitespace-nowrap text-fg">{c.k}-kurs</span>
                   <span className="block text-[12px] text-fg-muted">{c.list.length} ta guruh</span>
                 </span>
                 <span className="text-right">
@@ -171,7 +171,7 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                 </span>
               </button>
 
-              {!collapsed && <div className="grid grid-cols-3 gap-2 p-2.5 sm:gap-2.5 sm:p-3 xl:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
+              {!collapsed && <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-2 md:grid-cols-3 sm:gap-2.5 sm:p-3 xl:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]">
                 {c.list.map(({ g, total, ver }) => {
                   const p = total ? Math.round((ver / total) * 100) : 0
                   const on = chosen.includes(g)
@@ -183,7 +183,7 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                       title={`${g} · ${GROUP_LEADERS[g] || '—'} · ${groupTitle(g)}\nCtrl + bosish — bir nechtasini tanlash`}
                       onClick={(e) => pick(g, e.ctrlKey || e.metaKey)}
                       className={cx(
-                        'relative min-w-0 rounded-xl border p-2.5 text-left transition-all duration-150 select-none sm:p-3',
+                        'relative min-w-0 rounded-xl border p-2 text-left transition-all duration-150 select-none sm:p-3',
                         tone.ring,
                         on ? 'ring-2 ring-sky shadow-[0_10px_28px_-12px_rgb(56_189_248/0.7)]' : 'hover:-translate-y-px hover:brightness-125',
                         anyActive && !on && 'opacity-45 saturate-50 hover:opacity-100 hover:saturate-100',

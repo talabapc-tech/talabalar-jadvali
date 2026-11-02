@@ -204,7 +204,7 @@ function CardGrid({ students, duplicateRows, compact, onOpen, onToggleVerify, on
   )
 }
 
-const COLS = '40px 96px 74px minmax(190px,1.5fr) 120px 144px 88px 124px minmax(110px,1fr) 44px 104px 114px 34px'
+const COLS = '38px 84px 64px minmax(170px,1.25fr) 104px 134px 82px 110px minmax(105px,1fr) 42px 90px 102px 32px'
 
 const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleVerify, onToggleBaza }: {
   s: Student; n: number; dup: boolean; onOpen: (s: Student) => void; onToggleVerify: (s: Student) => void; onToggleBaza: (s: Student) => void
@@ -241,7 +241,7 @@ function Table({ students, duplicateRows, onOpen, onToggleVerify, onToggleBaza }
 
   return (
     <div className="panel overflow-x-auto">
-      <div className="min-w-[1440px]">
+      <div className="min-w-[1240px] xl:min-w-full">
         <div
           className="grid items-center gap-2 border-b border-line-strong bg-ink-850 px-4 py-3 text-[11px] font-bold tracking-wider text-fg-subtle uppercase"
           style={{ gridTemplateColumns: COLS }}

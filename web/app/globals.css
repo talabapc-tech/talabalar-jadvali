@@ -76,10 +76,12 @@
 
 html {
   background: var(--color-ink-950);
+  overflow-x: clip;
 }
 
 body {
   min-height: 100dvh;
+  overflow-x: clip;
   background: var(--color-ink-950);
   color: var(--color-fg);
   font-family: var(--font-sans);

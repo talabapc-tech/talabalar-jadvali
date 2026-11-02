@@ -62,7 +62,7 @@ function SyncBadge({ pendingCount, notify }: { pendingCount: number; notify: Not
         type="button"
         onClick={() => notify(text, offline ? 'error' : busy ? 'info' : 'success')}
         className={cx(
-          'chip size-9 shrink-0 justify-center rounded-xl px-0 text-[12.5px] lg:w-auto lg:cursor-default lg:px-3',
+          'chip size-9 shrink-0 justify-center rounded-xl px-0 text-[12.5px] 2xl:w-auto 2xl:cursor-default 2xl:px-3',
           offline ? 'border-rose/45 bg-rose/10 text-rose' : busy ? 'border-sky/40 bg-sky/10 text-sky-soft' : 'border-emerald/40 bg-emerald/10 text-emerald-soft',
         )}
         title={offline
@@ -73,12 +73,12 @@ function SyncBadge({ pendingCount, notify }: { pendingCount: number; notify: Not
           : pendingCount > 0 ? <Loader2 size={14} className="shrink-0 animate-spin" />
           : gitPending ? <CloudUpload size={14} className="shrink-0 animate-pulse" />
           : <CloudCheck size={14} className="shrink-0" />}
-        <span className="hidden lg:inline">{text}</span>
+        <span className="hidden 2xl:inline">{text}</span>
       </button>
       {local && !offline && (
         <button type="button" className="btn-ghost h-9 shrink-0 px-2.5" onClick={flush} disabled={flushing} title="30 soniyani kutmasdan hisobotni qayta yaratib GitHub'ga yuborish">
           <CloudUpload size={15} />
-          <span className="hidden xl:inline">Hozir yuborish</span>
+          <span className="hidden 2xl:inline">Hozir yuborish</span>
         </button>
       )}
     </>
@@ -155,7 +155,7 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
     <div ref={ref} className="relative shrink-0">
       <button type="button" className="btn-primary h-9 px-3" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu">
         <FileSpreadsheet size={16} />
-        <span>Excel<span className="hidden lg:inline">&nbsp;eksport</span></span>
+        <span>Excel<span className="hidden 2xl:inline">&nbsp;eksport</span></span>
         <ChevronDown size={14} className={cx('transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
@@ -242,9 +242,9 @@ type MainTab = 'students' | 'staff' | 'grades'
 
 function SettingsButton({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" className="btn-ghost size-9 shrink-0 p-0 xl:w-auto xl:px-2.5" onClick={onClick} title="Sozlamalar (API kalitlar, AI modellar)" aria-label="Sozlamalar">
+    <button type="button" className="btn-ghost size-9 shrink-0 p-0 2xl:w-auto 2xl:px-2.5" onClick={onClick} title="Sozlamalar (API kalitlar, AI modellar)" aria-label="Sozlamalar">
       <Settings size={15} />
-      <span className="hidden xl:inline">Sozlamalar</span>
+      <span className="hidden 2xl:inline">Sozlamalar</span>
     </button>
   )
 }
@@ -300,7 +300,7 @@ export default function Header({
     // fixed menyuning (pastdan chiqadigan) joylashuvini buzadi
     <header className="no-print z-40 border-b border-line bg-ink-950 sm:sticky sm:top-0 sm:bg-ink-950/85 sm:backdrop-blur-md">
       <div className="mx-auto flex max-w-[1680px] flex-wrap items-center gap-x-4 gap-y-2.5 px-3 py-2.5 sm:px-6 sm:py-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:min-w-[16rem] lg:flex-none lg:w-auto xl:flex-1">
           <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-sky/30 bg-gradient-to-br from-emerald/20 via-blue/20 to-sky/20 sm:size-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="" className="size-6 sm:size-7" />
@@ -320,13 +320,13 @@ export default function Header({
 
         {onTabChange && <TabSwitch activeTab={activeTab} onTabChange={onTabChange} />}
 
-        <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2">
+        <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2 lg:ml-auto shrink-0">
           {grades ? null : staff ? (
             <>
               {onAddStaff && (
                 <button type="button" className="btn-success h-9 flex-1 px-3 sm:flex-none" onClick={onAddStaff} title="Yangi xodim qo'shish">
                   <UserPlus size={15} />
-                  <span>Xodim qo'shish</span>
+                  <span>Xodim<span className="hidden 2xl:inline"> qo'shish</span></span>
                 </button>
               )}
               {onExportStaff && (
@@ -341,17 +341,17 @@ export default function Header({
               <SyncBadge pendingCount={pendingCount} notify={notify} />
               <button type="button" className="btn-success h-9 flex-1 px-3 sm:flex-none" onClick={onAdd} title="Yangi talaba qo'shish">
                 <UserPlus size={15} />
-                <span className="lg:hidden">Qo'shish</span><span className="hidden lg:inline">Talaba qo'shish</span>
+                <span className="lg:hidden">Qo'shish</span><span className="hidden lg:inline 2xl:hidden">Talaba</span><span className="hidden 2xl:inline">Talaba qo'shish</span>
               </button>
             </>
           )}
           <a href="/majlis" className="btn-ghost h-9 shrink-0 px-2.5" title="O'qituvchilar majlisi davomati (asosiy va o'rindosh)" aria-label="Majlislar davomati">
             <CalendarCheck size={15} className="text-sky-soft" />
-            <span className="hidden xl:inline">Majlislar</span>
+            <span className="hidden 2xl:inline">Majlislar</span>
           </a>
           <button type="button" className="btn-ghost h-9 shrink-0 px-2.5" onClick={onRefresh} disabled={refreshing} title="Serverdan eng yangi ma'lumotni olish" aria-label="Yangilash">
             <RefreshCw size={15} className={cx(refreshing && 'animate-spin')} />
-            <span className="hidden xl:inline">Yangilash</span>
+            <span className="hidden 2xl:inline">Yangilash</span>
           </button>
           {onOpenSettings && <span className="hidden sm:contents"><SettingsButton onClick={onOpenSettings} /></span>}
           <span className="hidden sm:contents"><ThemeButton /></span>

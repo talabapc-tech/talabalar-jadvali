@@ -1,9 +1,9 @@
 {
-  "version": "2.0.450",
-  "build": 450,
-  "commit": "0802d29",
-  "commitDate": "2026-10-22T09:43:07+05:00",
-  "lastPushDate": "2026-10-22T09:43:07+05:00",
-  "commitMessage": "Auto: talaba ma'lumotlari yangilandi (2026-10-22 09:43:06)",
-  "generatedAt": "2026-10-22T08:26:36.241Z"
+  "version": "2.0.579",
+  "build": 579,
+  "commit": "46721e7",
+  "commitDate": "2026-11-02T20:33:49+05:00",
+  "lastPushDate": "2026-11-02T20:33:49+05:00",
+  "commitMessage": "Baholar bo'limi: fanlar bo'yicha baholar, malakaviy amaliyot va admin uchun reyting Excel",
+  "generatedAt": "2026-11-02T16:06:28.240Z"
 }
