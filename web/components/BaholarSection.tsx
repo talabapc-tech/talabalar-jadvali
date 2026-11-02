@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Briefcase, ClipboardList, Database, FileSpreadsheet, Loader2, Plus, Save, Trash2 } from 'lucide-react'
+import { AlertTriangle, BookOpen, Briefcase, CheckCircle2, ClipboardList, Database, FileSpreadsheet, Loader2, Plus, Save, Sparkles, Trash2, Zap } from 'lucide-react'
+import type { OquvReja } from '@/lib/curriculum'
 import { GROUP_SETTINGS } from '@/lib/config'
 import { academicGroups, byName, fullName, kursOf } from '@/lib/student'
 import type { Student } from '@/lib/types'
@@ -58,6 +59,9 @@ export default function BaholarSection({ students, notify }: { students: Student
   const [newAm, setNewAm] = useState('')
   const [bulk, setBulk] = useState({ joy: '', boshlanish: '', tugash: '' })
   const [prefsLoaded, setPrefsLoaded] = useState(false)
+  const [curriculumPlan, setCurriculumPlan] = useState<OquvReja | null>(null)
+  const [curriculumLoading, setCurriculumLoading] = useState(false)
+  const [importingPlan, setImportingPlan] = useState(false)
   const tableRef = useRef<HTMLDivElement>(null)
 
   /* ---------------------------- tanlov (guruh, semestr) ---------------------------- */
@@ -126,6 +130,65 @@ export default function BaholarSection({ students, notify }: { students: Student
     if (!res.ok || !body.ok) throw new Error(body.error || `Server ${res.status} qaytardi`)
     return body as { ok: true; saved?: number; removed?: number }
   }, [guruh, semestr])
+
+  /* ---------------------------- o'quv rejasini yuklash ---------------------------- */
+
+  const loadCurriculum = useCallback(async (g: string) => {
+    if (!g) { setCurriculumPlan(null); return }
+    setCurriculumLoading(true)
+    try {
+      const res = await fetch(`/api/curriculum?guruh=${encodeURIComponent(g)}`, { cache: 'no-store' })
+      const body = await res.json().catch(() => ({}))
+      if (body.ok && body.plan) {
+        setCurriculumPlan(body.plan)
+      } else {
+        setCurriculumPlan(null)
+      }
+    } catch {
+      setCurriculumPlan(null)
+    } finally {
+      setCurriculumLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (guruh) void loadCurriculum(guruh)
+  }, [guruh, loadCurriculum])
+
+  // O'quv rejasidan fanlarni bazaga yuklash
+  const importSubjectsFromPlan = async () => {
+    if (!curriculumPlan || !guruh) return
+    const semSubjects = curriculumPlan.semestrlar?.[String(semestr)]?.fanlar || []
+    if (!semSubjects.length) {
+      notify(`O'quv rejasida ${semestr}-semestr uchun fanlar topilmadi`, 'error')
+      return
+    }
+
+    setImportingPlan(true)
+    try {
+      const res = await fetch('/api/curriculum', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'syncSubjectsToGrades',
+          guruh,
+          semestr,
+          fanlar: semSubjects.map((s, idx) => ({ nom: s.nom, tartib: s.tartib || idx + 1 })),
+        }),
+      })
+      const body = await res.json()
+      if (body.ok) {
+        notify(`${semSubjects.length} ta fan o'quv rejasidan avtomatik yuklandi!`, 'success')
+        await load()
+      } else {
+        notify(body.error || 'Yuklashda xatolik', 'error')
+      }
+    } catch (e) {
+      notify(`Xatolik: ${(e as Error).message}`, 'error')
+    } finally {
+      setImportingPlan(false)
+    }
+  }
 
   /* ---------------------------- fanlar bo'yicha baholar ---------------------------- */
 
@@ -482,6 +545,36 @@ export default function BaholarSection({ students, notify }: { students: Student
             <div className="text-[13px] font-bold text-fg">{guruh} · {semestr}-semestr</div>
             <span className="chip border-line bg-ink-800/60 text-fg-muted">{rows.length} talaba</span>
             <span className="chip border-line bg-ink-800/60 text-fg-muted">{fanlar.length} fan</span>
+
+            {/* O'quv reja holati va nishoni */}
+            {curriculumLoading ? (
+              <span className="chip border-line bg-ink-800/40 text-[11px] text-fg-subtle">
+                <Loader2 size={11} className="animate-spin text-sky" /> Reja tekshirilmoqda…
+              </span>
+            ) : curriculumPlan ? (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="chip border-indigo-500/40 bg-indigo-500/15 text-indigo-300 text-[11px] font-bold">
+                  <BookOpen size={12} className="text-indigo-400" />
+                  <span>{curriculumPlan.yonalish} ({curriculumPlan.muddati})</span>
+                </span>
+                {curriculumPlan.semestrlar?.[String(semestr)]?.fanlar?.length ? (
+                  <button
+                    type="button"
+                    onClick={importSubjectsFromPlan}
+                    disabled={importingPlan}
+                    className="chip border-emerald/50 bg-emerald/15 text-emerald-soft text-[11px] font-bold hover:bg-emerald/25 transition-colors"
+                    title={`O'quv rejasidagi ${curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fanni bazaga yuklash / yangilash`}
+                  >
+                    {importingPlan ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} className="text-amber" />}
+                    <span>Rejadagi fanlarni sinxronlash</span>
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <span className="chip border-amber/30 bg-amber/10 text-amber text-[11px]">
+                Rejaga biriktirilmagan
+              </span>
+            )}
             {loading && <Loader2 size={14} className="animate-spin text-sky" />}
             <div className="flex gap-1 rounded-xl border border-line bg-ink-900/60 p-0.5" role="group" aria-label="Ko'rinish">
               {([['ball5', '5 ball'], ['reyting', 'Reyting (100)']] as const).map(([v, t]) => (
@@ -498,10 +591,30 @@ export default function BaholarSection({ students, notify }: { students: Student
           </div>
 
           {fanlar.length === 0 ? (
-            <div className="grid place-items-center gap-1 px-6 py-14 text-center">
-              <ClipboardList size={28} className="text-fg-subtle" />
-              <div className="text-[14px] font-semibold text-fg">{guruh} guruhida {semestr}-semestr uchun fan yo'q</div>
-              <div className="text-[12.5px] text-fg-muted">Yuqoridan fan nomini yozib «Fan» tugmasini bosing — har bir fan uchun Yakuniy, Joriy, Oraliq va R-semestr ustunlari ochiladi.</div>
+            <div className="grid place-items-center gap-2 px-6 py-14 text-center max-w-lg mx-auto">
+              <ClipboardList size={32} className="text-fg-subtle" />
+              <div className="text-[15px] font-bold text-fg">{guruh} guruhida {semestr}-semestr uchun fan hali kiritilmagan</div>
+              {curriculumPlan && curriculumPlan.semestrlar?.[String(semestr)]?.fanlar?.length ? (
+                <div className="space-y-3 pt-1">
+                  <div className="text-[12.5px] text-fg-muted">
+                    Ushbu guruh <b className="text-fg">{curriculumPlan.yonalish} ({curriculumPlan.muddati})</b> o'quv rejasiga biriktirilgan.
+                    Rejada {semestr}-semestr uchun <b className="text-sky-soft">{curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fan</b> belgilangan.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={importSubjectsFromPlan}
+                    disabled={importingPlan}
+                    className="btn-success mx-auto h-10 px-5 text-[13.5px] font-bold shadow-lg"
+                  >
+                    {importingPlan ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} className="text-amber" />}
+                    <span>Rejadagi {curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fanni yuklash va jadvalni ochish</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="text-[12.5px] text-fg-muted">
+                  Yuqoridagi formadan fan nomini yozib «Fan» tugmasini bosing yoki O'quv reja bo'limidan ushbu guruhga o'quv reja biriktiring.
+                </div>
+              )}
             </div>
           ) : rows.length === 0 ? (
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>

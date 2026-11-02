@@ -18,6 +18,8 @@ import AddStudentModal from './AddStudentModal'
 import SettingsModal from './SettingsModal'
 import StaffSection from './StaffSection'
 import BaholarSection from './BaholarSection'
+import CurriculumSection from './CurriculumSection'
+import Sidebar, { type NavTab } from './Sidebar'
 import { Toasts, useToasts } from './Toast'
 import { cx } from './ui'
 
@@ -72,7 +74,7 @@ function BackToSearch({ target }: { target: React.RefObject<HTMLDivElement | nul
   )
 }
 
-export default function Portal({ initialTab = 'students' }: { initialTab?: 'students' | 'staff' | 'grades' } = {}) {
+export default function Portal({ initialTab = 'students' }: { initialTab?: 'students' | 'curriculum' | 'staff' | 'grades' } = {}) {
   const data = useStudents()
   const { toasts, notify } = useToasts()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -84,12 +86,16 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   const [refreshing, setRefreshing] = useState(false)
   const [staffAddOpen, setStaffAddOpen] = useState(false)
   const [staffExportOpen, setStaffExportOpen] = useState(false)
+  const [curriculumAddOpen, setCurriculumAddOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Guruh sozlamalari (data/guruhlar.json): kurs, rahbar, yo'nalish — config.ts dagi qiymatlar ustiga
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [mainTab, setMainTab] = useState<'students' | 'staff' | 'grades'>(() => {
+  const [mainTab, setMainTab] = useState<'students' | 'curriculum' | 'staff' | 'grades'>(() => {
     if (typeof window !== 'undefined') {
+      if (window.location.pathname.includes('/oquv-reja')) return 'curriculum'
       if (window.location.pathname.includes('/baholar')) return 'grades'
       if (window.location.pathname.includes('/xodimlar')) return 'staff'
       if (window.location.pathname.includes('/talabalar')) return 'students'
@@ -99,7 +105,9 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
 
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.pathname.includes('/baholar')) {
+      if (window.location.pathname.includes('/oquv-reja')) {
+        setMainTab('curriculum')
+      } else if (window.location.pathname.includes('/baholar')) {
         setMainTab('grades')
       } else if (window.location.pathname.includes('/xodimlar')) {
         setMainTab('staff')
@@ -111,10 +119,17 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const handleTabChange = useCallback((tab: 'students' | 'staff' | 'grades') => {
+  const handleTabChange = useCallback((tab: 'students' | 'curriculum' | 'staff' | 'grades') => {
     setMainTab(tab)
     if (typeof window !== 'undefined') {
-      const targetPath = tab === 'staff' ? '/xodimlar' : tab === 'grades' ? '/baholar' : '/talabalar'
+      const targetPath =
+        tab === 'curriculum'
+          ? '/oquv-reja'
+          : tab === 'staff'
+            ? '/xodimlar'
+            : tab === 'grades'
+              ? '/baholar'
+              : '/talabalar'
       if (window.location.pathname !== targetPath) {
         window.history.pushState(null, '', targetPath)
       }
@@ -261,23 +276,43 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   }, [shown, notify])
 
   return (
-    <>
-      <Header
-        students={data.students}
-        pendingCount={data.pendingCount}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
-        onAdd={() => setAdding(true)}
-        onAddStaff={() => setStaffAddOpen(true)}
-        onExportStaff={() => setStaffExportOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
-        notify={notify}
+    <div className="min-h-screen bg-ink-950 text-fg">
+      <Sidebar
         activeTab={mainTab}
         onTabChange={handleTabChange}
+        students={data.students}
+        mobileOpen={sidebarOpen}
+        onMobileClose={() => setSidebarOpen(false)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className="mx-auto max-w-[1680px] space-y-5 px-4 py-5 sm:px-6">
-        {mainTab === 'grades' ? (
+      <div className={cx('transition-all duration-200 min-h-screen flex flex-col', sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[250px] xl:lg:pl-[260px]')}>
+        <Header
+          students={data.students}
+          pendingCount={data.pendingCount}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          onAdd={() => setAdding(true)}
+          onAddStaff={() => setStaffAddOpen(true)}
+          onExportStaff={() => setStaffExportOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
+          notify={notify}
+          activeTab={mainTab}
+          onOpenSidebar={() => setSidebarOpen(true)}
+          onAddCurriculum={() => setCurriculumAddOpen(true)}
+        />
+
+        <main className="mx-auto max-w-[1680px] w-full flex-1 space-y-5 px-3 py-4 sm:px-6 sm:py-5">
+          {mainTab === 'curriculum' ? (
+            <CurriculumSection
+              students={data.students}
+              notify={notify}
+              addOpen={curriculumAddOpen}
+              onCloseAdd={() => setCurriculumAddOpen(false)}
+            />
+          ) : mainTab === 'grades' ? (
           data.state === 'ready' ? (
             <BaholarSection students={data.students} notify={notify} />
           ) : data.state === 'error' ? (
@@ -469,6 +504,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
       )}
 
       <Toasts toasts={toasts} />
-    </>
+      </div>
+    </div>
   )
 }

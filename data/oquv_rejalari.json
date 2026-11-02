@@ -1,0 +1,769 @@
+[
+  {
+    "id": "plan-2026-hamshira-3y",
+    "oquvYili": "2026/2027",
+    "yonalish": "Hamshiralik ishi",
+    "muddati": "3 yillik",
+    "kod": "5510101",
+    "daraja": "O'rta maxsus professional",
+    "tavsif": "2026/2027 o'quv yili qabul qilingan 1-kurs talabalari uchun 3 yillik namunaviy o'quv rejasi",
+    "groups": [
+      "26-02",
+      "26-03",
+      "26-04",
+      "26-05",
+      "26-06",
+      "26-07"
+    ],
+    "semestrlar": {
+      "1": {
+        "semestr": 1,
+        "fanlar": [
+          {
+            "id": "f-1",
+            "nom": "Anatomiya, fiziologiya va patologiya",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f-2",
+            "nom": "Lotin tili va tibbiy terminologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 2
+          },
+          {
+            "id": "f-3",
+            "nom": "Tibbiy kimyo. Biologik kimyo",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          },
+          {
+            "id": "f-4",
+            "nom": "Tibbiy va biologik fizika",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 4
+          },
+          {
+            "id": "f-5",
+            "nom": "Tibbiy biologiya. Umumiy genetika",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 5
+          },
+          {
+            "id": "f-6",
+            "nom": "Gistologiya, sitologiya, embriologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 6
+          },
+          {
+            "id": "f-7",
+            "nom": "Tibbiyotda axborot texnologiyalari",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 7
+          },
+          {
+            "id": "f-8",
+            "nom": "O'zbekistonning eng yangi tarixi",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 8
+          },
+          {
+            "id": "f-9",
+            "nom": "Xorijiy til",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 9
+          },
+          {
+            "id": "f-10",
+            "nom": "Jismoniy tarbiya va sport",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 10
+          },
+          {
+            "id": "f-11",
+            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 11
+          }
+        ]
+      },
+      "2": {
+        "semestr": 2,
+        "fanlar": [
+          {
+            "id": "f-21",
+            "nom": "Farmakologiya",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f-22",
+            "nom": "Hamshiralik ishi asoslari",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          },
+          {
+            "id": "f-23",
+            "nom": "Ichki kasalliklar propedevtikasi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          },
+          {
+            "id": "f-24",
+            "nom": "Umumiy gigiyena va ekologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 4
+          },
+          {
+            "id": "f-25",
+            "nom": "Mikrobiologiya va virusologiya",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 5
+          },
+          {
+            "id": "f-26",
+            "nom": "Xorijiy til",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 6
+          },
+          {
+            "id": "f-27",
+            "nom": "Jismoniy tarbiya va sport",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 7
+          }
+        ]
+      },
+      "3": {
+        "semestr": 3,
+        "fanlar": [
+          {
+            "id": "f-31",
+            "nom": "Terapiya va geriatriyada hamshiralik parvarishi",
+            "soat": 140,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f-32",
+            "nom": "Jarrohlikda hamshiralik parvarishi",
+            "soat": 140,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          },
+          {
+            "id": "f-33",
+            "nom": "Bolalar kasalliklarida hamshiralik parvarishi",
+            "soat": 120,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          },
+          {
+            "id": "f-34",
+            "nom": "Akusherlik va ginekologiyada hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 4
+          },
+          {
+            "id": "f-35",
+            "nom": "Shoshilinch tibbiy yordam",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 5
+          }
+        ]
+      },
+      "4": {
+        "semestr": 4,
+        "fanlar": [
+          {
+            "id": "f-41",
+            "nom": "Yuqumli kasalliklarda hamshiralik parvarishi",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f-42",
+            "nom": "Asab va ruhiy kasalliklarda hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 2
+          },
+          {
+            "id": "f-43",
+            "nom": "Teri va tanosil kasalliklarida hamshiralik parvarishi",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 3
+          },
+          {
+            "id": "f-44",
+            "nom": "Oftalmologiya va otorinolaringologiyada hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 4
+          },
+          {
+            "id": "f-45",
+            "nom": "Onkologiyada hamshiralik parvarishi",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 5
+          }
+        ]
+      },
+      "5": {
+        "semestr": 5,
+        "fanlar": [
+          {
+            "id": "f-51",
+            "nom": "Reabilitologiya va fizioterapiya",
+            "soat": 90,
+            "nazorat": "Sinov",
+            "tartib": 1
+          },
+          {
+            "id": "f-52",
+            "nom": "Palliativ yordam va hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Sinov",
+            "tartib": 2
+          },
+          {
+            "id": "f-53",
+            "nom": "Tibbiy genetika va reproduktiv salomatlik",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 3
+          },
+          {
+            "id": "f-54",
+            "nom": "Ilmiy tadqiqot asoslari va tibbiy statistika",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 4
+          }
+        ]
+      },
+      "6": {
+        "semestr": 6,
+        "fanlar": [
+          {
+            "id": "f-61",
+            "nom": "Diplomoldi malakaviy amaliyot",
+            "soat": 180,
+            "nazorat": "Reyting",
+            "tartib": 1
+          },
+          {
+            "id": "f-62",
+            "nom": "Hamshiralik ishi bo'yicha davlat attestatsiyasi",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          }
+        ]
+      }
+    },
+    "createdAt": "2026-09-01T00:00:00.000Z",
+    "updatedAt": "2026-11-02T21:00:00.000Z"
+  },
+  {
+    "id": "plan-2026-farmatsiya-2y",
+    "oquvYili": "2026/2027",
+    "yonalish": "Farmatsiya ishi",
+    "muddati": "2 yillik",
+    "kod": "5510501",
+    "daraja": "O'rta maxsus professional",
+    "tavsif": "2026/2027 o'quv yili 2 yillik Farmatsiya mutaxassisligi o'quv rejasi",
+    "groups": [
+      "26-01"
+    ],
+    "semestrlar": {
+      "1": {
+        "semestr": 1,
+        "fanlar": [
+          {
+            "id": "pf-1",
+            "nom": "Farmatsevtik kimyo",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "pf-2",
+            "nom": "Farmakognoziya",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          },
+          {
+            "id": "pf-3",
+            "nom": "Lotin tili va farmatsevtik terminologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 3
+          },
+          {
+            "id": "pf-4",
+            "nom": "Dori turlari texnologiyasi",
+            "soat": 120,
+            "nazorat": "Yakuniy",
+            "tartib": 4
+          },
+          {
+            "id": "pf-5",
+            "nom": "Farmakologiya asoslari",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 5
+          },
+          {
+            "id": "pf-6",
+            "nom": "Tibbiyotda axborot texnologiyalari",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 6
+          },
+          {
+            "id": "pf-7",
+            "nom": "O'zbekistonning eng yangi tarixi",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 7
+          },
+          {
+            "id": "pf-8",
+            "nom": "Jismoniy tarbiya va sport",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 8
+          }
+        ]
+      },
+      "2": {
+        "semestr": 2,
+        "fanlar": [
+          {
+            "id": "pf-21",
+            "nom": "Dori turlari texnologiyasi (davomi)",
+            "soat": 140,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "pf-22",
+            "nom": "Farmatsevtik kimyo (davomi)",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          },
+          {
+            "id": "pf-23",
+            "nom": "Farmatsevtik iqtisodiyot va boshqaruv",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          },
+          {
+            "id": "pf-24",
+            "nom": "Toksikologik kimyo",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 4
+          },
+          {
+            "id": "pf-25",
+            "nom": "Mikrobiologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 5
+          }
+        ]
+      },
+      "3": {
+        "semestr": 3,
+        "fanlar": [
+          {
+            "id": "pf-31",
+            "nom": "Klinik farmakologiya",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "pf-32",
+            "nom": "Dori vositalarini standartlash va nazorat qilish",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          },
+          {
+            "id": "pf-33",
+            "nom": "Fitoterapiya asoslari",
+            "soat": 90,
+            "nazorat": "Sinov",
+            "tartib": 3
+          },
+          {
+            "id": "pf-34",
+            "nom": "Tibbiy va farmatsevtik tovarshunoslik",
+            "soat": 90,
+            "nazorat": "Sinov",
+            "tartib": 4
+          }
+        ]
+      },
+      "4": {
+        "semestr": 4,
+        "fanlar": [
+          {
+            "id": "pf-41",
+            "nom": "Malakaviy amaliyot (dorixona amaliyoti)",
+            "soat": 180,
+            "nazorat": "Reyting",
+            "tartib": 1
+          },
+          {
+            "id": "pf-42",
+            "nom": "Davlat attestatsiyasi",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          }
+        ]
+      }
+    },
+    "createdAt": "2026-09-01T00:00:00.000Z",
+    "updatedAt": "2026-11-02T21:00:00.000Z"
+  },
+  {
+    "id": "plan-2025-hamshira-3y",
+    "oquvYili": "2025/2026",
+    "yonalish": "Hamshiralik ishi",
+    "muddati": "3 yillik",
+    "kod": "5510101",
+    "daraja": "O'rta maxsus professional",
+    "tavsif": "2025/2026 o'quv yili qabul qilingan talabalar (hozirgi 2-kurs) uchun 3 yillik o'quv rejasi",
+    "groups": [
+      "25-16",
+      "25-17",
+      "25-18",
+      "25-19",
+      "25-20",
+      "25-21",
+      "25-22",
+      "25-23"
+    ],
+    "semestrlar": {
+      "1": {
+        "semestr": 1,
+        "fanlar": [
+          {
+            "id": "f25-1",
+            "nom": "Jismoniy tarbiya va sport",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 1
+          },
+          {
+            "id": "f25-2",
+            "nom": "Xorijiy til",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 2
+          },
+          {
+            "id": "f25-3",
+            "nom": "Lotin tili va tibbiy terminologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 3
+          },
+          {
+            "id": "f25-4",
+            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 4
+          },
+          {
+            "id": "f25-5",
+            "nom": "Tibbiyotda axborot texnologiyalari",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 5
+          },
+          {
+            "id": "f25-6",
+            "nom": "O'zbekistonning eng yangi tarixi",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 6
+          },
+          {
+            "id": "f25-7",
+            "nom": "Anatomiya, fiziologiya va patologiya",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 7
+          },
+          {
+            "id": "f25-8",
+            "nom": "Tibbiy biologiya. Umumiy genetika",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 8
+          },
+          {
+            "id": "f25-9",
+            "nom": "Gistologiya, sitologiya, embriologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 9
+          },
+          {
+            "id": "f25-10",
+            "nom": "Tibbiy kimyo. Biologik kimyo",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 10
+          },
+          {
+            "id": "f25-11",
+            "nom": "Tibbiy va biologik fizika",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 11
+          }
+        ]
+      },
+      "2": {
+        "semestr": 2,
+        "fanlar": [
+          {
+            "id": "f25-21",
+            "nom": "Farmakologiya",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f25-22",
+            "nom": "Hamshiralik ishi asoslari",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          },
+          {
+            "id": "f25-23",
+            "nom": "Ichki kasalliklar propedevtikasi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          },
+          {
+            "id": "f25-24",
+            "nom": "Umumiy gigiyena va ekologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 4
+          },
+          {
+            "id": "f25-25",
+            "nom": "Mikrobiologiya va virusologiya",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 5
+          }
+        ]
+      },
+      "3": {
+        "semestr": 3,
+        "fanlar": [
+          {
+            "id": "f25-31",
+            "nom": "Terapiya va geriatriyada hamshiralik parvarishi",
+            "soat": 140,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f25-32",
+            "nom": "Jarrohlikda hamshiralik parvarishi",
+            "soat": 140,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          },
+          {
+            "id": "f25-33",
+            "nom": "Bolalar kasalliklarida hamshiralik parvarishi",
+            "soat": 120,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          },
+          {
+            "id": "f25-34",
+            "nom": "Akusherlik va ginekologiyada hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 4
+          }
+        ]
+      },
+      "4": {
+        "semestr": 4,
+        "fanlar": [
+          {
+            "id": "f25-41",
+            "nom": "Yuqumli kasalliklarda hamshiralik parvarishi",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f25-42",
+            "nom": "Asab va ruhiy kasalliklarda hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 2
+          },
+          {
+            "id": "f25-43",
+            "nom": "Oftalmologiya va LORda hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          }
+        ]
+      }
+    },
+    "createdAt": "2025-09-01T00:00:00.000Z",
+    "updatedAt": "2026-11-02T21:00:00.000Z"
+  },
+  {
+    "id": "plan-2024-hamshira-3y",
+    "oquvYili": "2024/2025",
+    "yonalish": "Hamshiralik ishi",
+    "muddati": "3 yillik",
+    "kod": "5510101",
+    "daraja": "O'rta maxsus professional",
+    "tavsif": "2024/2025 o'quv yili qabul qilingan talabalar (hozirgi 3-kurs) uchun 3 yillik o'quv rejasi",
+    "groups": [
+      "24-11",
+      "24-12",
+      "24-13",
+      "24-15",
+      "24-16"
+    ],
+    "semestrlar": {
+      "1": {
+        "semestr": 1,
+        "fanlar": [
+          {
+            "id": "f24-1",
+            "nom": "Anatomiya, fiziologiya va patologiya",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 1
+          },
+          {
+            "id": "f24-2",
+            "nom": "Lotin tili va tibbiy terminologiya",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 2
+          },
+          {
+            "id": "f24-3",
+            "nom": "Tibbiy kimyo. Biologik kimyo",
+            "soat": 90,
+            "nazorat": "Yakuniy",
+            "tartib": 3
+          },
+          {
+            "id": "f24-4",
+            "nom": "Tibbiy va biologik fizika",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 4
+          },
+          {
+            "id": "f24-5",
+            "nom": "Jismoniy tarbiya va sport",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 5
+          }
+        ]
+      },
+      "5": {
+        "semestr": 5,
+        "fanlar": [
+          {
+            "id": "f24-51",
+            "nom": "Reabilitologiya va fizioterapiya",
+            "soat": 90,
+            "nazorat": "Sinov",
+            "tartib": 1
+          },
+          {
+            "id": "f24-52",
+            "nom": "Palliativ yordam va hamshiralik parvarishi",
+            "soat": 90,
+            "nazorat": "Sinov",
+            "tartib": 2
+          },
+          {
+            "id": "f24-53",
+            "nom": "Tibbiy genetika va reproduktiv salomatlik",
+            "soat": 60,
+            "nazorat": "Sinov",
+            "tartib": 3
+          }
+        ]
+      },
+      "6": {
+        "semestr": 6,
+        "fanlar": [
+          {
+            "id": "f24-61",
+            "nom": "Diplomoldi malakaviy amaliyot",
+            "soat": 180,
+            "nazorat": "Reyting",
+            "tartib": 1
+          },
+          {
+            "id": "f24-62",
+            "nom": "Davlat yakuniy attestatsiyasi",
+            "soat": 120,
+            "nazorat": "Imtihon",
+            "tartib": 2
+          }
+        ]
+      }
+    },
+    "createdAt": "2024-09-01T00:00:00.000Z",
+    "updatedAt": "2026-11-02T21:00:00.000Z"
+  }
+]

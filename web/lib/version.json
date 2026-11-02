@@ -1,9 +1,9 @@
 {
-  "version": "2.0.579",
-  "build": 579,
-  "commit": "46721e7",
-  "commitDate": "2026-11-02T20:33:49+05:00",
-  "lastPushDate": "2026-11-02T20:33:49+05:00",
-  "commitMessage": "Baholar bo'limi: fanlar bo'yicha baholar, malakaviy amaliyot va admin uchun reyting Excel",
-  "generatedAt": "2026-11-02T16:06:28.240Z"
+  "version": "2.0.580",
+  "build": 580,
+  "commit": "c211d09",
+  "commitDate": "2026-11-02T21:15:06+05:00",
+  "lastPushDate": "2026-11-02T21:15:06+05:00",
+  "commitMessage": "UI/UX responsivlik: 1366x768, 1920x1080 va mobile ekranlarga to'liq moslashtirish",
+  "generatedAt": "2026-11-02T16:38:41.484Z"
 }
