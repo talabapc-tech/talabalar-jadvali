@@ -346,5 +346,17 @@
     },
     "id": "chg_1793630438802_pacgd",
     "created_at": "2026-11-02T14:40:38.802Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 565,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "62501027890026",
+      "ism": ""
+    },
+    "id": "chg_1793630439508_ejbri",
+    "created_at": "2026-11-02T14:40:39.508Z"
   }
 ]
