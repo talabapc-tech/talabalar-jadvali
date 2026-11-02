@@ -214,5 +214,17 @@
     },
     "id": "chg_1793630421315_eq8cv",
     "created_at": "2026-11-02T14:40:21.315Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 561,
+      "status": "TASDIQLANDI",
+      "shnum": "",
+      "pinfl": "61609075680011",
+      "ism": "Tursunmurodova Diyora"
+    },
+    "id": "chg_1793630425178_ulym2",
+    "created_at": "2026-11-02T14:40:25.178Z"
   }
 ]
