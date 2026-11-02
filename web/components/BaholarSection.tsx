@@ -22,10 +22,10 @@ import {
   Maximize2,
   Plus,
   Redo2,
+  RefreshCw,
   RotateCcw,
   Save,
   Share2,
-  Sparkles,
   Trash2,
   Undo2,
   Users,
@@ -148,9 +148,13 @@ export default function BaholarSection({
   const tableRef = useRef<HTMLDivElement>(null)
   const focusTableRef = useRef<HTMLDivElement>(null)
 
-  // 1. Talabalar maxsus tartibi (drag & drop reordering)
+  // 1. Talabalar maxsus tartibi (Telegram uslubida silliq animatsiyali reorder)
   const [studentOrder, setStudentOrder] = useState<string[]>([])
-  const [draggedPinfl, setDraggedPinfl] = useState<string | null>(null)
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null)
+  const [dropTargetIdx, setDropTargetIdx] = useState<number | null>(null)
+  const [dropTargetPos, setDropTargetPos] = useState<'top' | 'bottom'>('top')
+  const [justMovedPinfl, setJustMovedPinfl] = useState<string | null>(null)
+  const [reorderModalOpen, setReorderModalOpen] = useState(false)
 
   // 2. Yashirilgan fanlar ro'yxati
   const [hiddenFanlar, setHiddenFanlar] = useState<string[]>([])
@@ -242,7 +246,7 @@ export default function BaholarSection({
     })
   }, [baseRows, studentOrder])
 
-  // Talaba tartibini o'zgartirish (drag & drop yoki ko'chirish)
+  // Talaba tartibini o'zgartirish (animatsiyali)
   const handleReorder = async (fromIdx: number, toIdx: number) => {
     if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= rows.length || toIdx >= rows.length) return
     const copy = [...rows]
@@ -365,8 +369,8 @@ export default function BaholarSection({
     if (guruh) void loadCurriculum(guruh)
   }, [guruh, loadCurriculum])
 
-  // O'quv rejasidan fanlarni bazaga yuklash
-  const importSubjectsFromPlan = async () => {
+  // Fanlarni yangilash (Qo'yilgan baholar HECH QACHON o'chmaydi!)
+  const handleUpdateSubjectsFromPlan = async () => {
     if (!curriculumPlan || !guruh) return
     const semSubjects = curriculumPlan.semestrlar?.[String(semestr)]?.fanlar || []
     if (!semSubjects.length) {
@@ -375,6 +379,7 @@ export default function BaholarSection({
     }
 
     setImportingPlan(true)
+    const keepEdits = { ...edits }
     try {
       const res = await fetch('/api/curriculum', {
         method: 'POST',
@@ -388,10 +393,14 @@ export default function BaholarSection({
       })
       const body = await res.json()
       if (body.ok) {
-        notify(`${semSubjects.length} ta fan o'quv rejasidan avtomatik yuklandi!`, 'success')
+        notify("Fanlar ro'yxati yangilandi! Baholaringiz to'liq saqlanib qoldi.", 'success')
         await load()
+        // Kiritilgan, saqlanmagan baholarni saqlab qolish
+        if (Object.keys(keepEdits).length > 0) {
+          setEdits(keepEdits)
+        }
       } else {
-        notify(body.error || 'Yuklashda xatolik', 'error')
+        notify(body.error || 'Yangilashda xatolik', 'error')
       }
     } catch (e) {
       notify(`Xatolik: ${(e as Error).message}`, 'error')
@@ -519,6 +528,11 @@ export default function BaholarSection({
     [edits],
   )
 
+  const amInvalid = useMemo(
+    () => Object.entries(amEdits).filter(([k, v]) => k.endsWith('|ball') && parseBaho(v) === undefined).length,
+    [amEdits],
+  )
+
   const saveBaholar = useCallback(async () => {
     if (invalidCount) {
       notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
@@ -542,12 +556,6 @@ export default function BaholarSection({
       setSaving(false)
     }
   }, [invalidCount, edits, shown, post, notify, load])
-
-
-  const amInvalid = useMemo(
-    () => Object.entries(amEdits).filter(([k, v]) => k.endsWith('|ball') && parseBaho(v) === undefined).length,
-    [amEdits],
-  )
 
   const canSave =
     view === 'baholar'
@@ -573,7 +581,7 @@ export default function BaholarSection({
 
       // 2. Ctrl + Z: Bekor qilish (Undo)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-        if (isInput && !isCellInput) return // Oddiy input bo'lsa brauzerning o'zi ishlaydi
+        if (isInput && !isCellInput) return
         e.preventDefault()
         if (e.shiftKey) {
           handleRedo()
@@ -1240,7 +1248,7 @@ export default function BaholarSection({
 
       {data && view === 'baholar' && (
         <div className="panel overflow-hidden border-line bg-ink-900/60 shadow-xl">
-          {/* Sub-Header: Holat, Fanlar filtri, Reyting/5-ball switch va Fan qo'shish */}
+          {/* Sub-Header: Holat, Fanlar yangilash, Fanlar filtri, Reyting/5-ball switch va Fan qo'shish */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line p-3 bg-ink-950/40">
             <div className="flex items-center gap-2 flex-wrap">
               <div className="text-[13.5px] font-extrabold text-fg">
@@ -1253,21 +1261,17 @@ export default function BaholarSection({
                 {fanlar.length} fan
               </span>
 
-              {/* O'quv rejasini sinxronlash */}
+              {/* Fanlarni yangilash tugmasi (Mavjud baholarga tegilmaydi!) */}
               {curriculumPlan && curriculumPlan.semestrlar?.[String(semestr)]?.fanlar?.length ? (
                 <button
                   type="button"
-                  onClick={importSubjectsFromPlan}
+                  onClick={handleUpdateSubjectsFromPlan}
                   disabled={importingPlan}
-                  className="chip border-emerald/50 bg-emerald/15 text-emerald-soft text-[11px] font-bold hover:bg-emerald/25 transition-colors"
-                  title="O'quv rejasidagi fanlarni sinxronlash"
+                  className="chip border-sky/40 bg-sky/10 text-sky-soft text-[11px] font-bold hover:bg-sky/20 transition-colors flex items-center gap-1.5"
+                  title="O'quv rejasidagi yangi fanlarni qo'shish (mavjud baholar o'chmaydi)"
                 >
-                  {importingPlan ? (
-                    <Loader2 size={11} className="animate-spin" />
-                  ) : (
-                    <Sparkles size={11} className="text-amber" />
-                  )}
-                  <span>Rejadagi fanlarni sinxronlash</span>
+                  <RefreshCw size={11} className={cx(importingPlan && 'animate-spin text-sky')} />
+                  <span>Fanlarni yangilash</span>
                 </button>
               ) : null}
 
@@ -1291,6 +1295,17 @@ export default function BaholarSection({
                   </span>
                 </button>
               )}
+
+              {/* Telegram uslubida tartiblash modalini ochish tugmasi */}
+              <button
+                type="button"
+                onClick={() => setReorderModalOpen(true)}
+                className="chip border-line bg-ink-850 text-fg-muted hover:text-sky text-[11px] font-bold flex items-center gap-1 transition-colors"
+                title="Telegram uslubida talabalar tartibini sozlash"
+              >
+                <GripVertical size={12} />
+                <span>Tartiblash</span>
+              </button>
 
               {/* Talabalar tartibi alifbodan o'zgargan bo'lsa tiklash tugmasi */}
               {studentOrder.length > 0 && (
@@ -1373,16 +1388,16 @@ export default function BaholarSection({
                   </div>
                   <button
                     type="button"
-                    onClick={importSubjectsFromPlan}
+                    onClick={handleUpdateSubjectsFromPlan}
                     disabled={importingPlan}
-                    className="btn-success mx-auto h-10 px-5 text-[13.5px] font-bold shadow-lg"
+                    className="btn-success mx-auto h-10 px-5 text-[13.5px] font-bold shadow-lg flex items-center gap-2"
                   >
                     {importingPlan ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
-                      <Sparkles size={16} className="text-amber" />
+                      <RefreshCw size={16} className="text-amber" />
                     )}
-                    <span>Rejadagi {curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fanni yuklash</span>
+                    <span>Fanlarni yuklash ({curriculumPlan.semestrlar[String(semestr)].fanlar.length} ta fan)</span>
                   </button>
                 </div>
               ) : null}
@@ -1496,37 +1511,58 @@ export default function BaholarSection({
                       <tr
                         key={s.pinfl}
                         className={cx(
-                          'group transition-colors',
-                          draggedPinfl === s.pinfl ? 'opacity-40 bg-sky/20' : 'hover:bg-ink-850/50',
+                          'group transition-all duration-150',
+                          draggedIdx === r && 'opacity-30 scale-[0.99] bg-sky/15',
+                          dropTargetIdx === r && dropTargetPos === 'top' && 'border-t-2 border-t-sky bg-sky/10 shadow-[0_-2px_10px_rgba(56,189,248,0.35)]',
+                          dropTargetIdx === r && dropTargetPos === 'bottom' && 'border-b-2 border-b-sky bg-sky/10 shadow-[0_2px_10px_rgba(56,189,248,0.35)]',
+                          justMovedPinfl === s.pinfl && 'animate-pulse bg-emerald/20',
+                          draggedIdx === null && dropTargetIdx === null && 'hover:bg-ink-850/50',
                         )}
-                        onDragOver={(e) => e.preventDefault()}
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          e.dataTransfer.dropEffect = 'move'
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          const offset = e.clientY - rect.top
+                          setDropTargetPos(offset < rect.height / 2 ? 'top' : 'bottom')
+                          setDropTargetIdx(r)
+                        }}
                         onDrop={(e) => {
                           e.preventDefault()
-                          const fromIdx = Number(e.dataTransfer.getData('text/plain'))
-                          if (!isNaN(fromIdx)) void handleReorder(fromIdx, r)
-                          setDraggedPinfl(null)
+                          if (draggedIdx === null) return
+                          let toIdx = r
+                          if (dropTargetPos === 'bottom' && draggedIdx > r) toIdx = r + 1
+                          else if (dropTargetPos === 'top' && draggedIdx < r) toIdx = r - 1
+                          toIdx = Math.max(0, Math.min(rows.length - 1, toIdx))
+                          void handleReorder(draggedIdx, toIdx)
+                          setJustMovedPinfl(rows[draggedIdx]?.pinfl || null)
+                          setTimeout(() => setJustMovedPinfl(null), 1200)
+                          setDraggedIdx(null)
+                          setDropTargetIdx(null)
                         }}
                       >
-                        {/* 1. Tartib raqami va Sudrab ko'chirish ushlagichi */}
+                        {/* 1. Tartib raqami va Sudrab ko'chirish ushlagichi (Telegramdek silliq) */}
                         <td
                           draggable
                           onDragStart={(e) => {
                             e.dataTransfer.setData('text/plain', String(r))
-                            setDraggedPinfl(s.pinfl)
+                            setDraggedIdx(r)
                           }}
-                          onDragEnd={() => setDraggedPinfl(null)}
-                          className="sticky left-0 z-10 w-12 border-b border-r border-line bg-ink-900 px-1 py-1 text-center text-[11.5px] font-mono tabular-nums text-fg-subtle group-hover:bg-ink-800 cursor-grab active:cursor-grabbing select-none"
-                          title="Ushlab yuqoriga/pastga sudrang"
+                          onDragEnd={() => {
+                            setDraggedIdx(null)
+                            setDropTargetIdx(null)
+                          }}
+                          className="sticky left-0 z-10 w-12 border-b border-r border-line bg-ink-900 px-1 py-1 text-center text-[11.5px] font-mono tabular-nums text-fg-subtle group-hover:bg-ink-800 cursor-grab active:cursor-grabbing select-none transition-colors"
+                          title="Ushlab yuqoriga/pastga sudrang (Telegramdek)"
                         >
                           <div className="flex items-center justify-center gap-1">
-                            <GripVertical size={11} className="opacity-30 group-hover:opacity-100 text-sky shrink-0" />
+                            <GripVertical size={12} className="opacity-40 group-hover:opacity-100 text-sky shrink-0" />
                             <span>{r + 1}</span>
                           </div>
                         </td>
 
                         {/* 2. Talaba F.I.Sh. */}
                         <td
-                          className="sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold text-fg group-hover:bg-ink-800"
+                          className="sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold text-fg group-hover:bg-ink-800 transition-colors"
                           title={fullName(s)}
                         >
                           {fullName(s)}
@@ -1611,16 +1647,11 @@ export default function BaholarSection({
           {/* Pastki eslatma */}
           <div className="border-t border-line px-3 py-2 text-[11.5px] leading-relaxed text-fg-subtle flex flex-wrap items-center justify-between gap-2">
             <div>
-              <span className="font-bold text-sky-soft">Tezkor klaviatura (Excel):</span>{' '}
+              <span className="font-bold text-sky-soft">Tezkor klaviatura:</span>{' '}
               <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + Z</kbd> (bekor qilish),{' '}
               <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + Y</kbd> (qaytarish),{' '}
               <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + S</kbd> (saqlash),{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + V</kbd> (Excel'dan joylash). Kataklar orasida{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">↑</kbd>{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">↓</kbd>{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">←</kbd>{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">→</kbd> yoki{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Enter</kbd> / <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Tab</kbd> bilan yuring.
+              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg font-mono">Ctrl + V</kbd> (Excel'dan joylash). Talabalar tartibini sudrab o'zgartirish yoki «Tartiblash» tugmasini bosing.
             </div>
             {hiddenFanlar.length > 0 && (
               <button
@@ -1834,6 +1865,137 @@ export default function BaholarSection({
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ----------------- MODAL: Telegram uslubida Talabalar tartibini sozlash ----------------- */}
+      {reorderModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 animate-fade-in">
+          <div
+            className="fixed inset-0 bg-ink-950/85 backdrop-blur-md"
+            onClick={() => setReorderModalOpen(false)}
+          />
+          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-scale-up">
+            {/* Header */}
+            <div className="p-4 border-b border-line bg-ink-950 flex items-center justify-between">
+              <div>
+                <h3 className="text-[16px] font-extrabold text-fg flex items-center gap-2">
+                  <GripVertical size={18} className="text-sky" />
+                  <span>Talabalar tartibini sozlash</span>
+                </h3>
+                <p className="text-[11.5px] text-fg-muted mt-0.5">
+                  Telegram uslubida sudrab yoki strelkalar bilan o'rnini o'zgartiring
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReorderModalOpen(false)}
+                className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="overflow-y-auto p-3 space-y-1.5 flex-1">
+              {rows.map((s, idx) => (
+                <div
+                  key={s.pinfl}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', String(idx))
+                    setDraggedIdx(idx)
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    setDropTargetPos(e.clientY - rect.top < rect.height / 2 ? 'top' : 'bottom')
+                    setDropTargetIdx(idx)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    if (draggedIdx === null) return
+                    let toIdx = idx
+                    if (dropTargetPos === 'bottom' && draggedIdx > idx) toIdx = idx + 1
+                    else if (dropTargetPos === 'top' && draggedIdx < idx) toIdx = idx - 1
+                    toIdx = Math.max(0, Math.min(rows.length - 1, toIdx))
+                    void handleReorder(draggedIdx, toIdx)
+                    setJustMovedPinfl(rows[draggedIdx]?.pinfl || null)
+                    setTimeout(() => setJustMovedPinfl(null), 1200)
+                    setDraggedIdx(null)
+                    setDropTargetIdx(null)
+                  }}
+                  className={cx(
+                    'flex items-center justify-between gap-3 p-2.5 rounded-xl border transition-all duration-150 select-none',
+                    draggedIdx === idx
+                      ? 'opacity-30 scale-[0.98] bg-sky/20 border-sky/40'
+                      : dropTargetIdx === idx
+                        ? dropTargetPos === 'top'
+                          ? 'border-t-2 border-t-sky bg-sky/10 shadow-[0_-2px_10px_rgba(56,189,248,0.35)]'
+                          : 'border-b-2 border-b-sky bg-sky/10 shadow-[0_2px_10px_rgba(56,189,248,0.35)]'
+                        : justMovedPinfl === s.pinfl
+                          ? 'animate-pulse bg-emerald/20 border-emerald/50'
+                          : 'border-line/60 bg-ink-950/70 hover:bg-ink-850 hover:border-line',
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <span className="size-6 grid place-items-center rounded-md bg-ink-900 border border-line text-[11px] font-mono font-bold text-fg-muted shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="text-[13px] font-semibold text-fg truncate">
+                      {fullName(s)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleReorder(idx, idx - 1)}
+                      disabled={idx === 0}
+                      className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
+                      title="Tepaga"
+                    >
+                      <ArrowUp size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReorder(idx, idx + 1)}
+                      disabled={idx === rows.length - 1}
+                      className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
+                      title="Pastga"
+                    >
+                      <ArrowDown size={13} />
+                    </button>
+                    <div
+                      className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-sky cursor-grab active:cursor-grabbing"
+                      title="Ushlab sudrang"
+                    >
+                      <GripVertical size={15} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 bg-ink-950 border-t border-line flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handleResetOrder}
+                className="btn-ghost h-8 px-2.5 text-[12px] text-sky-soft hover:text-sky font-semibold"
+              >
+                Alifbo bo'yicha tiklash
+              </button>
+              <button
+                type="button"
+                onClick={() => setReorderModalOpen(false)}
+                className="btn-primary h-8 px-4 text-[12.5px] font-bold"
+              >
+                Tayyor
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

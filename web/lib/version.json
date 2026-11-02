@@ -1,9 +1,9 @@
 {
-  "version": "2.0.585",
-  "build": 585,
-  "commit": "c02b8a9",
-  "commitDate": "2026-11-02T22:47:17+05:00",
-  "lastPushDate": "2026-11-02T22:47:17+05:00",
-  "commitMessage": "feat: Baholar bo'limi yangilanishlari (strelkalar bilan yurish, manual R-semestr, talaba tartibini sudrab ko'chirish, fanlarni yashirish, alohida fan baholash, o'qituvchiga ulashish havolasi)",
-  "generatedAt": "2026-11-02T18:01:03.500Z"
+  "version": "2.0.594",
+  "build": 594,
+  "commit": "ee458df",
+  "commitDate": "2026-11-02T23:01:55+05:00",
+  "lastPushDate": "2026-11-02T23:01:55+05:00",
+  "commitMessage": "feat: Undo (Ctrl+Z) va Redo (Ctrl+Y), tezkor saqlash (Ctrl+S), MS Office/Excel to'liq klaviatura va Excel Paste imkoniyatlari qo'shildi",
+  "generatedAt": "2026-11-02T18:07:20.119Z"
 }
