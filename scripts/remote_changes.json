@@ -178,5 +178,17 @@
     },
     "id": "chg_1793630418719_c25vn",
     "created_at": "2026-11-02T14:40:18.719Z"
+  },
+  {
+    "type": "verify_student",
+    "data": {
+      "row": 183,
+      "status": "TASDIQLANDI",
+      "shnum": "146",
+      "pinfl": "42910905720012",
+      "ism": "Samatova Oydin"
+    },
+    "id": "chg_1793630418828_5632q",
+    "created_at": "2026-11-02T14:40:18.828Z"
   }
 ]
