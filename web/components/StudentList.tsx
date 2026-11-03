@@ -3,17 +3,16 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useWindowVirtualizer } from '@tanstack/react-virtual'
 import { FileText, Link2, Phone, SearchX, X } from 'lucide-react'
-import { formatPinfl, fullName, NAME_FLAGS, passTypeShort } from '@/lib/student'
+import { formatPinfl, fullName, isBazaEntered, NAME_FLAGS, passTypeShort } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import type { DisplayMode } from './FilterBar'
-import { BazaButton, cx, GroupBadge, Mono, StatusIcon, VerifyButton } from './ui'
+import { BazaButton, cx, GroupBadge, Mono, StatusIcon } from './ui'
 
 interface Props {
   students: Student[]
   mode: DisplayMode
   duplicateRows: Set<number>
   onOpen: (s: Student) => void
-  onToggleVerify: (s: Student) => void
   onToggleBaza: (s: Student) => void
   onClearFilters?: () => void
 }
@@ -67,10 +66,10 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 )
 
-const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onToggleVerify, onToggleBaza }: {
-  s: Student; n: number; dup: boolean; compact?: boolean; onOpen: (s: Student) => void; onToggleVerify: (s: Student) => void; onToggleBaza: (s: Student) => void
+const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onToggleBaza }: {
+  s: Student; n: number; dup: boolean; compact?: boolean; onOpen: (s: Student) => void; onToggleBaza: (s: Student) => void
 }) {
-  const ok = s.verified === 'TASDIQLANDI'
+  const ok = isBazaEntered(s)
   const flag = NAME_FLAGS[s.name_flag]
 
   if (compact) {
@@ -79,11 +78,11 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
         onClick={() => onOpen(s)}
         className={cx(
           'group relative flex h-full cursor-pointer flex-col justify-between gap-2 rounded-xl border bg-ink-900 p-3.5 transition-colors',
-          dup ? 'border-rose/55' : ok ? 'border-emerald/25 hover:border-emerald/50' : 'border-line hover:border-sky/45',
+          dup || !ok ? 'border-rose/55' : 'border-line hover:border-sky/45',
           'hover:bg-ink-850',
         )}
       >
-        <span className={cx('absolute inset-y-3 left-0 w-[3px] rounded-r-full', ok ? 'bg-emerald' : 'bg-amber/70')} />
+        <span className={cx('absolute inset-y-3 left-0 w-[3px] rounded-r-full', ok ? 'bg-sky/70' : 'bg-rose')} />
         <header className="flex flex-wrap items-center gap-1.5">
           <span className="mono text-[11px] font-bold text-fg-subtle tabular-nums">#{n}</span>
           <GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} short />
@@ -91,7 +90,6 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
           <span className="ml-auto flex items-center gap-1">
             <StatusIcon status={s.status} />
             <BazaButton student={s} onToggle={onToggleBaza} compact />
-            <VerifyButton student={s} onToggle={onToggleVerify} compact />
           </span>
         </header>
         <div>
@@ -113,11 +111,11 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
       onClick={() => onOpen(s)}
       className={cx(
         'group relative flex h-full cursor-pointer flex-col gap-3 rounded-xl border bg-ink-900 p-3.5 transition-colors sm:p-4',
-        dup ? 'border-rose/55' : ok ? 'border-emerald/25 hover:border-emerald/50' : 'border-line hover:border-sky/45',
+        dup || !ok ? 'border-rose/55' : 'border-line hover:border-sky/45',
         'hover:bg-ink-850',
       )}
     >
-      <span className={cx('absolute inset-y-4 left-0 w-[3px] rounded-r-full', ok ? 'bg-emerald' : 'bg-amber/70')} />
+      <span className={cx('absolute inset-y-4 left-0 w-[3px] rounded-r-full', ok ? 'bg-sky/70' : 'bg-rose')} />
       <header className="flex flex-wrap items-center gap-1.5">
         <span className="mono text-[11.5px] font-bold text-fg-subtle tabular-nums">#{n}</span>
         <GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} />
@@ -125,7 +123,6 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
         <span className="ml-auto flex items-center gap-1.5">
           <StatusIcon status={s.status} />
           <BazaButton student={s} onToggle={onToggleBaza} compact />
-          <VerifyButton student={s} onToggle={onToggleVerify} compact />
         </span>
       </header>
 
@@ -170,7 +167,7 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
   )
 })
 
-function CardGrid({ students, duplicateRows, compact, onOpen, onToggleVerify, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'> & { compact?: boolean }) {
+function CardGrid({ students, duplicateRows, compact, onOpen, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'> & { compact?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const gap = compact ? 10 : 12
   const cols = useColumns(ref, compact ? 310 : 330, gap)
@@ -196,7 +193,7 @@ function CardGrid({ students, duplicateRows, compact, onOpen, onToggleVerify, on
           style={{ top: row.start - v.options.scrollMargin, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap }}
         >
           {students.slice(row.index * cols, row.index * cols + cols).map((s, i) => (
-            <StudentCard key={s.row} s={s} n={row.index * cols + i + 1} dup={duplicateRows.has(s.row)} compact={compact} onOpen={onOpen} onToggleVerify={onToggleVerify} onToggleBaza={onToggleBaza} />
+            <StudentCard key={s.row} s={s} n={row.index * cols + i + 1} dup={duplicateRows.has(s.row)} compact={compact} onOpen={onOpen} onToggleBaza={onToggleBaza} />
           ))}
         </div>
       ))}
@@ -204,10 +201,10 @@ function CardGrid({ students, duplicateRows, compact, onOpen, onToggleVerify, on
   )
 }
 
-const COLS = '38px 84px 64px minmax(170px,1.25fr) 104px 134px 82px 110px minmax(105px,1fr) 42px 90px 102px 32px'
+const COLS = '38px 84px 64px minmax(190px,1.35fr) 108px 138px 86px 114px minmax(120px,1fr) 46px 118px 36px'
 
-const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleVerify, onToggleBaza }: {
-  s: Student; n: number; dup: boolean; onOpen: (s: Student) => void; onToggleVerify: (s: Student) => void; onToggleBaza: (s: Student) => void
+const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleBaza }: {
+  s: Student; n: number; dup: boolean; onOpen: (s: Student) => void; onToggleBaza: (s: Student) => void
 }) {
   return (
     <div
@@ -226,7 +223,6 @@ const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleVerify, onT
       <span className="truncate text-[12.5px] text-fg-muted" title={s.mak}>{s.mak || '—'}</span>
       <span className="text-center text-[12.5px] font-semibold">{s.yil || '—'}</span>
       <span><BazaButton student={s} onToggle={onToggleBaza} compact /></span>
-      <span><VerifyButton student={s} onToggle={onToggleVerify} /></span>
       <span className="flex justify-center"><StatusIcon status={s.status} /></span>
     </div>
   )
@@ -234,7 +230,7 @@ const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleVerify, onT
 
 const ROW_H = 50
 
-function Table({ students, duplicateRows, onOpen, onToggleVerify, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'>) {
+function Table({ students, duplicateRows, onOpen, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'>) {
   const ref = useRef<HTMLDivElement>(null)
   const top = useOffsetTop(ref)
   const v = useWindowVirtualizer({ count: students.length, estimateSize: () => ROW_H, overscan: 12, scrollMargin: top })
@@ -248,14 +244,14 @@ function Table({ students, duplicateRows, onOpen, onToggleVerify, onToggleBaza }
         >
           <span className="text-center">T/R</span><span>Guruh</span><span>Shartnoma</span><span>F.I.SH</span><span>Pasport</span>
           <span>JSHSHIR</span><span>Tug'ilgan</span><span>Hujjat №</span><span>Muassasa</span><span className="text-center">Yil</span>
-          <span>Baza</span><span>Tasdiq</span><span className="text-center">Holat</span>
+          <span>Baza</span><span className="text-center">Holat</span>
         </div>
         <div ref={ref} className="relative" style={{ height: v.getTotalSize() }}>
           {v.getVirtualItems().map((item) => {
             const s = students[item.index]
             return (
               <div key={s.row} className="absolute inset-x-0" style={{ top: item.start - v.options.scrollMargin, height: ROW_H }}>
-                <TableRow s={s} n={item.index + 1} dup={duplicateRows.has(s.row)} onOpen={onOpen} onToggleVerify={onToggleVerify} onToggleBaza={onToggleBaza} />
+                <TableRow s={s} n={item.index + 1} dup={duplicateRows.has(s.row)} onOpen={onOpen} onToggleBaza={onToggleBaza} />
               </div>
             )
           })}

@@ -1,102 +1,122 @@
 {
   "24-11": {
     "kurs": 3,
-    "rahbar": "Rahmatova.Sh",
+    "semestr": 5,
+    "rahbar": "Raxmatova Shahlo Samirjon qizi",
     "yonalish": "Hamshiralik ishi"
   },
   "24-12": {
     "kurs": 3,
-    "rahbar": "Botirova.G",
+    "semestr": 5,
+    "rahbar": "Botirova Gulandon Shokirovna",
     "yonalish": "Hamshiralik ishi"
   },
   "24-13": {
     "kurs": 3,
-    "rahbar": "Elmurodova.N",
+    "semestr": 5,
+    "rahbar": "Elmurodova Nilufar Abdurazzoqovna",
     "yonalish": "Hamshiralik ishi"
   },
   "24-15": {
     "kurs": 2,
-    "rahbar": "Asraliyev.A",
+    "semestr": 3,
+    "rahbar": "Asraliyev Asomiddin Fayzullayevich",
     "yonalish": "Hamshiralik ishi"
   },
   "24-16": {
     "kurs": 2,
-    "rahbar": "Yuldashev.O",
+    "semestr": 3,
+    "rahbar": "Yo'ldoshev Oybek Alikulovich",
     "yonalish": "Hamshiralik ishi"
   },
   "25-16": {
     "kurs": 2,
-    "rahbar": "Xidirova.N",
+    "semestr": 3,
+    "rahbar": "Xidirova Nargiza Bahirovna",
     "yonalish": "Hamshiralik ishi"
   },
   "25-17": {
     "kurs": 2,
-    "rahbar": "Meyliyev.B",
+    "semestr": 3,
+    "rahbar": "Meyliyev Bekmurod Orifovich",
     "yonalish": "Hamshiralik ishi"
   },
   "25-18": {
     "kurs": 2,
-    "rahbar": "Eshnayev.B",
+    "semestr": 3,
+    "rahbar": "Eshnayev Bahrom Baxtiyorovich",
     "yonalish": "Hamshiralik ishi"
   },
   "25-19": {
     "kurs": 2,
-    "rahbar": "Shukurova.G",
+    "semestr": 3,
+    "rahbar": "Shukurova Gulnora Ubaydullayevna",
     "yonalish": "Hamshiralik ishi"
   },
   "25-20": {
     "kurs": 2,
-    "rahbar": "Maxamadiyev.L",
+    "semestr": 3,
+    "rahbar": "Muhammadiyev Laziz Mansurovich",
     "yonalish": "Hamshiralik ishi"
   },
   "25-21": {
     "kurs": 2,
-    "rahbar": "Eshnayev.B",
+    "semestr": 3,
+    "rahbar": "Eshnayev Bahrom Baxtiyorovich",
     "yonalish": "Hamshiralik ishi"
   },
   "25-22": {
     "kurs": 2,
-    "rahbar": "Rahmatova.Sh",
+    "semestr": 3,
+    "rahbar": "Raxmatova Shahlo Samirjon qizi",
     "yonalish": "Hamshiralik ishi"
   },
   "25-23": {
     "kurs": 2,
-    "rahbar": "Quldosheva.K",
+    "semestr": 3,
+    "rahbar": "Quldosheva Kumush Jo'ra qizi",
     "yonalish": "Hamshiralik ishi"
   },
   "26-01": {
     "kurs": 1,
-    "rahbar": "Mirzayeva.D",
+    "semestr": 1,
+    "rahbar": "Mirzayeva Dilnavoz Quchkarovna",
     "yonalish": "Farmatsiya ishi"
   },
   "26-02": {
     "kurs": 1,
-    "rahbar": "Ochilov.D",
+    "semestr": 1,
+    "rahbar": "Ochilov Dilshod Hamroqulovich",
     "yonalish": "Hamshiralik ishi"
   },
   "26-03": {
     "kurs": 1,
-    "rahbar": "A.Asraliyev",
+    "semestr": 1,
+    "rahbar": "Asraliyev Asomiddin Fayzullayevich",
     "yonalish": "Hamshiralik ishi"
   },
   "26-04": {
     "kurs": 1,
-    "rahbar": "Xamdamova.M",
+    "semestr": 1,
+    "rahbar": "Xamdamova Maxliyo Abdusoat qizi",
     "yonalish": "Hamshiralik ishi"
   },
   "26-05": {
     "kurs": 1,
-    "rahbar": "Rayimova.X",
+    "semestr": 1,
+    "rahbar": "Rayimova Xurshida Mahmanazar qizi",
     "yonalish": "Hamshiralik ishi"
   },
   "26-06": {
     "kurs": 1,
-    "rahbar": "Yuldashev.O",
+    "semestr": 1,
+    "rahbar": "Yo'ldoshev Oybek Alikulovich",
     "yonalish": "Hamshiralik ishi"
   },
   "26-07": {
     "kurs": 1,
-    "rahbar": "Asraliyev.A",
+    "semestr": 1,
+    "rahbar": "Asraliyev Asomiddin Fayzullayevich",
     "yonalish": "Hamshiralik ishi"
   }
 }

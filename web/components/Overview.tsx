@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useMemo } from 'react'
-import { BadgeCheck, CalendarOff, Clock, Database, FileWarning, UserMinus, Users } from 'lucide-react'
+import { CalendarOff, Database, FileWarning, UserMinus, Users } from 'lucide-react'
 import { ACADEMIC_LEAVE_GROUP, WITHDRAWN_GROUP } from '@/lib/config'
 import { isAcademicLeave, isBazaEntered, isOfficialGroup, type Filters } from '@/lib/student'
 import type { Student } from '@/lib/types'
@@ -56,30 +56,27 @@ function Tile({
 
 function Overview({ students, groups, filters, onFilter, onGroupSettings }: Props) {
   const stats = useMemo(() => {
-    const byGroup: Record<string, { total: number; ver: number }> = {}
-    for (const g of groups) byGroup[g] = { total: 0, ver: 0 }
-    let official = 0, verified = 0, bazaIn = 0, leave = 0, withdrawn = 0, chala = 0, yoq = 0
+    const byGroup: Record<string, { total: number; out: number }> = {}
+    for (const g of groups) byGroup[g] = { total: 0, out: 0 }
+    let official = 0, bazaIn = 0, leave = 0, withdrawn = 0, chala = 0, yoq = 0
     for (const s of students) {
-      const ok = s.verified === 'TASDIQLANDI'
       const inDb = isBazaEntered(s)
       if (isOfficialGroup(s.group)) {
         const g = byGroup[s.group.trim()]
         if (!g) continue // boshqa kurs
         official++
         g.total++
-        if (ok) { verified++; g.ver++ }
         if (inDb) bazaIn++
+        else g.out++
         if (s.status === 'chala') chala++
         if (s.status === 'yoq') yoq++
       } else if (isAcademicLeave(s.group)) leave++
       else withdrawn++
     }
-    return { byGroup, official, verified, bazaIn, bazaOut: official - bazaIn, leave, withdrawn, chala, yoq }
+    return { byGroup, official, bazaIn, bazaOut: official - bazaIn, leave, withdrawn, chala, yoq }
   }, [students, groups])
 
-  const pct = stats.official ? Math.round((stats.verified / stats.official) * 100) : 0
   const bazaPct = stats.official ? Math.round((stats.bazaIn / stats.official) * 100) : 0
-  const onlyVerified = (v: string) => onFilter({ verified: filters.verified === v ? '' : v })
   const toggleBazaFilter = () => {
     // 1-bosish: kiritilmaganlar (agar bor bo'lsa), keyin kiritilganlar, keyin barchasi
     if (!filters.baza) onFilter({ baza: stats.bazaOut > 0 ? 'KIRITILMAGAN' : 'KIRITILDI' })
@@ -90,16 +87,11 @@ function Overview({ students, groups, filters, onFilter, onGroupSettings }: Prop
 
   return (
     <section className="space-y-3.5">
-      {/* 7 ta plitka: keng ekranda bir qatorda (1366 da ham), torroqda birinchisi ikki ustunni egallaydi — bo'sh joy qolmaydi */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5 xl:grid-cols-7">
+      {/* 5 ta plitka: kompyuterda bir qatorda, telefonda birinchisi ikki ustunni egallaydi — bo'sh joy qolmaydi */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-2.5 md:grid-cols-5">
         <Tile icon={Users} tone="blue" label={filters.kurs ? `${filters.kurs}-kurs kontingenti` : 'Rasmiy kontingent'} value={stats.official} sub={`${groups.length} ta guruh`}
-          className="col-span-2 xl:col-span-1"
-          active={!filters.group && !filters.verified && !filters.baza && !filters.status} onClick={() => onFilter({ group: '', verified: '', baza: '', status: '' })} />
-        <Tile icon={BadgeCheck} tone="emerald" label="Tasdiqlangan" value={<>{stats.verified}<span className="text-[14px] font-bold text-fg-subtle"> / {stats.official}</span></>}
-          sub={<span className="flex items-center gap-2"><span className="w-12"><ProgressBar value={pct} /></span>{pct}%</span>}
-          active={filters.verified === 'TASDIQLANDI'} onClick={() => onlyVerified('TASDIQLANDI')} />
-        <Tile icon={Clock} tone="amber" label="Kutilmoqda" value={stats.official - stats.verified} sub="Operator tasdig'i"
-          active={filters.verified === 'KUTILMOQDA'} onClick={() => onlyVerified('KUTILMOQDA')} />
+          className="col-span-2 md:col-span-1"
+          active={!filters.group && !filters.baza && !filters.status} onClick={() => onFilter({ group: '', baza: '', status: '' })} />
         <Tile icon={Database} tone="sky" label="Bazaga kiritilgan"
           value={<>{stats.bazaIn}<span className="text-[14px] font-bold text-fg-subtle"> / {stats.official}</span></>}
           sub={stats.bazaOut > 0 ? <span className="font-semibold text-rose">{stats.bazaOut} ta kiritilmagan</span> : <span className="flex items-center gap-2"><span className="w-12"><ProgressBar value={bazaPct} tone="sky" /></span>{bazaPct}%</span>}

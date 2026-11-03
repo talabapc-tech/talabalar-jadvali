@@ -16,6 +16,9 @@ export const SECRET_GROUP = '26-07'
 
 export interface GroupSetting {
   kurs: number
+  /** Joriy semestr: kurs bo'yicha 2·kurs−1 (kuzgi) yoki 2·kurs (bahorgi) */
+  semestr: number
+  /** Xodimlar ro'yxatidagi to'liq F.I.Sh */
   rahbar: string
   yonalish: string
 }
@@ -27,7 +30,27 @@ export const GROUP_DIRECTIONS = ['Hamshiralik ishi', 'Farmatsiya ishi', 'Feldshe
 export const GROUP_CODE = /^\d{2}-\d{2}$/
 
 const H = 'Hamshiralik ishi'
-const s = (kurs: number, rahbar: string, yonalish = H): GroupSetting => ({ kurs, rahbar, yonalish })
+
+/** Kursning ikki semestri: 2-kurs → [3, 4] */
+export const kursSemestrlari = (kurs: number): [number, number] => [kurs * 2 - 1, kurs * 2]
+
+/** Sanaga qarab taxminiy joriy semestr: sentyabr–yanvar — kuzgi (toq), fevral–avgust — bahorgi (juft) */
+export function defaultSemestr(kurs: number, now = new Date()): number {
+  const m = now.getMonth()
+  return kurs * 2 - (m >= 8 || m === 0 ? 1 : 0)
+}
+
+/** Kurs o'zgarganda semestr shu kursning mos (kuzgi/bahorgi) semestriga o'tadi */
+export const moveSemestr = (semestr: number, kurs: number) => kurs * 2 - (semestr % 2)
+
+/** "Mirzayeva Dilnavoz Quchkarovna" → "Mirzayeva D.Q."; eski "Mirzayeva.D" o'zgarishsiz qoladi */
+export function shortFio(fio: string): string {
+  const w = fio.trim().split(/\s+/).filter((x) => !/^(o['‘’`ʻ]?g['‘’`ʻ]?li|qizi)$/i.test(x))
+  if (w.length < 2) return fio.trim()
+  return `${w[0]} ${w.slice(1, 3).map((x) => `${x[0].toUpperCase()}.`).join('')}`
+}
+
+const s = (kurs: number, rahbar: string, yonalish = H): GroupSetting => ({ kurs, semestr: defaultSemestr(kurs), rahbar, yonalish })
 
 /**
  * Boshlang'ich guruh sozlamalari. Portalda "Guruh sozlamalari" orqali o'zgartirilganlari
@@ -36,26 +59,26 @@ const s = (kurs: number, rahbar: string, yonalish = H): GroupSetting => ({ kurs,
  * 2025-2026 kontingenti jadvalidagidek: 24-15, 24-16 — 2-kurs; 24-14 bitirgan (bazada yo'q).
  */
 export const DEFAULT_GROUP_SETTINGS: GroupSettings = {
-  '26-01': s(1, 'Mirzayeva.D', 'Farmatsiya ishi'),
-  '26-02': s(1, 'Ochilov.D'),
-  '26-03': s(1, 'A.Asraliyev'),
-  '26-04': s(1, 'Xamdamova.M'),
-  '26-05': s(1, 'Rayimova.X'),
-  '26-06': s(1, 'Yuldashev.O'),
-  '26-07': s(1, 'Asraliyev.A'),
-  '24-15': s(2, 'Asraliyev.A'),
-  '24-16': s(2, 'Yuldashev.O'),
-  '25-16': s(2, 'Xidirova.N'),
-  '25-17': s(2, 'Meyliyev.B'),
-  '25-18': s(2, 'Eshnayev.B'),
-  '25-19': s(2, 'Shukurova.G'),
-  '25-20': s(2, 'Maxamadiyev.L'),
-  '25-21': s(2, 'Eshnayev.B'),
-  '25-22': s(2, 'Rahmatova.Sh'),
-  '25-23': s(2, 'Quldosheva.K'),
-  '24-11': s(3, 'Rahmatova.Sh'),
-  '24-12': s(3, 'Botirova.G'),
-  '24-13': s(3, 'Elmurodova.N'),
+  '26-01': s(1, 'Mirzayeva Dilnavoz Quchkarovna', 'Farmatsiya ishi'),
+  '26-02': s(1, 'Ochilov Dilshod Hamroqulovich'),
+  '26-03': s(1, 'Asraliyev Asomiddin Fayzullayevich'),
+  '26-04': s(1, 'Xamdamova Maxliyo Abdusoat qizi'),
+  '26-05': s(1, 'Rayimova Xurshida Mahmanazar qizi'),
+  '26-06': s(1, "Yo'ldoshev Oybek Alikulovich"),
+  '26-07': s(1, 'Asraliyev Asomiddin Fayzullayevich'),
+  '24-15': s(2, 'Asraliyev Asomiddin Fayzullayevich'),
+  '24-16': s(2, "Yo'ldoshev Oybek Alikulovich"),
+  '25-16': s(2, 'Xidirova Nargiza Bahirovna'),
+  '25-17': s(2, 'Meyliyev Bekmurod Orifovich'),
+  '25-18': s(2, 'Eshnayev Bahrom Baxtiyorovich'),
+  '25-19': s(2, 'Shukurova Gulnora Ubaydullayevna'),
+  '25-20': s(2, 'Muhammadiyev Laziz Mansurovich'),
+  '25-21': s(2, 'Eshnayev Bahrom Baxtiyorovich'),
+  '25-22': s(2, 'Raxmatova Shahlo Samirjon qizi'),
+  '25-23': s(2, "Quldosheva Kumush Jo'ra qizi"),
+  '24-11': s(3, 'Raxmatova Shahlo Samirjon qizi'),
+  '24-12': s(3, 'Botirova Gulandon Shokirovna'),
+  '24-13': s(3, 'Elmurodova Nilufar Abdurazzoqovna'),
 }
 
 /*
@@ -77,12 +100,14 @@ export function sanitizeGroupSettings(raw: unknown): GroupSettings {
   if (!raw || typeof raw !== 'object') return out
   for (const [g, v] of Object.entries(raw as Record<string, unknown>)) {
     if (!GROUP_CODE.test(g) || !v || typeof v !== 'object') continue
-    const { kurs, rahbar, yonalish } = v as Partial<GroupSetting>
+    const { kurs, semestr, rahbar, yonalish } = v as Partial<GroupSetting>
     const k = Number(kurs)
     if (!KURS_LIST.includes(k as 1 | 2 | 3)) continue
+    const sem = Number(semestr)
     out[g] = {
       kurs: k,
-      rahbar: String(rahbar ?? '').trim().slice(0, 60),
+      semestr: kursSemestrlari(k).includes(sem) ? sem : defaultSemestr(k),
+      rahbar: String(rahbar ?? '').trim().replace(/\s+/g, ' ').slice(0, 80),
       yonalish: String(yonalish ?? '').trim().slice(0, 60) || H,
     }
   }

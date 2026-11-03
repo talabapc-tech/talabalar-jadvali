@@ -212,7 +212,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
     if (next) setOpenRow(next.row)
   }, [navList, navIdx])
 
-  const { saveEdit, toggleVerify, toggleBaza, remove, addStudent, refresh } = data
+  const { saveEdit, toggleBaza, remove, addStudent, refresh } = data
 
   const onAdd = useCallback(async (fields: EditFields) => {
     try {
@@ -222,15 +222,6 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
       notify(`Serverga yuborish navbatga qo'yildi: ${(e as Error).message}`, 'warning')
     }
   }, [addStudent, notify])
-
-  const onToggleVerify = useCallback(async (s: Student) => {
-    try {
-      const st = await toggleVerify(s)
-      notify(st === 'TASDIQLANDI' ? `${s.ism} tasdiqlandi` : `${s.ism} tasdig'i bekor qilindi`, st === 'TASDIQLANDI' ? 'success' : 'warning')
-    } catch (e) {
-      notify(`Tasdiq serverga yetmadi: ${(e as Error).message}. Brauzerda saqlandi, qayta yuboriladi.`, 'warning')
-    }
-  }, [toggleVerify, notify])
 
   const onToggleBaza = useCallback(async (s: Student) => {
     try {
@@ -448,7 +439,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                 <div ref={filterRef} className="scroll-mt-20">
                   <FilterBar filters={filters} groups={groups} onFilter={patchFilters} shown={shown.length} total={data.students.length} mode={mode} onMode={setMode} onExportShown={onExportShown} />
                 </div>
-                <StudentList students={shown} mode={mode} duplicateRows={duplicateRows} onOpen={onOpen} onToggleVerify={onToggleVerify} onToggleBaza={onToggleBaza} onClearFilters={clearFilters} />
+                <StudentList students={shown} mode={mode} duplicateRows={duplicateRows} onOpen={onOpen} onToggleBaza={onToggleBaza} onClearFilters={clearFilters} />
               </>
             ) : (
               <GroupsJournal key={filters.kurs || 'all'} students={data.students} groups={groups} onOpen={onOpen} notify={notify} />
@@ -484,7 +475,6 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
           onNav={onNav}
           onClose={onClose}
           onSave={onSave}
-          onToggleVerify={onToggleVerify}
           onToggleBaza={onToggleBaza}
           onDelete={onDelete}
           onOpenRow={setOpenRow}

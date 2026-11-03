@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, Clock, AlertTriangle, XCircle, CheckCircle2, Database, EyeOff } from 'lucide-react'
+import { AlertTriangle, XCircle, CheckCircle2, Database, EyeOff } from 'lucide-react'
 import { GROUP_TITLES } from '@/lib/config'
 import { isAcademicLeave, isBazaEntered, isSecretGroup, isWithdrawn } from '@/lib/student'
 import type { Student } from '@/lib/types'
@@ -54,26 +54,6 @@ export function GroupBadge({ group, className, short, asl, inline, from }: { gro
     <span className={cx('chip mono', farm ? 'border-emerald/40 bg-emerald/10 text-emerald-soft' : 'border-blue/40 bg-blue/10 text-blue-soft', className)}>
       {group}
     </span>
-  )
-}
-
-export function VerifyButton({ student, onToggle, compact }: { student: Student; onToggle: (s: Student) => void; compact?: boolean }) {
-  const ok = student.verified === 'TASDIQLANDI'
-  return (
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onToggle(student) }}
-      title={ok ? "Operator tasdig'i: Tasdiqlangan — bekor qilish uchun bosing" : "Operator tasdig'i: Tasdiqlash uchun bosing"}
-      className={cx(
-        'chip cursor-pointer transition-colors',
-        ok
-          ? 'border-emerald/45 bg-emerald/12 text-emerald-soft hover:bg-emerald/20'
-          : 'border-amber/40 bg-amber/10 text-amber hover:bg-amber/20',
-      )}
-    >
-      {ok ? <Check size={12} strokeWidth={3} /> : <Clock size={12} strokeWidth={2.5} />}
-      {compact ? (ok ? 'OK' : 'Kutilmoqda') : ok ? 'Tasdiqlangan' : 'Kutilmoqda'}
-    </button>
   )
 }
 

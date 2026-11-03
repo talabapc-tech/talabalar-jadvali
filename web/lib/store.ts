@@ -383,31 +383,6 @@ export function useStudents() {
     }
   }, [originalOf, updatePending, markSent])
 
-  const toggleVerify = useCallback(async (student: Student): Promise<VerifyStatus> => {
-    const status: VerifyStatus = student.verified === 'TASDIQLANDI' ? 'KUTILMOQDA' : 'TASDIQLANDI'
-    const key = String(student.row)
-    const prev = pendingRef.current.verifies[key]
-    updatePending((p) => ({ ...p, verifies: { ...p.verifies, [key]: { id: identityOf(originalOf(student)), status, ts: Date.now(), sent: false } } }))
-    try {
-      await postChange({
-        type: 'verify_student',
-        data: { row: student.row, status, shnum: student.shnum || '', pinfl: student.pinfl || '', ism: student.ism || '' },
-      })
-      markSent('verifies', key)
-    } catch (e) {
-      if (isRejected(e)) {
-        updatePending((p) => {
-          const verifies = { ...p.verifies }
-          if (prev) verifies[key] = prev
-          else delete verifies[key]
-          return { ...p, verifies }
-        })
-      }
-      throw e
-    }
-    return status
-  }, [originalOf, updatePending, markSent])
-
   const toggleBaza = useCallback(async (student: Student): Promise<BazaStatus> => {
     const status: BazaStatus = (student.baza || 'KIRITILDI') === 'KIRITILMAGAN' ? 'KIRITILDI' : 'KIRITILMAGAN'
     const key = String(student.row)
@@ -510,6 +485,6 @@ export function useStudents() {
   return {
     students: merged?.list ?? [],
     state, error, source, fetchedAt, pendingCount,
-    refresh, saveEdit, toggleVerify, toggleBaza, remove, addStudent,
+    refresh, saveEdit, toggleBaza, remove, addStudent,
   }
 }

@@ -377,7 +377,7 @@ export default function Sidebar({
           {!compact && (
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13.5px] leading-tight font-extrabold tracking-tight text-fg">Boshqaruv portali</div>
-              <div className="truncate text-[11px] leading-tight font-medium text-fg-subtle">Shahrisabz JTSM</div>
+              <div className="truncate text-[11px] leading-tight font-medium text-fg-subtle">Shahrisabz Tibbiyot Texnikumi</div>
             </div>
           )}
         </Link>

@@ -43,6 +43,14 @@ export async function tgCall(method: string, params: Record<string, unknown> = {
 }
 
 /** JPG yoki PNG rasmni Telegram'ga rasm sifatida yuborish */
+/** Toshkent vaqti: "03.11.2026 | 14:05" va "03.11" */
+export function tashkentStamp() {
+  const now = new Date(Date.now() + 5 * 3600 * 1000)
+  const p = (n: number) => String(n).padStart(2, '0')
+  const dd = p(now.getUTCDate()), mm = p(now.getUTCMonth() + 1)
+  return { stamp: `${dd}.${mm}.${now.getUTCFullYear()} | ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}`, ddmm: `${dd}.${mm}` }
+}
+
 export async function tgSendPhoto(chatId: string | number, jpg: Buffer, fileName: string, caption: string, replyMarkup?: unknown) {
   const fd = new FormData()
   fd.append('chat_id', String(chatId))

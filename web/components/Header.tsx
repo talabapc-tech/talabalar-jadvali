@@ -238,7 +238,7 @@ export default function Header({
             <h1 className="truncate text-[15px] leading-tight font-extrabold tracking-tight text-fg sm:text-[16.5px]">{titleText}</h1>
             <div className="truncate text-[11px] leading-tight text-fg-subtle sm:text-[11.5px]">
               <span className="font-semibold text-fg-muted">2026/2027</span>
-              <span className="hidden min-[480px]:inline"> · Shahrisabz Abu Ali ibn Sino nomidagi JTSM</span>
+              <span className="hidden min-[480px]:inline"> · Shahrisabz Tibbiyot Texnikumi</span>
             </div>
           </div>
         </div>

@@ -2,13 +2,13 @@ import type { NextRequest } from 'next/server'
 import { COURSES, GROUP_LEADERS } from '@/lib/config'
 import { malumotnomaBlocker, malumotnomaData, malumotnomaFileName } from '@/lib/malumotnoma'
 import { renderMalumotnomaJpg } from '@/lib/server/malumotnoma-rasm'
-import { academicGroups, byName, fullName, groupTitle, isAcademicLeave, isOfficialGroup, isOutside, kursOf } from '@/lib/student'
+import { academicGroups, byName, fullName, groupTitle, isAcademicLeave, isBazaEntered, isOfficialGroup, isOutside, kursOf } from '@/lib/student'
 import { loadGroupSettings, loadStaff, loadStudents, REPO_PATHS, readRepoFile, readRepoFileIn, saveStaff, sendChange } from '@/lib/server/source'
 import { analyzeDocumentImage, parseTextData } from '@/lib/server/telegram-ai'
 import { deletePendingDraft, getPendingDraft, getUserMode, type PendingDraft, savePendingDraft, setUserMode } from '@/lib/server/telegram-session'
 import { cleanStaffPhone, type StaffMember } from '@/lib/staff'
-import { renderGroupListPng } from '@/lib/server/guruh-rasm'
-import { siteOrigin, TG_ALLOWED_IDS, TG_BOT_TOKEN, TG_CHAT_ID, TG_REPORT_KEY, TG_WEBHOOK_SECRET, tgCall, tgEsc as esc, tgSendPhoto } from '@/lib/server/telegram'
+import { groupListFileName, groupListInput, renderGroupListPng, SPECIAL_LISTS, type SpecialList } from '@/lib/server/guruh-rasm'
+import { siteOrigin, tashkentStamp, TG_ALLOWED_IDS, TG_BOT_TOKEN, TG_CHAT_ID, TG_REPORT_KEY, TG_WEBHOOK_SECRET, tgCall, tgEsc as esc, tgSendPhoto } from '@/lib/server/telegram'
 import type { Student } from '@/lib/types'
 import { majlisMatni } from '@/lib/majlis'
 import { loadMajlisDb } from '@/lib/server/majlis-store'
@@ -77,7 +77,17 @@ const ROLE_FILES = [
 /** PDF jurnallar (Python generate_pdfs.py) faqat 1-kurs guruhlari uchun yasaladi */
 const pdfGroups = () => COURSES.find((c) => c.kurs === 1)?.groups ?? []
 
+/** Bot talabalarni portal bilan bir xil JONLI manbadan oladi (Supabase / lokal xizmat).
+ *  Ilgari faqat repodagi data/talabalar_bazasi.json o'qilardi — u Python xizmati yuborgandagina
+ *  yangilanadi, shuning uchun yangi qo'shilgan talabalar botda "yo'q" bo'lib qolardi.
+ *  Jonli manba ishlamasa — eski JSON zaxira sifatida. */
 async function loadStudentsDb(): Promise<Student[]> {
+  try {
+    const live = await loadStudents()
+    if (live.length) return live
+  } catch (err) {
+    console.error('Jonli talabalar bazasi yuklanmadi, JSON zaxiradan olinadi:', err)
+  }
   const buf = await readRepoFile(REPO_PATHS.baza, BOT_CACHE)
   if (!buf) return []
   try {
@@ -145,20 +155,13 @@ function sendDocument(chatId: string | number, buf: Buffer, fileName: string, ca
 /** O‘zbekcha apostroflarning barcha ko‘rinishlarini bittaga keltirish (o‘g‘li = o'g'li = o`g`li) */
 const norm = (v: unknown) => String(v ?? '').toLowerCase().replace(/[‘’ʻʼ`´]/g, "'").replace(/\s+/g, ' ').trim()
 
-function tashkentStamp() {
-  const now = new Date(Date.now() + 5 * 3600 * 1000)
-  const p = (n: number) => String(n).padStart(2, '0')
-  const dd = p(now.getUTCDate()), mm = p(now.getUTCMonth() + 1)
-  return { stamp: `${dd}.${mm}.${now.getUTCFullYear()} | ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}`, ddmm: `${dd}.${mm}` }
-}
-
 async function kontingentText(reason: string) {
   const students = await loadStudentsDb()
   const groups = academicGroups(students)
   const official = students.filter((s) => isOfficialGroup(s.group))
   const leave = students.filter((s) => isAcademicLeave(s.group))
   const withdrawn = students.filter((s) => isOutside(s.group))
-  const ver = official.filter((s) => s.verified === 'TASDIQLANDI').length
+  const inDb = official.filter(isBazaEntered).length
   const { stamp, ddmm } = tashkentStamp()
   const p = (n: number, w: number) => String(n).padStart(w, ' ')
 
@@ -170,7 +173,7 @@ async function kontingentText(reason: string) {
     '<pre>',
     `├─ Faol kontingent   | ${p(official.length, 3)} nafar`,
     `├─ Guruhlar soni     | ${p(groups.length, 3)} ta guruh`,
-    `├─ Hujjat tasdig'i   | ${p(ver, 3)}/${official.length} (${official.length ? Math.round((ver / official.length) * 100) : 0}%)`,
+    `├─ Bazaga kiritilgan | ${p(inDb, 3)}/${official.length} (${official.length ? Math.round((inDb / official.length) * 100) : 0}%)`,
     `├─ Akademik ta'tilda | ${p(leave.length, 3)} nafar`,
     `├─ Safdan chiqqan    | ${p(withdrawn.length, 3)} nafar`,
     `└─ Jami bazada       | ${p(students.length, 3)} nafar`,
@@ -350,13 +353,13 @@ const backTo = (to: 'm:st' | 'm:xd' | 'm:rep', label: string): Btn[] => [{ text:
 async function studentsMenuView(): Promise<View> {
   const students = await loadStudentsDb()
   const official = students.filter((s) => isOfficialGroup(s.group))
-  const ver = official.filter((s) => s.verified === 'TASDIQLANDI').length
+  const inDb = official.filter(isBazaEntered).length
   return {
     text: [
       '🎓 <b>Talabalar</b>',
       quote([
         `Faol kontingent: <b>${official.length}</b> nafar · ${academicGroups(students).length} guruh`,
-        `Tasdiqlangan: <b>${ver}</b> · kutilmoqda: <b>${official.length - ver}</b>`,
+        `Bazaga kiritilgan: <b>${inDb}</b> · kiritilmagan: <b>${official.length - inDb}</b>`,
         `Akademik ta'til: <b>${students.filter((s) => isAcademicLeave(s.group)).length}</b> · safdan chiqqan: <b>${students.filter((s) => isOutside(s.group)).length}</b>`,
       ], false),
       "<i>Bo'limni tanlang yoki talaba ismi, shartnoma № yoki JSHSHIR ni yozib yuboring.</i>",
@@ -578,12 +581,6 @@ function staffPickerForDraft(draftId: string): View {
 
 /* ------------------------------ GURUHLAR RO'YXATI ------------------------------ */
 
-const SPECIAL_LISTS = {
-  akademik: { title: "Akademik ta'til olganlar", pick: (s: Student) => isAcademicLeave(s.group) },
-  safdan: { title: 'Talabalar safidan chiqarilganlar', pick: (s: Student) => isOutside(s.group) },
-} as const
-type SpecialList = keyof typeof SPECIAL_LISTS
-
 type Btn = { text: string; callback_data: string }
 type View = { text: string; markup: { inline_keyboard: Btn[][] } }
 
@@ -658,18 +655,15 @@ const pickAgain = (key: string) => {
 
 /** Bitta guruh (yoki akademik / safdan chiqarilganlar) ro'yxati: avval matn, keyin rasm */
 async function sendGroupList(chatId: string | number, key: string) {
-  const special = key in SPECIAL_LISTS ? SPECIAL_LISTS[key as SpecialList] : null
-  const list = (await loadStudents())
-    .filter(special ? special.pick : (s) => String(s.group || '').trim() === key)
-    .sort(byName)
-  const title = special ? special.title : `Guruh ${key}`
-  if (!list.length) {
+  const special = key in SPECIAL_LISTS
+  const { stamp } = tashkentStamp()
+  const input = groupListInput(key, await loadStudents(), stamp)
+  if (!input) {
+    const title = special ? SPECIAL_LISTS[key as SpecialList].title : `Guruh ${key}`
     await sendMessage(chatId, `❓ ${esc(title)}: talaba topilmadi.`, pickAgain(key))
     return
   }
-  const leader = special ? '' : GROUP_LEADERS[key] || ''
-  const subtitle = special ? 'Rasmiy kontingentga kirmaydi' : `${kursOf(key)}-kurs · ${groupTitle(key)}`
-  const { stamp } = tashkentStamp()
+  const { title, subtitle, leader, students: list } = input
 
   const head = [
     `👥 <b>${esc(title)}</b> — ${list.length} nafar`,
@@ -678,34 +672,58 @@ async function sendGroupList(chatId: string | number, key: string) {
   ]
   const rows = list.map((s, i) => special
     ? `${i + 1}. ${esc(fullName(s))} — ${s.chiqqan_guruh ? `<b>${esc(s.chiqqan_guruh)}</b> dan` : 'guruhi ?'}${s.buyruq_sana ? `, ${esc(s.buyruq_sana)}` : ''}`
-    : `${i + 1}. ${esc(fullName(s))} — №${esc(s.shnum || '—')}${s.verified === 'TASDIQLANDI' ? ' ✅' : ''}`)
+    : `${i + 1}. ${esc(fullName(s))} — №${esc(s.shnum || '—')}`)
   // Guruh ro'yxati o'qish uchun so'raladi — yig'iq emas, ochiq iqtibos
   await sendMessage(chatId, [...head, quote(rows, false)].join('\n'))
 
   try {
-    const png = await renderGroupListPng({ title, subtitle, leader, stamp, students: list, special: !!special })
-    const file = special ? `${key === 'akademik' ? 'Akademik_tatil' : 'Safdan_chiqarilganlar'}_royxati.png` : `Guruh_${key}_royxati.png`
-    await tgSendPhoto(chatId, png, file, `🖼 <b>${esc(title)}</b> — ${list.length} nafar\n🕒 ${stamp}`, pickAgain(key))
+    const png = await renderGroupListPng(input)
+    await tgSendPhoto(chatId, png, groupListFileName(key), `🖼 <b>${esc(title)}</b> — ${list.length} nafar\n🕒 ${stamp}`, pickAgain(key))
   } catch (err) {
     console.error('Guruh rasmi chizilmadi:', err)
     await sendMessage(chatId, `⚠️ Rasm yaratilmadi: ${esc((err as Error).message)}`, pickAgain(key))
   }
 }
 
+/** Ism qidiruvi uchun: tutuq belgilarisiz, x/h va q/k farqisiz ("Xo'jayeva" = "hojayeva") */
+const loose = (v: unknown) => norm(v).replace(/'/g, '').replace(/x/g, 'h').replace(/q/g, 'k')
+
+const CARD_LIMIT = 6
+const LIST_LIMIT = 60
+
 async function searchText(query: string) {
   const q = norm(query)
   const digits = q.replace(/\s/g, '')
+  // So'zlar istalgan tartibda: "Dilnura Abdijalolova" ham, "abdijalolova dil" ham topiladi.
+  // Pasport va shahodatnomadagi F.I.Sh ham hisobga olinadi (imlosi farq qilsa ham topilsin)
+  const words = loose(query).split(' ').filter(Boolean)
+  const nameHit = (s: Student) => {
+    const n = loose(`${fullName(s)} ${s.pass_fish || ''} ${s.cert_fish || ''}`)
+    return words.length > 0 && words.every((w) => n.includes(w))
+  }
   const matches = (await loadStudentsDb()).filter((s) =>
-    norm(s.fish).includes(q) ||
+    nameHit(s) ||
     norm(s.shnum) === q ||
     (q.length >= 4 && norm(s.pv).replace(/\s/g, '').includes(digits)) ||
     (/^\d{4,}$/.test(digits) && String(s.pinfl || '').includes(digits)))
+    .sort(byName)
   if (!matches.length) return null
-  const shown = matches.slice(0, 8)
-  const lines = [`🔍 <b>Topildi: ${matches.length} ta</b>`]
-  shown.forEach((s, i) => lines.push(studentCard(s, i)))
-  if (matches.length > 8) lines.push(`<i>…va yana ${matches.length - 8} nafar. Aniqroq yozing.</i>`)
-  return { text: lines.join('\n'), markup: malumotnomaButtons(shown) }
+
+  // Kam bo'lsa — to'liq kartalar; ko'p bo'lsa — hammasi ixcham ro'yxatda (bittasi ham yashirinmaydi)
+  if (matches.length <= CARD_LIMIT) {
+    const lines = [`🔍 <b>Topildi: ${matches.length} ta</b>`]
+    matches.forEach((s, i) => lines.push(studentCard(s, i)))
+    return { text: lines.join('\n'), markup: malumotnomaButtons(matches) }
+  }
+  const shown = matches.slice(0, LIST_LIMIT)
+  const rows = shown.map((s, i) => `${i + 1}. <b>${esc(fullName(s))}</b> — ${esc(s.group || '—')} · №${esc(s.shnum || '—')}`)
+  const text = [
+    `🔍 <b>Topildi: ${matches.length} ta</b>`,
+    quote(rows),
+    matches.length > LIST_LIMIT ? `<i>…va yana ${matches.length - LIST_LIMIT} nafar.</i>` : '',
+    `<i>To'liq ma'lumot uchun ism va familiyani birga yozing (masalan: <code>${esc(shortFish(fullName(shown[0])).replace('.', ''))}</code>).</i>`,
+  ].filter(Boolean).join('\n')
+  return { text, markup: BOT_KEYBOARD }
 }
 
 /** Har bir topilgan talaba uchun "📄 Ma'lumotnoma" tugmasi (ma'lumotnoma berib bo'lmaydiganlarga — yo'q) */

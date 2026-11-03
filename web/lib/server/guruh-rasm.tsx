@@ -2,10 +2,13 @@ import 'server-only'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ImageResponse } from 'next/og'
+import { GROUP_LEADERS } from '@/lib/config'
+import { byName, groupTitle, isAcademicLeave, isOutside, kursOf } from '@/lib/student'
 import type { Student } from '@/lib/types'
 
 /*
-  Guruh ro'yxatining PNG rasmi (bot: "👥 Guruhlar ro'yxati" → guruh tanlanadi).
+  Guruh ro'yxatining PNG rasmi — bot ("👥 Guruhlar ro'yxati" → guruh tanlanadi) va portal
+  (Guruhlar jurnali → "Telegramga yuborish") shu bitta koddan foydalanadi.
   Har safar jonli ma'lumotdan chiziladi — hisobotlar/pdf_jurnallar dagi tayyor rasmlar
   Python hisobot yasalgandagina yangilanadi. Shrift: Liberation Serif (assets/malumotnoma).
 */
@@ -36,6 +39,32 @@ export interface GroupImageInput {
   /** Akademik / safdan chiqarilganlar: shartnoma va telefon o'rniga qaysi guruhdan va qachon */
   special?: boolean
 }
+
+/** Rasmiy kontingentga kirmaydigan ro'yxatlar — kaliti guruh kodi o'rnida keladi */
+export const SPECIAL_LISTS = {
+  akademik: { title: "Akademik ta'til olganlar", pick: (s: Student) => isAcademicLeave(s.group) },
+  safdan: { title: 'Talabalar safidan chiqarilganlar', pick: (s: Student) => isOutside(s.group) },
+} as const
+export type SpecialList = keyof typeof SPECIAL_LISTS
+
+/** Guruh kaliti (26-01, akademik, safdan) bo'yicha rasm ma'lumoti; talabasi bo'lmasa null.
+ *  Rahbar va yo'nalish — applyGroupSettings() qo'llangan sozlamalardan. */
+export function groupListInput(key: string, students: Student[], stamp: string): GroupImageInput | null {
+  const special = key in SPECIAL_LISTS ? SPECIAL_LISTS[key as SpecialList] : null
+  const list = students.filter(special ? special.pick : (s) => String(s.group || '').trim() === key).sort(byName)
+  if (!list.length) return null
+  return {
+    title: special ? special.title : `Guruh ${key}`,
+    subtitle: special ? 'Rasmiy kontingentga kirmaydi' : `${kursOf(key)}-kurs · ${groupTitle(key)}`,
+    leader: special ? '' : GROUP_LEADERS[key] || '',
+    stamp,
+    students: list,
+    special: !!special,
+  }
+}
+
+export const groupListFileName = (key: string) =>
+  key === 'akademik' ? 'Akademik_tatil_royxati.png' : key === 'safdan' ? 'Safdan_chiqarilganlar_royxati.png' : `Guruh_${key}_royxati.png`
 
 /** Katakdan chiqmasin: satori'da overflow:hidden har katakka kesish maskasi qo'shadi va 37 qatorli
  *  ro'yxatni 11 soniyada chizardi (busiz 0,7 s) — shuning uchun matnni o'zimiz qisqartiramiz */

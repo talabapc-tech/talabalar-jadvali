@@ -10,7 +10,8 @@ import { AUTH_COOKIE, isLocalRequest, TG_INIT_HEADER, verifySessionToken, verify
   (/api/majlislar) cookie YOKI imzolangan Telegram initData bilan ochiladi — initData boshqa API'larga o'tmaydi.
 */
 
-const PUBLIC_PATHS = new Set(['/login', '/majlis', '/api/telegram_webhook', '/api/mytest-roster'])
+// /baholar/ulashilgan — o'qituvchi havolasi: himoyasi token (API faqat token bilan o'qish/saqlashni o'tkazadi)
+const PUBLIC_PATHS = new Set(['/login', '/majlis', '/baholar/ulashilgan', '/api/baholar/ulashilgan', '/api/telegram_webhook', '/api/mytest-roster'])
 const isPublic = (p: string) => PUBLIC_PATHS.has(p) || p.startsWith('/api/auth/')
 const isMajlisApi = (p: string) => p === '/api/majlislar' || p.startsWith('/api/majlislar/')
 

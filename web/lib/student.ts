@@ -233,13 +233,12 @@ export interface Filters {
   docType: string
   status: string
   nameFlag: string // '' | 'none' | ok | translit | farq | tekshir | boshqa
-  verified: string // '' | 'TASDIQLANDI' | 'KUTILMOQDA'
   baza: string // '' | 'KIRITILDI' | 'KIRITILMAGAN'
   yon: string
 }
 
 export const EMPTY_FILTERS: Filters = {
-  search: '', kurs: '', group: '', passType: '', docType: '', status: '', nameFlag: '', verified: '', baza: '', yon: '',
+  search: '', kurs: '', group: '', passType: '', docType: '', status: '', nameFlag: '', baza: '', yon: '',
 }
 
 export function isBazaEntered(s: Pick<Student, 'baza'>): boolean {
@@ -278,7 +277,6 @@ export function matches(s: Student, text: string, f: Filters, q: string): boolea
   if (f.nameFlag) {
     if (f.nameFlag === 'none' ? s.name_flag !== '' : s.name_flag !== f.nameFlag) return false
   }
-  if (f.verified && (s.verified || 'KUTILMOQDA') !== f.verified) return false
   if (f.baza && (s.baza || 'KIRITILDI') !== f.baza) return false
   if (f.yon && !(s.yon || '').toLowerCase().includes(f.yon.toLowerCase())) return false
   return true

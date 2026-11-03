@@ -7,7 +7,7 @@ import { decodePinfl, dobFromPinfl, findDuplicates, formatPinfl, fullName, group
 import { EDIT_FIELDS, type EditFields, type GroupMove, type Student } from '@/lib/types'
 import DocImages from './DocImages'
 import MalumotnomaModal from './MalumotnomaModal'
-import { BazaButton, cx, GroupBadge, Mono, StatusIcon, VerifyButton } from './ui'
+import { BazaButton, cx, GroupBadge, Mono, StatusIcon } from './ui'
 
 interface Props {
   student: Student
@@ -17,7 +17,6 @@ interface Props {
   onNav: (dir: -1 | 1) => void
   onClose: () => void
   onSave: (s: Student, fields: EditFields) => Promise<void>
-  onToggleVerify: (s: Student) => void
   onToggleBaza: (s: Student) => void
   onDelete: (s: Student) => Promise<void>
   onOpenRow: (row: number) => void
@@ -256,7 +255,7 @@ function EditForm({ student, all, onCancel, onSave }: { student: Student; all: S
   )
 }
 
-function ViewInfo({ s, onEdit, onToggleVerify, onToggleBaza }: { s: Student; onEdit: () => void; onToggleVerify: (s: Student) => void; onToggleBaza: (s: Student) => void }) {
+function ViewInfo({ s, onEdit, onToggleBaza }: { s: Student; onEdit: () => void; onToggleBaza: (s: Student) => void }) {
   const flag = NAME_FLAGS[s.name_flag]
   const flagCls = !flag ? 'text-fg' : flag.tone === 'ok' ? 'text-emerald-soft' : flag.tone === 'warn' ? 'text-amber' : flag.tone === 'bad' ? 'text-rose' : 'text-violet'
   return (
@@ -318,7 +317,6 @@ function ViewInfo({ s, onEdit, onToggleVerify, onToggleBaza }: { s: Student; onE
         <Row label="Shartnoma sanasi">{s.sana || '—'}</Row>
         <Row label="Hujjatlar holati"><span className="inline-flex items-center gap-1.5"><StatusIcon status={s.status} size={15} />{s.status === 'full' ? "To'liq" : s.status === 'chala' ? 'Chala' : "Yo'q"}</span></Row>
         <Row label="Ism tekshiruvi"><span className={flagCls}>{flag?.label || s.name_match || 'Tekshirilmagan'}</span></Row>
-        <Row label="Operator tasdig'i"><VerifyButton student={s} onToggle={onToggleVerify} /></Row>
         <Row label="Bazaga kiritilganligi"><BazaButton student={s} onToggle={onToggleBaza} /></Row>
         {!!s.guruh_tarixi?.length && <GroupHistory moves={s.guruh_tarixi} />}
       </Section>
@@ -336,7 +334,7 @@ function ViewInfo({ s, onEdit, onToggleVerify, onToggleBaza }: { s: Student; onE
   )
 }
 
-export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav, onClose, onSave, onToggleVerify, onToggleBaza, onDelete, onOpenRow }: Props) {
+export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav, onClose, onSave, onToggleBaza, onDelete, onOpenRow }: Props) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [cert, setCert] = useState(false)
@@ -386,9 +384,8 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
               <GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} inline />
               <span className="mono">№{s.shnum || '—'}</span>
               {!isOfficialGroup(s.group) && <span className="text-rose">rasmiy kontingentga kirmaydi</span>}
-              {/* Eng ko'p bosiladigan ikki belgi — pastga tushmasdan */}
+              {/* Eng ko'p bosiladigan belgi — pastga tushmasdan */}
               <span className="flex items-center gap-1.5">
-                <VerifyButton student={s} onToggle={onToggleVerify} compact />
                 <BazaButton student={s} onToggle={onToggleBaza} compact />
               </span>
             </div>
@@ -417,7 +414,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
           <div className="p-4 sm:p-5 lg:overflow-y-auto">
             {editing
               ? <EditForm key={s.row} student={s} all={all} onCancel={() => setEditing(false)} onSave={async (f) => { await onSave(s, f); setEditing(false) }} />
-              : <ViewInfo s={s} onEdit={() => setEditing(true)} onToggleVerify={onToggleVerify} onToggleBaza={onToggleBaza} />}
+              : <ViewInfo s={s} onEdit={() => setEditing(true)} onToggleBaza={onToggleBaza} />}
           </div>
           <div className="border-t border-line bg-ink-950/40 p-4 sm:p-5 lg:overflow-y-auto lg:border-t-0 lg:border-l">
             <div className="mb-3 text-[11px] font-bold tracking-wider text-fg-subtle uppercase">Hujjat rasmlari va AI Tahlil</div>

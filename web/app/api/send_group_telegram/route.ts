@@ -1,13 +1,28 @@
 import type { NextRequest } from 'next/server'
-import { REPO_PATHS, loadGroupSettings, loadStudents, readRepoFileIn } from '@/lib/server/source'
-import { TG_BOT_TOKEN, TG_CHANNEL_ID, TG_CHAT_ID, tgSendPhoto } from '@/lib/server/telegram'
-import { isAcademicLeave, isOutside } from '@/lib/student'
+import { applyGroupSettings } from '@/lib/config'
+import { groupListFileName, groupListInput, renderGroupListPng } from '@/lib/server/guruh-rasm'
+import { loadGroupSettings, loadStudents } from '@/lib/server/source'
+import { tashkentStamp, TG_BOT_TOKEN, TG_CHANNEL_ID, TG_CHAT_ID, tgEsc as esc, tgSendPhoto } from '@/lib/server/telegram'
 
 /**
- * Guruhning 1-varoqli A4 PDF rasm jurnalini Telegram kanalga va/yoki botga yuborish:
+ * Guruh ro'yxati rasmini Telegram kanalga va/yoki botga yuborish:
  * POST /api/send_group_telegram
  * Body: { groups: string[], target: 'channel' | 'bot' | 'both' }
+ *
+ * Rasm botdagi "👥 Guruhlar ro'yxati" bilan bir xil (lib/server/guruh-rasm) — har safar jonli
+ * ma'lumotdan chiziladi, shuning uchun to'liq va yangi. Ilgari hisobotlar/pdf_jurnallar dagi
+ * tayyor JPG yuborilardi — u faqat Python hisobot yasalganda yangilanardi.
  */
+
+/** "akademik" / "safdan" va eski nomlar ("...chiqarilganlar", "Akademik ta'til...") — bitta kalitga */
+function listKey(group: string) {
+  const g = String(group ?? '').trim()
+  const low = g.toLowerCase()
+  if (g === 'safdan' || low.includes('chiqaril')) return 'safdan'
+  if (g === 'akademik' || low.includes('akademik')) return 'akademik'
+  return g
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -28,50 +43,43 @@ export async function POST(request: NextRequest) {
           ? [{ id: TG_CHAT_ID, label: 'Shaxsiy bot' }]
           : [{ id: TG_CHANNEL_ID, label: 'Kanal' }]
 
-    const [allStudents, groupSettings] = await Promise.all([
-      loadStudents(),
-      loadGroupSettings(),
-    ])
+    const [allStudents, groupSettings] = await Promise.all([loadStudents(), loadGroupSettings()])
+    // Rahbar va yo'nalish rasmda saytdagi "Guruh sozlamalari" bo'yicha chiqsin
+    applyGroupSettings(groupSettings)
+    const { stamp } = tashkentStamp()
 
     const sent: string[] = []
     const failed: string[] = []
 
     for (const group of groups) {
       const gTrim = String(group ?? '').trim()
-      const isSafdan = gTrim === 'safdan' || gTrim.toLowerCase().includes('chiqaril')
-      const isAkademik = gTrim === 'akademik' || gTrim.toLowerCase().includes('akademik')
-
-      let fileName: string
-      let caption: string
-      let count = 0
-
-      if (isSafdan) {
-        fileName = 'Guruh_Talabalar_safidan_chiqarilganlar.jpg'
-        count = allStudents.filter((s) => isOutside(s.group)).length
-        caption = `📋 <b>Talabalar safidan chiqarilganlar jurnali</b>\n👥 <b>Talabalar soni:</b> ${count} nafar\n🏛 <b>Shahrisabz Tibbiyot Texnikumi</b>`
-      } else if (isAkademik) {
-        fileName = 'Guruh_Akademik_tatil_olganlar.jpg'
-        count = allStudents.filter((s) => isAcademicLeave(s.group)).length
-        caption = `📋 <b>Akademik ta'til olganlar jurnali</b>\n👥 <b>Talabalar soni:</b> ${count} nafar\n🏛 <b>Shahrisabz Tibbiyot Texnikumi</b>`
-      } else {
-        fileName = `Guruh_${gTrim}.jpg`
-        const gInfo = groupSettings[gTrim] || {}
-        count = allStudents.filter((s) => (s.group || '').trim() === gTrim).length
-        const rahbar = gInfo.rahbar || '—'
-        const yonalish = gInfo.yonalish || 'Hamshiralik ishi'
-        caption = `📋 <b>Guruh ${gTrim} jurnali</b>\n📚 <b>Yo'nalish:</b> ${yonalish}\n👤 <b>Guruh rahbari:</b> ${rahbar}\n👥 <b>Talabalar soni:</b> ${count} nafar\n🏛 <b>Shahrisabz Tibbiyot Texnikumi</b>`
-      }
-
-      const imgBuf = await readRepoFileIn(REPO_PATHS.pdfJurnallar, fileName)
-      if (!imgBuf) {
-        failed.push(`${gTrim} (${fileName} topilmadi)`)
+      const key = listKey(gTrim)
+      const input = groupListInput(key, allStudents, stamp)
+      if (!input) {
+        failed.push(`${gTrim} (talaba topilmadi)`)
         continue
       }
+
+      let png: Buffer
+      try {
+        png = await renderGroupListPng(input)
+      } catch (err) {
+        failed.push(`${gTrim} (rasm chizilmadi: ${(err as Error).message})`)
+        continue
+      }
+
+      const caption = [
+        `📋 <b>${esc(input.title)}</b> — ${input.students.length} nafar`,
+        input.special ? `<i>${esc(input.subtitle)}</i>` : `📚 ${esc(input.subtitle)}`,
+        ...(input.leader ? [`👤 <b>Guruh rahbari:</b> ${esc(input.leader)}`] : []),
+        `🏛 <b>Shahrisabz Tibbiyot Texnikumi</b>`,
+        `🕒 ${stamp}`,
+      ].join('\n')
 
       let groupSentOk = false
       for (const dest of dests) {
         try {
-          await tgSendPhoto(dest.id, imgBuf, fileName, caption)
+          await tgSendPhoto(dest.id, png, groupListFileName(key), caption)
           groupSentOk = true
         } catch (err) {
           const errMsg = (err as Error).message || ''

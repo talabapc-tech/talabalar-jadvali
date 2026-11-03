@@ -96,7 +96,7 @@ function TeacherGradesContent() {
       }
       setError(null)
       try {
-        const res = await fetch(`/api/baholar/share?token=${encodeURIComponent(token)}`, { cache: 'no-store' })
+        const res = await fetch(`/api/baholar/ulashilgan?token=${encodeURIComponent(token)}`, { cache: 'no-store' })
         const data = await res.json().catch(() => null)
         if (!data) {
           // Login sahifasiga yo'naltirilgan yoki server JSON qaytarmagan
@@ -250,7 +250,7 @@ function TeacherGradesContent() {
       }))
       const fanCount = new Set(items.map((i) => i.fan)).size
 
-      const res = await fetch('/api/baholar/share', {
+      const res = await fetch('/api/baholar/ulashilgan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'saveTeacherGrades', token, items }),
@@ -441,7 +441,7 @@ function TeacherGradesContent() {
               <div className="flex items-center gap-2">
                 <GraduationCap size={20} className="text-sky shrink-0" />
                 <span className="text-[12px] font-bold text-fg-subtle tracking-wider uppercase">
-                  Shahrisabz Abu Ali ibn Sino nomidagi JTSM
+                  Shahrisabz Tibbiyot Texnikumi
                 </span>
               </div>
               <h1 className="text-[18px] sm:text-[22px] font-black text-fg tracking-tight flex items-center gap-2">
@@ -719,7 +719,7 @@ function TeacherGradesContent() {
               ) : (
                 <>
                   <span>Baho faqat 2, 3, 4 yoki 5 kiritiladi. Bo'sh qoldirilsa baho belgilanmagan hisoblanadi.</span>
-                  <span className="font-semibold text-sky-soft">Shahrisabz Abu Ali ibn Sino nomidagi JTSM</span>
+                  <span className="font-semibold text-sky-soft">Shahrisabz Tibbiyot Texnikumi</span>
                 </>
               )}
             </div>

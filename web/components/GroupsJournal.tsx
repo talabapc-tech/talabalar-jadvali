@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState } from 'react'
 import { Check, Download, FileSpreadsheet, FileText, Loader2, Printer, Send, UserRound } from 'lucide-react'
-import { ACADEMIC_LEAVE_GROUP, GROUP_LEADERS, WITHDRAWN_GROUP } from '@/lib/config'
+import { ACADEMIC_LEAVE_GROUP, GROUP_LEADERS, GROUP_SETTINGS, WITHDRAWN_GROUP } from '@/lib/config'
 import { exportGroup, exportQabulShablonGroup, exportQabulShablonGroups, exportRole, sendGroupsToTelegram, type TgTarget } from '@/lib/excel'
 import { byName, fullName, groupTitle, isAcademicLeave, isOutside } from '@/lib/student'
 import type { Student } from '@/lib/types'
@@ -72,8 +72,10 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-bold text-fg">{title}</div>
-          <div className="flex items-center gap-1.5 text-[12px] text-fg-muted">
-            {leader && <><UserRound size={12} /> {leader} ·</>} {students.length} nafar
+          <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-fg-muted">
+            {leader && <><UserRound size={12} className="shrink-0" /> <span className="truncate" title={leader}>{leader}</span> ·</>}
+            {!sp && GROUP_SETTINGS[code]?.semestr && <span className="shrink-0 text-emerald-soft">{GROUP_SETTINGS[code].semestr}-semestr ·</span>}
+            <span className="shrink-0">{students.length} nafar</span>
           </div>
         </div>
         {/* Telefonda tugmalar alohida qatorda, teng kenglikda */}
