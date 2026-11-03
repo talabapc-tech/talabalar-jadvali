@@ -7,6 +7,8 @@ export interface BahoShareLink {
   guruh: string
   semestr: number
   fan: string
+  /** true — havola guruhning shu semestrdagi BARCHA fanlarini baholash uchun (fan maydoni faqat yorliq) */
+  allFanlar?: boolean
   teacherName?: string
   hiddenPinfls: string[]
   active: boolean
@@ -45,6 +47,7 @@ export async function createShare(params: {
   guruh: string
   semestr: number
   fan: string
+  allFanlar?: boolean
   teacherName?: string
   hiddenPinfls: string[]
 }): Promise<BahoShareLink> {
@@ -57,6 +60,7 @@ export async function createShare(params: {
     guruh: params.guruh.trim(),
     semestr: params.semestr,
     fan: params.fan.trim(),
+    allFanlar: !!params.allFanlar,
     teacherName: (params.teacherName || '').trim(),
     hiddenPinfls: Array.isArray(params.hiddenPinfls) ? params.hiddenPinfls : [],
     active: true,
@@ -70,7 +74,7 @@ export async function createShare(params: {
 
 export async function updateShare(
   id: string,
-  updates: Partial<Pick<BahoShareLink, 'teacherName' | 'hiddenPinfls' | 'active' | 'fan'>>,
+  updates: Partial<Pick<BahoShareLink, 'teacherName' | 'hiddenPinfls' | 'active' | 'fan' | 'allFanlar'>>,
 ): Promise<BahoShareLink | null> {
   const shares = await loadShares()
   const idx = shares.findIndex((s) => s.id === id)

@@ -14,6 +14,24 @@ import { hisoblaReyting, isPinfl, parseBaho, reytingSeed } from '@/lib/baholar'
 
 const fail = (error: string, status = 400) => Response.json({ ok: false, error }, { status })
 
+const ALL_FANLAR_LABEL = 'Barcha fanlar'
+
+type Share = NonNullable<Awaited<ReturnType<typeof getShareByToken>>>
+
+/** Havolada baholanadigan fanlar: bitta fan yoki guruhning shu semestrdagi barcha fanlari (o'quv reja tartibida) */
+async function shareFanlar(share: Share): Promise<string[]> {
+  if (!share.allFanlar) return [share.fan]
+  const { data, error } = await getServiceSupabase()
+    .from('fanlar')
+    .select('nom')
+    .eq('guruh', share.guruh)
+    .eq('semestr', share.semestr)
+    .order('tartib', { ascending: true })
+    .order('id', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((r) => r.nom as string)
+}
+
 /** Havoladagi guruhning o'qituvchiga ko'rinadigan talabalari (maxsus tartib bilan) */
 async function shareStudents(share: { guruh: string; hiddenPinfls?: string[] }) {
   const [allStudents, orders] = await Promise.all([loadStudents(), loadStudentOrders()])
@@ -49,19 +67,26 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      const visible = await shareStudents(share)
+      const [visible, fanlar] = await Promise.all([shareStudents(share), shareFanlar(share)])
 
-      // Ushbu fan va semestr bo'yicha mavjud baholarni olish
+      // Havoladagi fan(lar) bo'yicha mavjud baholar (1000 qatordan ko'p bo'lsa sahifalab)
       const db = getServiceSupabase()
-      const gradesRes = await db
-        .from('baholar')
-        .select('pinfl, yakuniy, joriy, oraliq, r_semestr')
-        .eq('guruh', share.guruh)
-        .eq('semestr', share.semestr)
-        .eq('fan', share.fan)
-
-      if (gradesRes.error) return fail(gradesRes.error.message, 500)
-      const grades = gradesRes.data || []
+      const grades: Record<string, unknown>[] = []
+      if (fanlar.length) {
+        for (let from = 0; ; from += 1000) {
+          const r = await db
+            .from('baholar')
+            .select('pinfl, fan, yakuniy, joriy, oraliq, r_semestr')
+            .eq('guruh', share.guruh)
+            .eq('semestr', share.semestr)
+            .in('fan', fanlar)
+            .order('id')
+            .range(from, from + 999)
+          if (r.error) return fail(r.error.message, 500)
+          grades.push(...(r.data ?? []))
+          if (!r.data || r.data.length < 1000) break
+        }
+      }
 
       return Response.json(
         {
@@ -71,9 +96,11 @@ export async function GET(req: NextRequest) {
             token: share.token,
             guruh: share.guruh,
             semestr: share.semestr,
-            fan: share.fan,
+            fan: share.allFanlar ? ALL_FANLAR_LABEL : share.fan,
+            allFanlar: !!share.allFanlar,
             teacherName: share.teacherName,
           },
+          fanlar,
           students: visible.map((s, idx) => ({
             tartib: idx + 1,
             pinfl: s.pinfl,
@@ -115,6 +142,8 @@ export async function POST(req: NextRequest) {
         token: string
         items: Array<{
           pinfl: string
+          /** Barcha fanlar havolasida — qaysi fan; bitta fanli havolada bo'lmasa ham bo'ladi */
+          fan?: string
           yakuniy?: number | string | null
           joriy?: number | string | null
           oraliq?: number | string | null
@@ -137,30 +166,40 @@ export async function POST(req: NextRequest) {
       if (items.length > 2000) return fail("Bir so'rovda 2000 tadan ortiq qator yuborib bo'lmaydi")
 
       // O'qituvchi faqat havoladagi guruhning o'ziga ko'rinadigan talabalariga baho qo'ya oladi
-      const allowed = new Set((await shareStudents(share)).map((s) => s.pinfl))
+      const [students, fanList] = await Promise.all([shareStudents(share), shareFanlar(share)])
+      const allowed = new Set(students.map((s) => s.pinfl))
+      // ...va faqat havoladagi fan(lar)ga
+      const allowedFan = new Set(fanList)
       const db = getServiceSupabase()
       const now = new Date().toISOString()
       const upsertRows: Record<string, unknown>[] = []
-      const deletePinfls: string[] = []
+      const deleteByFan = new Map<string, string[]>()
+      const seen = new Set<string>()
 
       for (const it of items) {
         if (!it || !isPinfl(it.pinfl) || !allowed.has(it.pinfl)) continue
+        const fan = typeof it.fan === 'string' && it.fan.trim() ? it.fan.trim() : share.allFanlar ? '' : share.fan
+        if (!allowedFan.has(fan)) {
+          return fail(`"${fan || '?'}" fani bu havolada yo'q. Sahifani yangilang (fanlar ro'yxati o'zgargan bo'lishi mumkin).`)
+        }
+        if (seen.has(`${it.pinfl}|${fan}`)) continue
+        seen.add(`${it.pinfl}|${fan}`)
         const g = { yakuniy: parseBaho(it.yakuniy), joriy: parseBaho(it.joriy), oraliq: parseBaho(it.oraliq), r_semestr: parseBaho(it.r_semestr) }
         for (const [k, v] of Object.entries(g)) {
           if (v === undefined) return fail(`Baho noto'g'ri (faqat 2, 3, 4 yoki 5): ${k} = "${String(it[k as keyof typeof it])}"`)
         }
         const clean = g as Record<keyof typeof g, number | null>
         if (Object.values(clean).every((v) => v === null)) {
-          deletePinfls.push(it.pinfl)
+          deleteByFan.set(fan, [...(deleteByFan.get(fan) ?? []), it.pinfl])
           continue
         }
         // Reyting admin sahifasidagi bilan aynan bir xil qoida bo'yicha (lib/baholar.ts)
-        const rey = hisoblaReyting(reytingSeed(it.pinfl, share.semestr, share.fan), clean)
+        const rey = hisoblaReyting(reytingSeed(it.pinfl, share.semestr, fan), clean)
         upsertRows.push({
           pinfl: it.pinfl,
           guruh: share.guruh,
           semestr: share.semestr,
-          fan: share.fan,
+          fan,
           yakuniy: clean.yakuniy,
           joriy: clean.joriy,
           oraliq: clean.oraliq,
@@ -177,30 +216,34 @@ export async function POST(req: NextRequest) {
         const { error } = await db.from('baholar').upsert(upsertRows, { onConflict: 'pinfl,semestr,fan' })
         if (error) return fail(error.message, 500)
       }
-      if (deletePinfls.length) {
+      let deleted = 0
+      for (const [fan, pinfls] of deleteByFan) {
         const { error } = await db
           .from('baholar')
           .delete()
-          .in('pinfl', deletePinfls)
+          .in('pinfl', pinfls)
           .eq('semestr', share.semestr)
-          .eq('fan', share.fan)
+          .eq('fan', fan)
         if (error) return fail(error.message, 500)
+        deleted += pinfls.length
       }
 
-      return Response.json({ ok: true, saved: upsertRows.length, deleted: deletePinfls.length })
+      return Response.json({ ok: true, saved: upsertRows.length, deleted })
     }
 
     // 2. Yangi ulashish havolasi yaratish (Admin)
     if (action === 'create') {
       const { guruh, semestr, fan, teacherName, hiddenPinfls } = body
-      if (!guruh || !semestr || !fan) {
+      const allFanlar = body.allFanlar === true
+      if (!guruh || !semestr || (!fan && !allFanlar)) {
         return Response.json({ ok: false, error: "Guruh, semestr va fan nomi majburiy" }, { status: 400 })
       }
 
       const share = await createShare({
         guruh: String(guruh),
         semestr: Number(semestr),
-        fan: String(fan).slice(0, 120),
+        fan: allFanlar ? ALL_FANLAR_LABEL : String(fan).slice(0, 120),
+        allFanlar,
         teacherName: teacherName ? String(teacherName).slice(0, 120) : undefined,
         hiddenPinfls: Array.isArray(hiddenPinfls) ? hiddenPinfls.filter(isPinfl) : [],
       })
@@ -217,7 +260,11 @@ export async function POST(req: NextRequest) {
       if (typeof teacherName === 'string') updates.teacherName = teacherName.trim().slice(0, 120)
       if (Array.isArray(hiddenPinfls)) updates.hiddenPinfls = hiddenPinfls.filter(isPinfl)
       if (typeof active === 'boolean') updates.active = active
-      if (typeof fan === 'string' && fan.trim()) updates.fan = fan.trim().slice(0, 120)
+      if (typeof body.allFanlar === 'boolean') {
+        updates.allFanlar = body.allFanlar
+        if (body.allFanlar) updates.fan = ALL_FANLAR_LABEL
+      }
+      if (!updates.allFanlar && typeof fan === 'string' && fan.trim()) updates.fan = fan.trim().slice(0, 120)
 
       const updated = await updateShare(String(id), updates)
       if (!updated) return fail('Havola topilmadi', 404)

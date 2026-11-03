@@ -66,12 +66,17 @@ type Birlik = 'ball5' | 'reyting'
 const PREF_KEY = 'baholar_prefs_v2'
 const AM_FIELDS = ['joy', 'boshlanish', 'tugash', 'ball', 'izoh'] as const
 
+/** Ulashish oynasidagi "Barcha fanlar" tanlovi */
+const ALL_FANS = '__ALL__'
+
 interface ShareLinkItem {
   id: string
   token: string
   guruh: string
   semestr: number
   fan: string
+  /** Havola guruhning shu semestrdagi barcha fanlari uchun */
+  allFanlar?: boolean
   teacherName?: string
   hiddenPinfls: string[]
   active: boolean
@@ -1075,7 +1080,8 @@ export default function BaholarSection({
   }, [guruh, semestr, notify])
 
   const openShareModal = () => {
-    setNewShareFan(fanlar[0]?.nom || '')
+    // Odatiy tanlov — barcha fanlar (o'qituvchi hammasini bitta havolada baholaydi)
+    setNewShareFan(ALL_FANS)
     setNewShareTeacher('')
     setNewShareHiddenPinfls([])
     setEditingShare(null)
@@ -1091,22 +1097,16 @@ export default function BaholarSection({
 
     setShareBusy(true)
     try {
+      const allFanlar = newShareFan === ALL_FANS
+      const common = {
+        fan: allFanlar ? '' : newShareFan,
+        allFanlar,
+        teacherName: newShareTeacher,
+        hiddenPinfls: newShareHiddenPinfls,
+      }
       const payload = editingShare
-        ? {
-            action: 'update',
-            id: editingShare.id,
-            fan: newShareFan,
-            teacherName: newShareTeacher,
-            hiddenPinfls: newShareHiddenPinfls,
-          }
-        : {
-            action: 'create',
-            guruh,
-            semestr,
-            fan: newShareFan,
-            teacherName: newShareTeacher,
-            hiddenPinfls: newShareHiddenPinfls,
-          }
+        ? { action: 'update', id: editingShare.id, ...common }
+        : { action: 'create', guruh, semestr, ...common }
 
       const res = await fetch('/api/baholar/share', {
         method: 'POST',
@@ -2318,7 +2318,7 @@ export default function BaholarSection({
               <div>
                 <h3 className="text-[16px] font-extrabold text-fg flex items-center gap-2">
                   <Share2 size={17} className="text-sky" />
-                  <span>Fan o'qituvchisiga baholash havolasini ulashish</span>
+                  <span>Baholash havolasini ulashish</span>
                 </h3>
                 <p className="text-[11.5px] text-fg-muted mt-0.5">
                   Guruh: <b className="text-fg">{guruh}</b> ({semestr}-semestr)
@@ -2356,19 +2356,28 @@ export default function BaholarSection({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="label" htmlFor="share-fan">Fanni tanlang</label>
+                    <label className="label" htmlFor="share-fan">Qaysi fan(lar)</label>
                     <select
                       id="share-fan"
                       value={newShareFan}
                       onChange={(e) => setNewShareFan(e.target.value)}
                       className="field h-9.5 font-bold cursor-pointer"
                     >
-                      {fanlar.map((f) => (
-                        <option key={f.nom} value={f.nom}>
-                          {f.nom}
-                        </option>
-                      ))}
+                      <option value={ALL_FANS}>Barcha fanlar ({fanlar.length} ta)</option>
+                      <optgroup label="Bitta fan">
+                        {fanlar.map((f) => (
+                          <option key={f.nom} value={f.nom}>
+                            {f.nom}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
+                    {newShareFan === ALL_FANS && (
+                      <p className="mt-1 text-[11px] leading-snug text-fg-subtle">
+                        Havola egasi barcha fanlarni bitta sahifada baholaydi va hammasini bir tugma bilan saqlaydi.
+                        Keyin qo'shilgan fanlar ham avtomatik ko'rinadi.
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -2480,7 +2489,14 @@ export default function BaholarSection({
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-extrabold text-[13.5px] text-fg">{sh.fan}</span>
+                              <span className="font-extrabold text-[13.5px] text-fg">
+                                {sh.allFanlar ? `Barcha fanlar (${fanlar.length} ta)` : sh.fan}
+                              </span>
+                              {sh.allFanlar && (
+                                <span className="chip border-sky/40 bg-sky/10 text-sky-soft text-[10.5px] font-bold">
+                                  Hammasi bitta havolada
+                                </span>
+                              )}
                               {sh.teacherName && (
                                 <span className="chip border-line bg-ink-900 text-sky-soft text-[11px] font-bold">
                                   {sh.teacherName}
@@ -2514,7 +2530,7 @@ export default function BaholarSection({
                               type="button"
                               onClick={() => {
                                 setEditingShare(sh)
-                                setNewShareFan(sh.fan)
+                                setNewShareFan(sh.allFanlar ? ALL_FANS : sh.fan)
                                 setNewShareTeacher(sh.teacherName || '')
                                 setNewShareHiddenPinfls(sh.hiddenPinfls || [])
                               }}
