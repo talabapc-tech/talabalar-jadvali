@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "id": "share_1793715582366_rh0t",
+    "token": "sh_mw0ry17i_zd66kc",
+    "guruh": "24-12",
+    "semestr": 1,
+    "fan": "Barcha fanlar",
+    "allFanlar": true,
+    "teacherName": "",
+    "hiddenPinfls": [],
+    "active": true,
+    "createdAt": "2026-11-03T14:19:42.366Z",
+    "updatedAt": "2026-11-03T14:19:42.366Z"
+  }
+]
