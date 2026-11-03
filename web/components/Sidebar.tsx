@@ -317,9 +317,7 @@ export default function Sidebar({
       icon: GraduationCap,
       badge: students.length ? String(students.length) : '',
       color: 'text-sky',
-      active: 'bg-sky/12 text-sky-soft border-sky/35',
       bar: 'bg-sky',
-      badgeCls: 'bg-sky/20 text-sky-soft',
     },
     {
       id: 'curriculum' as const,
@@ -328,10 +326,8 @@ export default function Sidebar({
       sub: 'Yillar, fanlar, guruhlar',
       icon: BookOpen,
       badge: counts.curriculum !== undefined ? `${counts.curriculum} ta` : '',
-      color: 'text-indigo-400',
-      active: 'bg-indigo-500/12 text-indigo-300 border-indigo-500/35',
-      bar: 'bg-indigo-400',
-      badgeCls: 'bg-indigo-500/20 text-indigo-300',
+      color: 'text-violet',
+      bar: 'bg-violet',
     },
     {
       id: 'grades' as const,
@@ -341,9 +337,7 @@ export default function Sidebar({
       icon: Award,
       badge: '',
       color: 'text-amber',
-      active: 'bg-amber/12 text-amber border-amber/35',
       bar: 'bg-amber',
-      badgeCls: 'bg-amber/20 text-amber',
     },
     {
       id: 'staff' as const,
@@ -353,9 +347,7 @@ export default function Sidebar({
       icon: Users,
       badge: counts.staff !== undefined ? String(counts.staff) : '',
       color: 'text-emerald',
-      active: 'bg-emerald/12 text-emerald-soft border-emerald/35',
       bar: 'bg-emerald',
-      badgeCls: 'bg-emerald/20 text-emerald-soft',
     },
   ]
 
@@ -365,8 +357,8 @@ export default function Sidebar({
       {/* Brend */}
       <div
         className={cx(
-          'flex shrink-0 items-center gap-2 border-b border-line',
-          compact ? 'justify-center px-2 py-3' : 'justify-between px-3 py-3',
+          'flex h-14 shrink-0 items-center gap-2 border-b border-line',
+          compact ? 'justify-center px-2' : 'justify-between px-3.5',
         )}
       >
         <Link
@@ -378,16 +370,14 @@ export default function Sidebar({
           className="flex min-w-0 items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-sky/50"
           title="Boshqaruv portali"
         >
-          <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-sky/30 bg-gradient-to-br from-emerald/20 via-blue/20 to-sky/20 shadow-inner">
+          <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-line-strong bg-ink-800">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.svg" alt="" className="size-6" />
           </div>
           {!compact && (
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[10px] font-extrabold uppercase tracking-[0.14em] text-emerald-soft">
-                Shahrisabz TT
-              </div>
-              <div className="truncate text-[13.5px] font-black tracking-tight text-fg">Boshqaruv Portali</div>
+              <div className="truncate text-[13.5px] leading-tight font-extrabold tracking-tight text-fg">Boshqaruv portali</div>
+              <div className="truncate text-[11px] leading-tight font-medium text-fg-subtle">Shahrisabz JTSM</div>
             </div>
           )}
         </Link>
@@ -406,7 +396,7 @@ export default function Sidebar({
       {/* Bo'limlar (joy yetmasa faqat shu qism aylanadi) */}
       <nav aria-label="Bo'limlar" className={cx('min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden py-3', compact ? 'px-2' : 'px-3')}>
         {!compact && (
-          <div className="px-2 pb-1 text-[10.5px] font-bold uppercase tracking-wider text-fg-subtle">Bo'limlar</div>
+          <div className="px-2.5 pb-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-fg-subtle">Bo'limlar</div>
         )}
 
         {navItems.map((item) => {
@@ -423,11 +413,11 @@ export default function Sidebar({
               aria-current={isActive ? 'page' : undefined}
               title={compact ? `${item.label} — ${item.sub}` : undefined}
               className={cx(
-                'group relative flex items-center gap-2.5 rounded-xl border py-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sky/50',
-                compact ? 'justify-center px-0' : 'px-2.5',
+                'group relative flex items-center gap-2.5 rounded-lg border py-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sky/50',
+                compact ? 'justify-center px-0' : 'px-2',
                 isActive
-                  ? cx(item.active, 'font-bold')
-                  : 'border-transparent font-medium text-fg-muted hover:bg-ink-800/80 hover:text-fg',
+                  ? 'border-line-strong bg-ink-800 font-semibold text-fg'
+                  : 'border-transparent font-medium text-fg-muted hover:bg-ink-850 hover:text-fg',
               )}
             >
               {/* Faol bo'lim chizig'i */}
@@ -439,11 +429,11 @@ export default function Sidebar({
               )}
               <div
                 className={cx(
-                  'grid size-8 shrink-0 place-items-center rounded-lg',
-                  isActive ? 'bg-ink-950/40' : 'text-fg-subtle group-hover:text-fg',
+                  'grid size-8 shrink-0 place-items-center rounded-md',
+                  isActive ? 'bg-ink-950/50' : 'text-fg-subtle group-hover:text-fg-muted',
                 )}
               >
-                <Icon size={18} className={isActive ? item.color : ''} />
+                <Icon size={17} className={isActive ? item.color : ''} />
               </div>
 
               {!compact && (
@@ -453,8 +443,8 @@ export default function Sidebar({
                     {item.badge && (
                       <span
                         className={cx(
-                          'shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums',
-                          isActive ? item.badgeCls : 'bg-ink-800 text-fg-subtle',
+                          'shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold leading-none tabular-nums',
+                          isActive ? 'bg-ink-950/60 text-fg' : 'bg-ink-800 text-fg-subtle',
                         )}
                       >
                         {item.badge}
@@ -473,12 +463,12 @@ export default function Sidebar({
           href="/majlis"
           title={compact ? 'Majlislar — pedkengash davomati' : undefined}
           className={cx(
-            'group flex items-center gap-2.5 rounded-xl border border-transparent py-2 font-medium text-fg-muted transition-colors outline-none hover:bg-ink-800/80 hover:text-fg focus-visible:ring-2 focus-visible:ring-sky/50',
-            compact ? 'justify-center px-0' : 'px-2.5',
+            'group flex items-center gap-2.5 rounded-lg border border-transparent py-1.5 font-medium text-fg-muted transition-colors outline-none hover:bg-ink-850 hover:text-fg focus-visible:ring-2 focus-visible:ring-sky/50',
+            compact ? 'justify-center px-0' : 'px-2',
           )}
         >
-          <div className="grid size-8 shrink-0 place-items-center rounded-lg">
-            <CalendarCheck size={18} className="text-teal-400" />
+          <div className="grid size-8 shrink-0 place-items-center rounded-md text-fg-subtle group-hover:text-fg-muted">
+            <CalendarCheck size={17} />
           </div>
           {!compact && (
             <div className="min-w-0 flex-1">
@@ -497,7 +487,7 @@ export default function Sidebar({
             onClick={isLocal && !isOffline ? handleFlushSync : undefined}
             disabled={flushing}
             className={cx(
-              'mx-auto grid size-10 place-items-center rounded-xl border transition-colors',
+              'mx-auto grid size-10 place-items-center rounded-lg border transition-colors',
               tone === 'rose'
                 ? 'border-rose/40 bg-rose/10 text-rose'
                 : tone === 'sky'
@@ -521,7 +511,7 @@ export default function Sidebar({
             )}
           </button>
         ) : (
-          <div className="space-y-2 rounded-xl border border-line bg-ink-900/80 p-2.5">
+          <div className="space-y-2 rounded-lg border border-line bg-ink-900 p-2.5">
             <div className="flex items-center gap-2">
               <div
                 className={cx(
@@ -640,7 +630,7 @@ export default function Sidebar({
       <aside
         aria-label="Asosiy menyu"
         className={cx(
-          'no-print fixed inset-y-0 left-0 z-30 hidden select-none flex-col border-r border-line bg-ink-950 transition-[width] duration-200 ease-out lg:flex',
+          'no-print fixed inset-y-0 left-0 z-30 hidden select-none flex-col border-r border-line bg-ink-900/70 backdrop-blur-xl transition-[width] duration-200 ease-out lg:flex',
           collapsed ? 'w-[72px]' : 'w-[240px]',
         )}
       >
@@ -664,7 +654,7 @@ export default function Sidebar({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
             className={cx(
-              'absolute inset-y-0 left-0 flex w-[280px] max-w-[86vw] select-none flex-col border-r border-line bg-ink-950 shadow-2xl transition-transform duration-200 ease-out',
+              'absolute inset-y-0 left-0 flex w-[280px] max-w-[86vw] select-none flex-col border-r border-line bg-ink-900 shadow-2xl transition-transform duration-200 ease-out',
               drawerClosing ? '-translate-x-full' : 'animate-slide-right',
             )}
             style={{ paddingTop: 'env(safe-area-inset-top)' }}

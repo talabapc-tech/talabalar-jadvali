@@ -1194,15 +1194,16 @@ export default function BaholarSection({
   return (
     <div className="space-y-4">
       {/* Yuqori Panel: Guruh, Semestr, Rejimlar, Undo/Redo va Asosiy boshqaruv */}
-      <div className="panel space-y-3 p-3 sm:p-4 bg-ink-900/80 border-line shadow-lg">
+      <div className="panel space-y-3 p-3 sm:p-3.5">
+        {/* 1366 da ham bitta qatorga sig'adi: tanlagichlar ixcham, rejim nomlari 2xl dan kichikda qisqa */}
         <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-end">
-          <div className="sm:w-44">
+          <div className="sm:w-32">
             <label className="label" htmlFor="b-guruh">
               Guruh
             </label>
             <select
               id="b-guruh"
-              className="field cursor-pointer font-bold"
+              className="field h-9 cursor-pointer py-1.5 font-bold"
               value={guruh}
               onChange={(e) => {
                 if (confirmLeave()) setGuruh(e.target.value)
@@ -1220,13 +1221,13 @@ export default function BaholarSection({
             </select>
           </div>
 
-          <div className="sm:w-36">
+          <div className="sm:w-32">
             <label className="label" htmlFor="b-sem">
               Semestr
             </label>
             <select
               id="b-sem"
-              className="field cursor-pointer font-bold"
+              className="field h-9 cursor-pointer py-1.5 font-bold"
               value={semestr}
               onChange={(e) => {
                 if (confirmLeave()) setSemestr(Number(e.target.value))
@@ -1240,7 +1241,7 @@ export default function BaholarSection({
             </select>
           </div>
 
-          <div className="col-span-2 flex gap-1 rounded-xl border border-line bg-ink-950 p-1 sm:col-span-1">
+          <div className="seg col-span-2 flex h-9 sm:col-span-1">
             {(
               [
                 ['baholar', ClipboardList, "Fanlar bo'yicha baholar", 'Baholar'],
@@ -1252,16 +1253,11 @@ export default function BaholarSection({
                 type="button"
                 aria-pressed={view === v}
                 onClick={() => setView(v)}
-                className={cx(
-                  'flex h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-[12.5px] font-bold transition-all sm:flex-none',
-                  view === v
-                    ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white shadow-sm'
-                    : 'text-fg-muted hover:text-fg',
-                )}
+                className="seg-btn h-full flex-1 px-3 sm:flex-none"
               >
-                <Icon size={15} className="shrink-0" />
-                <span className="sm:hidden">{short}</span>
-                <span className="hidden sm:inline">{t}</span>
+                <Icon size={15} className={cx('shrink-0', view === v && 'text-sky')} />
+                <span className="2xl:hidden">{short}</span>
+                <span className="hidden 2xl:inline">{t}</span>
               </button>
             ))}
           </div>
@@ -1269,12 +1265,12 @@ export default function BaholarSection({
           <div className="col-span-2 flex items-center gap-1.5 sm:gap-2 sm:ml-auto sm:col-span-1 flex-wrap">
             {/* Bekor qilish (Undo) va Qaytarish (Redo) tugmalari */}
             {view === 'baholar' && (
-              <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
+              <div className="seg h-9">
                 <button
                   type="button"
                   onClick={handleUndo}
                   disabled={!history.canUndo}
-                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                  className="grid size-7 place-items-center rounded-md text-fg-muted transition-colors hover:bg-ink-800 hover:text-fg disabled:opacity-25"
                   title="Bekor qilish (Ctrl + Z)"
                   aria-label="Bekor qilish"
                 >
@@ -1284,7 +1280,7 @@ export default function BaholarSection({
                   type="button"
                   onClick={handleRedo}
                   disabled={!history.canRedo}
-                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                  className="grid size-7 place-items-center rounded-md text-fg-muted transition-colors hover:bg-ink-800 hover:text-fg disabled:opacity-25"
                   title="Qaytarish (Ctrl + Y yoki Ctrl + Shift + Z)"
                   aria-label="Qaytarish"
                 >
@@ -1305,7 +1301,7 @@ export default function BaholarSection({
                 type="button"
                 onClick={openShareModal}
                 disabled={!fanlar.length}
-                className="btn-ghost h-9 px-3 text-[12.5px] font-bold border border-line bg-ink-950 text-sky-soft hover:bg-sky/10"
+                className="btn-ghost h-9 px-3 text-sky-soft"
                 title="Fan o'qituvchisiga baho qo'yishi uchun havola ulashish"
               >
                 <Share2 size={14} className="text-sky" />
@@ -1326,7 +1322,7 @@ export default function BaholarSection({
 
             <button
               type="button"
-              className="btn-success h-9 px-4 font-bold shadow-md flex items-center gap-1.5"
+              className="btn-success h-9 px-4"
               onClick={view === 'baholar' ? saveBaholar : saveAmaliyot}
               disabled={!canSave || saving}
               title="Saqlash (Ctrl + S)"
@@ -1994,7 +1990,7 @@ export default function BaholarSection({
             className="fixed inset-0 bg-ink-950/85 backdrop-blur-md"
             onClick={() => setReorderModalOpen(false)}
           />
-          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-scale-up">
+          <div className="relative w-full max-w-lg rounded-xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-scale-up">
             {/* Header */}
             <div className="p-4 border-b border-line bg-ink-950 flex items-center justify-between">
               <div>
@@ -2107,7 +2103,7 @@ export default function BaholarSection({
             className="fixed inset-0 bg-ink-950/85 backdrop-blur-md"
             onClick={() => setFocusedFan(null)}
           />
-          <div className="relative w-full max-w-4xl rounded-2xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="relative w-full max-w-4xl rounded-xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             {/* Modal Sarlavhasi */}
             <div className="p-4 border-b border-line bg-ink-950 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -2245,7 +2241,7 @@ export default function BaholarSection({
             className="fixed inset-0 bg-ink-950/80 backdrop-blur-sm"
             onClick={() => setFanVisibilityModalOpen(false)}
           />
-          <div className="relative w-full max-w-md rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4">
+          <div className="relative w-full max-w-md rounded-xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h3 className="text-[15.5px] font-extrabold text-fg">Fanlarni ko'rish yoki yashirish</h3>
@@ -2313,7 +2309,7 @@ export default function BaholarSection({
             className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
             onClick={() => setShareModalOpen(false)}
           />
-          <div className="relative w-full max-w-2xl rounded-2xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="relative w-full max-w-2xl rounded-xl border border-line bg-ink-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
             <div className="p-4 border-b border-line bg-ink-950 flex items-center justify-between">
               <div>
                 <h3 className="text-[16px] font-extrabold text-fg flex items-center gap-2">
@@ -2418,7 +2414,7 @@ export default function BaholarSection({
                     </div>
                   </div>
 
-                  <div className="max-h-44 overflow-y-auto border border-line rounded-xl p-2 bg-ink-900/80 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  <div className="max-h-44 overflow-y-auto border border-line rounded-xl p-2 bg-ink-900 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {rows.map((s) => {
                       const isHidden = newShareHiddenPinfls.includes(s.pinfl)
                       return (

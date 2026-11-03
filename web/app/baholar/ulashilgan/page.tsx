@@ -435,7 +435,7 @@ function TeacherGradesContent() {
     <div className="min-h-screen bg-ink-950 text-fg p-3 sm:p-6 pb-20">
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Yuqori Panel */}
-        <div className="panel p-4 sm:p-5 bg-ink-900/90 border-line shadow-xl space-y-3.5">
+        <div className="panel p-4 sm:p-5 bg-ink-900 border-line shadow-xl space-y-3.5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -548,7 +548,7 @@ function TeacherGradesContent() {
 
         {/* Fanlar tablari (barcha fanlar havolasida) */}
         {multi && fanlar.length > 0 && (
-          <div className="panel p-2 bg-ink-900/90 border-line">
+          <div className="panel p-2 bg-ink-900 border-line">
             <div ref={tabsRef} role="tablist" aria-label="Fanlar" className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
               {fanlar.map((f, i) => {
                 const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }

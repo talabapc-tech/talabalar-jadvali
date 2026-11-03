@@ -208,7 +208,7 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
         aria-label="Yangi talaba qo'shish"
       >
         <header className="flex items-center gap-3 border-b border-line bg-ink-850/80 px-4 py-3 sm:px-5 sm:py-3.5">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-emerald/25 to-sky/25 text-emerald-soft">
+          <span className="grid size-9 place-items-center rounded-xl border border-emerald/25 bg-emerald/10 text-emerald-soft">
             <UserPlus size={18} />
           </span>
           <div className="min-w-0 flex-1">
@@ -229,7 +229,7 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
           className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-5"
           onSubmit={(e) => { e.preventDefault(); void submit(false) }}
         >
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-sky/35 bg-ink-950/60 p-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-sky/35 bg-ink-950/60 p-3">
             <Sparkles size={16} className="text-sky" />
             <span className="text-[12.5px] font-bold text-fg">AI orqali to'ldirish:</span>
             <select
@@ -271,9 +271,9 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
             {aiMsg && <div className="w-full pt-1 text-[11.5px] text-sky-soft">{aiMsg}</div>}
           </div>
 
-          <section className="rounded-2xl border border-line bg-ink-900/70 p-4">
+          <section className="rounded-xl border border-line bg-ink-900/70 p-4">
             <h4 className="mb-3 flex items-center gap-2.5 text-[13px] font-bold text-fg">
-              <span className="grid size-6 place-items-center rounded-lg bg-gradient-to-br from-blue to-sky text-[12px] font-extrabold text-ink-950">1</span>
+              <span className="grid size-6 place-items-center rounded-lg bg-blue/15 text-[12px] font-extrabold text-blue-soft">1</span>
               Shaxs va pasport ma'lumotlari
             </h4>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -313,9 +313,9 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
             )}
           </section>
 
-          <section className="rounded-2xl border border-line bg-ink-900/70 p-4">
+          <section className="rounded-xl border border-line bg-ink-900/70 p-4">
             <h4 className="mb-3 flex items-center gap-2.5 text-[13px] font-bold text-fg">
-              <span className="grid size-6 place-items-center rounded-lg bg-gradient-to-br from-emerald to-emerald-soft text-[12px] font-extrabold text-ink-950">2</span>
+              <span className="grid size-6 place-items-center rounded-lg bg-emerald/15 text-[12px] font-extrabold text-emerald-soft">2</span>
               Ta'lim hujjati (Shahodatnoma / Diplom)
             </h4>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -329,9 +329,9 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
             </div>
           </section>
 
-          <section className="rounded-2xl border border-line bg-ink-900/70 p-4">
+          <section className="rounded-xl border border-line bg-ink-900/70 p-4">
             <h4 className="mb-3 flex items-center gap-2.5 text-[13px] font-bold text-fg">
-              <span className="grid size-6 place-items-center rounded-lg bg-gradient-to-br from-sky to-sky-soft text-[12px] font-extrabold text-ink-950">3</span>
+              <span className="grid size-6 place-items-center rounded-lg bg-sky/15 text-[12px] font-extrabold text-sky-soft">3</span>
               Shartnoma va akademik guruh
             </h4>
             <div className="grid gap-3 sm:grid-cols-3">

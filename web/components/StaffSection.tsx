@@ -185,141 +185,98 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
 
   return (
     <div className="space-y-4">
-      {/* 1. Xulosa / Statistika bloklari */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm">
-          <div className="flex items-center justify-between text-fg-subtle">
-            <span className="text-[12px] font-medium">Jami xodimlar</span>
-            <Users size={16} className="text-sky" />
-          </div>
-          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.total}</div>
-          <div className="mt-0.5 text-[11px] text-emerald-soft">{stats.active} nafari faol</div>
-        </div>
-
-        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-colors"
-          onClick={() => setCategory('ShTAT - xodimlar')}
-        >
-          <div className="flex items-center justify-between text-fg-subtle">
-            <span className="text-[12px] font-medium">1. ShTAT xodimlar</span>
-            <Briefcase size={16} className="text-amber" />
-          </div>
-          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.shtat}</div>
-          <div className="mt-0.5 text-[11px] text-fg-subtle">Ma'muriy & xo'jalik</div>
-        </div>
-
-        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-colors"
-          onClick={() => setCategory("Asosiy o'qituvchilar")}
-        >
-          <div className="flex items-center justify-between text-fg-subtle">
-            <span className="text-[12px] font-medium">2. Asosiy o'qituvchi</span>
-            <GraduationCap size={16} className="text-emerald" />
-          </div>
-          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.asosiy}</div>
-          <div className="mt-0.5 text-[11px] text-fg-subtle">Tarifikatsiya bo'yicha</div>
-        </div>
-
-        <div className="rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm cursor-pointer hover:border-emerald-500/40 transition-colors"
-          onClick={() => setCategory("O'rindosh o'qituvchilar")}
-        >
-          <div className="flex items-center justify-between text-fg-subtle">
-            <span className="text-[12px] font-medium">3. O'rindosh</span>
-            <Building size={16} className="text-purple-400" />
-          </div>
-          <div className="mt-1 text-[22px] font-extrabold text-fg">{stats.orindosh}</div>
-          <div className="mt-0.5 text-[11px] text-fg-subtle">O'rindosh pedagoglar</div>
-        </div>
-
-        <div className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-2xl border border-line bg-ink-900/80 p-3.5 shadow-sm flex flex-col justify-between">
-          <div className="text-[12px] font-medium text-fg-subtle">Tezkor amallar</div>
-          <div className="mt-2 flex items-center gap-1.5">
+      {/* 1. Xulosa — plitkani bosish shu toifani filtrlaydi (qayta bosish — barchasi).
+          "Qo'shish" va "Eksport" yuqori paneldagi tugmalarda — bu yerda takrorlanmaydi */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5">
+        {([
+          ['Barchasi', 'Jami xodimlar', stats.total, `${stats.active} nafari faol`, Users, 'bg-sky/12 text-sky-soft'],
+          ['ShTAT - xodimlar', 'ShTAT xodimlar', stats.shtat, "Ma'muriy va xo'jalik", Briefcase, 'bg-amber/12 text-amber'],
+          ["Asosiy o'qituvchilar", "Asosiy o'qituvchilar", stats.asosiy, "Tarifikatsiya bo'yicha", GraduationCap, 'bg-emerald/12 text-emerald-soft'],
+          ["O'rindosh o'qituvchilar", "O'rindosh o'qituvchilar", stats.orindosh, 'Ichki va tashqi', Building, 'bg-violet/12 text-violet'],
+        ] as const).map(([cat, label, value, sub, Icon, tone]) => {
+          const on = category === cat
+          return (
             <button
+              key={cat}
               type="button"
-              className="btn-success h-8 flex-1 text-[11.5px] justify-center"
-              onClick={() => { setEditMember(null); setInitialEdit(true); setModalOpen(true) }}
+              aria-pressed={on}
+              onClick={() => setCategory(on && cat !== 'Barchasi' ? 'Barchasi' : cat)}
+              className={cx(
+                'panel min-w-0 px-3 py-2.5 text-left transition-colors hover:border-line-strong hover:bg-ink-850 sm:px-3.5 sm:py-3',
+                on && 'border-sky/50 bg-ink-850 ring-1 ring-sky/25',
+              )}
             >
-              <Plus size={14} />
-              <span>Qo'shish</span>
+              <span className="block truncate text-[12px] font-semibold text-fg-muted">{label}</span>
+              <span className="mt-1 flex items-center justify-between gap-2">
+                <span className="text-[22px] leading-tight font-extrabold text-fg tabular-nums">{value}</span>
+                <span className={cx('grid size-7 shrink-0 place-items-center rounded-md', tone)}>
+                  <Icon size={15} />
+                </span>
+              </span>
+              <span className="mt-0.5 block truncate text-[11.5px] text-fg-subtle">{sub}</span>
             </button>
-            <button
-              type="button"
-              className="btn-ghost h-8 px-2.5 text-[11.5px] border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10"
-              onClick={() => setExportOpen(true)}
-              title="Excel eksport — kerakli ustunlarni tanlash"
-            >
-              <Download size={14} />
-              <span className="hidden sm:inline">Eksport</span>
-            </button>
-            <button
-              type="button"
-              className="btn-ghost h-8 px-2 text-[11.5px]"
-              onClick={handleSyncHr}
-              disabled={syncing}
-              title="D:\Ozodbek HR manzilidan avtomatik yangilash"
-            >
-              <RefreshCw size={14} className={cx('text-amber', syncing && 'animate-spin')} />
-            </button>
-          </div>
-        </div>
+          )
+        })}
       </div>
 
       {/* 2. Filtrlar va qidiruv paneli */}
-      <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-line bg-ink-900/80 p-3">
-        {/* Qidiruv */}
-        <div className="relative w-full sm:w-auto sm:min-w-[220px] flex-1">
-          <Search size={15} className="absolute top-1/2 left-3 -translate-y-1/2 text-fg-subtle" />
+      <div className="panel flex flex-wrap items-center gap-2 p-3">
+        <div className="relative w-full min-w-[220px] flex-1 sm:w-auto">
+          <Search size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-fg-subtle" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Xodim F.I.Sh, lavozim, mutaxassislik, telefon yoki JSHSHIR bo'yicha…"
-            className="field h-9 pl-9 text-[12.5px]"
+            placeholder="Qidirish: F.I.Sh, lavozim, mutaxassislik, telefon, JSHSHIR…"
+            className="field h-9 pl-9"
           />
         </div>
 
-        {/* Kategoriya filtri (1. Shtat, 2. Asosiy, 3. O'rindosh) */}
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="field h-9 w-full sm:w-auto min-w-[155px] flex-1 sm:flex-none py-1 text-[12px] font-medium cursor-pointer border-emerald-500/30 text-emerald-300 bg-emerald-500/5"
+          aria-label="Toifa"
+          className={cx('field h-9 w-full min-w-[170px] flex-1 cursor-pointer py-1 sm:w-auto sm:flex-none', category !== 'Barchasi' && 'border-sky/50 bg-sky/5 text-sky-soft')}
         >
           {STAFF_CATEGORIES.map((c) => (
             <option key={c} value={c} className="bg-ink-900 text-fg">
-              {c === 'Barchasi' ? 'Toifa: Barchasi' : c}
+              {c === 'Barchasi' ? 'Toifa: barchasi' : c}
             </option>
           ))}
         </select>
 
-        {/* Bo'lim filtri */}
         <select
           value={dept}
           onChange={(e) => setDept(e.target.value)}
-          className="field h-9 w-full sm:w-auto min-w-[130px] flex-1 sm:flex-none py-1 text-[12px] cursor-pointer"
+          aria-label="Bo'lim"
+          className={cx('field h-9 w-full min-w-[150px] flex-1 cursor-pointer py-1 sm:w-auto sm:flex-none', dept !== 'Barchasi' && 'border-sky/50 bg-sky/5 text-sky-soft')}
         >
           {STAFF_DEPARTMENTS.map((d) => (
             <option key={d} value={d} className="bg-ink-900 text-fg">Bo'lim: {d}</option>
           ))}
         </select>
 
-        {/* Yangilash tugmasi */}
-        <button
-          type="button"
-          onClick={() => void load()}
-          disabled={loading}
-          className="btn-ghost h-9 px-3 text-[12px]"
-          title="Xodimlarni yangilash"
-        >
-          <RefreshCw size={14} className={cx(loading && 'animate-spin')} />
-        </button>
-
-        {/* Katta eksport tugmasi */}
-        <button
-          type="button"
-          onClick={() => setExportOpen(true)}
-          className="btn-ghost h-9 px-3.5 text-[12px] font-semibold border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/15"
-          title="Kerakli ustunlarni tanlab Excelga yuklash"
-        >
-          <SlidersHorizontal size={14} />
-          <span>Excelga eksport</span>
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSyncHr}
+            disabled={syncing}
+            className="btn-ghost h-9 px-3 text-[12.5px]"
+            title="D:\Ozodbek HR manzilidan avtomatik yangilash"
+          >
+            <RefreshCw size={14} className={cx('text-amber', syncing && 'animate-spin')} />
+            <span className="hidden md:inline">HR dan olish</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={loading}
+            className="btn-ghost h-9 px-2.5"
+            title="Xodimlar ro'yxatini qayta yuklash"
+            aria-label="Xodimlar ro'yxatini qayta yuklash"
+          >
+            <RefreshCw size={14} className={cx(loading && 'animate-spin')} />
+          </button>
+        </div>
       </div>
 
       {/* 3. Xodimlar ro'yxati jadvali */}
@@ -330,7 +287,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
         </div>
       ) : filtered.length === 0 ? (
         <div className="panel grid place-items-center gap-3 py-16 text-center">
-          <div className="grid size-14 place-items-center rounded-2xl border border-line bg-ink-850 text-fg-subtle">
+          <div className="grid size-14 place-items-center rounded-xl border border-line bg-ink-850 text-fg-subtle">
             <Users size={28} />
           </div>
           <div>
@@ -364,7 +321,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
           </div>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-line bg-ink-900 shadow-md">
+        <div className="overflow-hidden rounded-xl border border-line bg-ink-900 shadow-md">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[12.5px] min-w-[560px] sm:min-w-full">
               <thead className="border-b border-line bg-ink-850/80 text-[11px] font-bold text-fg-muted uppercase tracking-wider">
@@ -389,7 +346,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
                     </td>
                     <td className="py-3.5 px-4 font-bold text-fg">
                       <div className="flex items-center gap-3">
-                        <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald/20 to-sky/20 text-[11.5px] font-bold text-emerald-400 group-hover:from-emerald/30 group-hover:to-sky/30 transition-colors">
+                        <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-line bg-ink-800 text-[11.5px] font-bold text-emerald-soft group-hover:border-emerald/30 transition-colors">
                           {s.fish.split(' ').filter(Boolean).map((p) => p[0]).join('').slice(0, 2).toUpperCase()}
                         </span>
                         <div className="min-w-0">

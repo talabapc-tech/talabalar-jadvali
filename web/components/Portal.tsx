@@ -64,7 +64,7 @@ function BackToSearch({ target }: { target: React.RefObject<HTMLDivElement | nul
     <button
       type="button"
       onClick={go}
-      className="no-print animate-pop-in fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex h-12 items-center gap-2 rounded-full border border-sky/40 bg-ink-850/95 px-4 text-[13px] font-semibold text-sky-soft shadow-xl shadow-black/40 backdrop-blur-md transition-colors hover:bg-ink-800"
+      className="no-print animate-pop-in fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex h-11 items-center gap-2 rounded-full border border-line-strong bg-ink-900/95 px-4 text-[13px] font-semibold text-sky-soft shadow-(--shadow-pop) backdrop-blur-md transition-colors hover:bg-ink-800"
       title="Qidiruv va filtrlarga qaytish"
     >
       <ArrowUp size={16} />
@@ -323,7 +323,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
           onAddCurriculum={() => setCurriculumAddOpen(true)}
         />
 
-        <main className="mx-auto max-w-[1680px] w-full flex-1 space-y-5 px-3 py-4 sm:px-6 sm:py-5">
+        <main className="mx-auto w-full max-w-[1680px] flex-1 space-y-4 px-3 py-4 sm:px-6 sm:py-5">
           {mainTab === 'curriculum' ? (
             <CurriculumSection
               students={data.students}
@@ -362,8 +362,8 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
             <div className="flex items-center gap-2 text-[13px] text-fg-muted">
               <Loader2 size={16} className="animate-spin text-sky" /> Talabalar ro'yxati yuklanmoqda…
             </div>
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
-              {Array.from({ length: 4 }, (_, i) => <div key={i} className="panel h-[76px] animate-pulse sm:h-[84px]" />)}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5 xl:grid-cols-7">
+              {Array.from({ length: 7 }, (_, i) => <div key={i} className={cx('panel h-[78px] animate-pulse', i === 0 && 'col-span-2 xl:col-span-1')} />)}
             </div>
             <div className="panel h-40 animate-pulse" />
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -384,7 +384,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
         {data.state === 'ready' && (
           <>
             <nav className="no-print flex flex-wrap items-center gap-2">
-              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+              <div className="seg grid w-full grid-cols-2 sm:inline-flex sm:w-auto">
                 {([
                   ['database', Database, 'Umumiy baza', 'Baza', String(data.students.length)],
                   ['groups', BookOpenCheck, 'Guruhlar jurnali', 'Jurnal', String(groups.length)],
@@ -394,19 +394,16 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                     type="button"
                     onClick={() => setView(v)}
                     aria-pressed={view === v}
-                    className={cx(
-                      'flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 text-[13.5px] font-semibold transition-colors sm:px-4',
-                      view === v ? 'border-sky/50 bg-gradient-to-r from-blue/25 to-sky/15 text-fg' : 'border-line bg-ink-900/60 text-fg-muted hover:text-fg'
-                    )}
+                    className="seg-btn h-8 px-3 text-[13px] sm:px-3.5"
                   >
-                    <Icon size={16} className={view === v ? 'text-sky' : ''} />
+                    <Icon size={15} className={view === v ? 'text-sky' : ''} />
                     <span className="sm:hidden">{short}</span>
                     <span className="hidden sm:inline">{t}</span>
-                    <span className="rounded-md bg-ink-700/80 px-1.5 text-[11.5px] tabular-nums">{n}</span>
+                    <span className="count">{n}</span>
                   </button>
                 ))}
               </div>
-              <div className="grid w-full grid-cols-4 gap-1 rounded-xl border border-line bg-ink-900/60 p-1 lg:ml-auto lg:flex lg:w-auto" role="tablist" aria-label="Kurs">
+              <div className="seg grid w-full grid-cols-4 lg:ml-auto lg:inline-flex lg:w-auto" role="tablist" aria-label="Kurs">
                 {([['', 'Jami', Object.values(kursCounts).reduce((a, b) => a + b, 0)], ...COURSES.map((c) => [String(c.kurs), `${c.kurs}-kurs`, kursCounts[c.kurs] ?? 0])] as [string, string, number][]).map(([k, t, n]) => (
                   <button
                     key={k || 'all'}
@@ -414,11 +411,10 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                     role="tab"
                     aria-selected={filters.kurs === k}
                     onClick={() => patchFilters({ kurs: k, group: '' })}
-                    className={cx('flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-[12px] font-semibold transition-colors sm:gap-1.5 sm:px-3 sm:text-[12.5px]',
-                      filters.kurs === k ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white' : 'text-fg-muted hover:text-fg')}
+                    className="seg-btn h-8 gap-1 px-1 text-[12px] sm:gap-1.5 sm:px-3 sm:text-[12.5px]"
                   >
                     {t}
-                    <span className={cx('rounded-md px-1 text-[11px] tabular-nums max-[359px]:hidden sm:px-1.5', filters.kurs === k ? 'bg-white/20' : 'bg-ink-700/80')}>{n}</span>
+                    <span className={cx('count max-[359px]:hidden', filters.kurs === k && 'bg-sky/20 text-sky-soft')}>{n}</span>
                   </button>
                 ))}
               </div>
@@ -430,7 +426,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                 <Overview students={data.students} groups={groups} filters={filters} onFilter={patchFilters} onGroupSettings={() => setGroupSettingsOpen(true)} />
 
                 {dupGroups.length > 0 && (
-                  <div className="panel border-rose/40 bg-rose/5 p-4">
+                  <div className="panel border-rose/35 bg-rose/5 p-4">
                     <div className="mb-2 flex items-center gap-2 text-[13.5px] font-bold text-rose">
                       <AlertTriangle size={16} /> Pasport yoki JSHSHIR bir xil bo'lgan talabalar ({dupGroups.length} ta holat)
                     </div>

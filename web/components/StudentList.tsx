@@ -78,7 +78,7 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
       <article
         onClick={() => onOpen(s)}
         className={cx(
-          'group relative flex h-full cursor-pointer flex-col justify-between gap-2 rounded-2xl border bg-ink-900/80 p-3.5 transition-colors',
+          'group relative flex h-full cursor-pointer flex-col justify-between gap-2 rounded-xl border bg-ink-900 p-3.5 transition-colors',
           dup ? 'border-rose/55' : ok ? 'border-emerald/25 hover:border-emerald/50' : 'border-line hover:border-sky/45',
           'hover:bg-ink-850',
         )}
@@ -112,7 +112,7 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
     <article
       onClick={() => onOpen(s)}
       className={cx(
-        'group relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl border bg-ink-900/80 p-3.5 transition-colors sm:p-4',
+        'group relative flex h-full cursor-pointer flex-col gap-3 rounded-xl border bg-ink-900 p-3.5 transition-colors sm:p-4',
         dup ? 'border-rose/55' : ok ? 'border-emerald/25 hover:border-emerald/50' : 'border-line hover:border-sky/45',
         'hover:bg-ink-850',
       )}

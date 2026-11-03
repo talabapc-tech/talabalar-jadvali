@@ -90,16 +90,16 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={toggleCollapsed} aria-expanded={!collapsed} className="flex items-center gap-1.5 rounded-lg py-1 pr-1.5 text-[13px] font-bold text-fg hover:text-sky-soft">
+          <button type="button" onClick={toggleCollapsed} aria-expanded={!collapsed} className="flex items-center gap-1.5 rounded-md py-1 pr-1.5 text-[13.5px] font-bold text-fg hover:text-sky-soft">
             <ChevronDown size={16} className={cx('transition-transform', collapsed && '-rotate-90')} />
             Kontingent — guruhlar
             {collapsed && <span className="font-medium text-fg-subtle">({groups.length})</span>}
           </button>
-          <span className="hidden text-[12px] text-fg-subtle lg:inline">
+          <span className="hidden text-[12px] text-fg-subtle xl:inline">
             Bosing — bitta guruh · <kbd className="rounded border border-line bg-ink-800 px-1 font-mono text-[11px]">Ctrl</kbd> + bosing — bir nechta · kurs sarlavhasi — butun kurs
           </span>
           {chosen.length > 0 && (
-            <div className="animate-fade-in inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-sky/40 bg-sky/15 px-3 py-1 text-[13px] font-semibold text-sky-soft shadow-sm">
+            <div className="animate-fade-in inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-sky/35 bg-sky/10 px-2.5 py-1 text-[12.5px] font-semibold text-sky-soft">
               <span className="flex items-center gap-1.5 font-bold text-sky">
                 <span className="grid size-5 place-items-center rounded-full bg-sky text-ink-950 text-[11px] font-black">
                   {chosen.length}
@@ -140,14 +140,14 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
           const tone = TONE[c.k]
           const cp = c.total ? Math.round((c.ver / c.total) * 100) : 0
           return (
-            <section key={c.k} className={cx('panel overflow-hidden', collapsed && 'lg:self-start')} style={{ borderTop: `3px solid var(${tone.v})` }}>
+            <section key={c.k} className={cx('panel overflow-hidden', collapsed && 'lg:self-start')} style={{ borderTop: `2px solid var(${tone.v})` }}>
               <button
                 type="button"
                 onClick={() => pickKurs(c.list.map((x) => x.g))}
                 title={`${ROMAN[c.k]}-kursning hamma guruhini tanlash`}
-                className={cx('flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-850', !collapsed && 'border-b border-line')}
+                className={cx('flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-ink-850', !collapsed && 'border-b border-line')}
               >
-                <span className={cx('mono text-[24px] leading-none font-extrabold', tone.text)}>{ROMAN[c.k]}</span>
+                <span className={cx('mono w-7 text-[20px] leading-none font-extrabold', tone.text)}>{ROMAN[c.k]}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[14px] font-bold whitespace-nowrap text-fg">{c.k}-kurs</span>
                   <span className="block text-[12px] text-fg-muted">{c.list.length} ta guruh</span>
@@ -164,14 +164,14 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                     </div>
                   ) : (
                     <>
-                      <span className="block text-[22px] leading-none font-extrabold text-fg tabular-nums">{c.total}</span>
+                      <span className="block text-[20px] leading-none font-extrabold text-fg tabular-nums">{c.total}</span>
                       <span className={cx('text-[11.5px] font-bold tabular-nums', cp === 100 ? 'text-emerald-soft' : 'text-fg-muted')}>{c.ver} tasdiqlangan</span>
                     </>
                   )}
                 </span>
               </button>
 
-              {!collapsed && <div className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-2 md:grid-cols-3 sm:gap-2.5 sm:p-3 xl:grid-cols-[repeat(auto-fill,minmax(132px,1fr))]">
+              {!collapsed && <div className="grid grid-cols-2 gap-2 p-2 md:grid-cols-3 sm:p-2.5 xl:grid-cols-[repeat(auto-fill,minmax(128px,1fr))]">
                 {c.list.map(({ g, total, ver }) => {
                   const p = total ? Math.round((ver / total) * 100) : 0
                   const on = chosen.includes(g)
@@ -183,19 +183,19 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                       title={`${g} · ${GROUP_LEADERS[g] || '—'} · ${groupTitle(g)}\nCtrl + bosish — bir nechtasini tanlash`}
                       onClick={(e) => pick(g, e.ctrlKey || e.metaKey)}
                       className={cx(
-                        'relative min-w-0 rounded-xl border p-2 text-left transition-all duration-150 select-none sm:p-3',
+                        'relative min-w-0 rounded-lg border p-2 text-left transition-all duration-150 select-none sm:px-2.5 sm:py-2',
                         tone.ring,
-                        on ? 'ring-2 ring-sky shadow-[0_10px_28px_-12px_rgb(56_189_248/0.7)]' : 'hover:-translate-y-px hover:brightness-125',
+                        on ? 'ring-2 ring-sky' : 'hover:-translate-y-px hover:brightness-125',
                         anyActive && !on && 'opacity-45 saturate-50 hover:opacity-100 hover:saturate-100',
                       )}
-                      style={{ background: `color-mix(in srgb, var(${tone.v}) ${8 + p / 7}%, transparent)` }}
+                      style={{ background: `color-mix(in srgb, var(${tone.v}) ${5 + p / 12}%, transparent)` }}
                     >
                       {on && (
                         <span className="absolute top-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-sky text-ink-950 sm:top-2 sm:right-2">
                           <Check size={13} strokeWidth={3.5} />
                         </span>
                       )}
-                      <span className={cx('mono flex items-center gap-1.5 text-[14px] font-bold sm:text-[17px]', tone.text)}>
+                      <span className={cx('mono flex items-center gap-1.5 text-[14px] font-bold sm:text-[15px]', tone.text)}>
                         {g}
                         {isSecretGroup(g) && (
                           <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-amber/55 bg-amber/10 px-1 py-px font-sans text-[10.5px] font-bold text-amber sm:px-1.5" title="Maxfiy guruh: darslarga kelmaydiganlar — kontraktlarga kirmaydi">
@@ -203,12 +203,12 @@ export default function GroupCards({ groups, active, onPick, onSettings }: Props
                           </span>
                         )}
                       </span>
-                      <span className="mt-0.5 block text-[22px] leading-tight font-extrabold text-fg tabular-nums sm:text-[28px]">
+                      <span className="block text-[20px] leading-tight font-extrabold text-fg tabular-nums sm:text-[22px]">
                         {total}<span className="ml-1 hidden text-[12px] font-semibold text-fg-muted sm:inline">nafar</span>
                       </span>
-                      <span className="block truncate text-[11.5px] font-semibold text-fg sm:text-[13px]">{GROUP_LEADERS[g] || '—'}</span>
-                      <span className="hidden truncate text-[11.5px] text-fg-muted sm:block">{groupTitle(g)}</span>
-                      <span className="mt-1.5 flex items-center gap-1.5 sm:mt-2 sm:gap-2">
+                      <span className="block truncate text-[11.5px] font-semibold text-fg sm:text-[12.5px]">{GROUP_LEADERS[g] || '—'}</span>
+                      <span className="hidden truncate text-[11px] text-fg-muted sm:block">{groupTitle(g)}</span>
+                      <span className="mt-1.5 flex items-center gap-1.5 sm:gap-2">
                         <ProgressBar value={p} />
                         <span className={cx('text-[10.5px] font-bold tabular-nums sm:text-[11.5px]', p === 100 ? 'text-emerald-soft' : 'text-fg-muted')}>{ver}/{total}</span>
                       </span>

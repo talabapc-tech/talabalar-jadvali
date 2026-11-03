@@ -365,7 +365,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-line bg-ink-900 shadow-2xl">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-xl border border-line bg-ink-900 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line bg-ink-950/70 px-5 py-4">
           <div className="flex items-center gap-3">

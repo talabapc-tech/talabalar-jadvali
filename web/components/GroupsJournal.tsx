@@ -65,10 +65,10 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
 
   return (
     <article className={cx('panel overflow-hidden', sp?.border)}>
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line bg-ink-850/70 px-3 py-3 sm:px-4">
-        <span className={cx('chip mono text-[12.5px]',
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2.5 border-b border-line bg-ink-850 px-3 py-2.5 sm:px-4">
+        <span className={cx('chip mono py-1 text-[13px]',
           sp ? sp.tone : farm ? 'border-emerald/45 bg-emerald/10 text-emerald-soft' : 'border-blue/45 bg-blue/10 text-blue-soft')}>
-          {sp ? 'Maxsus' : `Guruh ${code}`}
+          {sp ? 'Maxsus' : code}
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-bold text-fg">{title}</div>
@@ -86,7 +86,7 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
               disabled={qabulBusy || !students.length}
               title="Shu guruhni QABUL - 2026 formatida yuklab olish"
             >
-              {qabulBusy ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} Qabul
+              {qabulBusy ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />} <span className="xl:hidden 2xl:inline">Qabul</span>
             </button>
           )}
           <a
@@ -96,10 +96,10 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
             rel="noreferrer"
             title="Toza 1-varoqli A4 PDF jurnal"
           >
-            <FileText size={14} /> PDF
+            <FileText size={14} /> <span className="xl:hidden 2xl:inline">PDF</span>
           </a>
           <button type="button" className="btn-ghost h-8 px-2.5 text-[12px]" onClick={download} disabled={busy || !students.length} title="Guruhni Excel (.xlsx) formatda yuklab olish">
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} Excel
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} <span className="xl:hidden 2xl:inline">Excel</span>
           </button>
           <button type="button" className="btn-ghost h-8 max-w-11 px-2 text-[12px] text-sky hover:text-sky-soft" onClick={sendSingleTg} disabled={tgBusy || !students.length} title="Shu guruhning 1-varoqli jurnal rasmini Telegramga yuborish" aria-label="Telegramga yuborish">
             {tgBusy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
@@ -235,7 +235,7 @@ function GroupsJournal({ students, groups: list, onOpen, notify }: {
       </div>
 
       {tgOpen && (
-        <div className="no-print panel animate-pop-in space-y-3 border-sky/35 bg-ink-900/90 p-3 sm:p-4">
+        <div className="no-print panel animate-pop-in space-y-3 border-sky/35 bg-ink-900 p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-[13.5px] font-bold text-fg">Tanlangan guruhlarning 1-varoqli PDF jurnallarini (rasm sifatida) Telegramga yuborish</div>
             <div className="flex items-center gap-1.5 text-[12px]">

@@ -39,7 +39,7 @@ function TgButton({
       disabled={disabled}
       title={title}
       aria-label={title}
-      className="grid size-9 shrink-0 place-items-center rounded-lg border border-sky/30 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/25 disabled:opacity-50 sm:size-8"
+      className="grid size-9 shrink-0 place-items-center rounded-md border border-sky/25 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/20 disabled:opacity-50 sm:size-8"
     >
       {busy ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
     </button>
@@ -103,7 +103,7 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
   }
 
   const rowCls =
-    'group flex w-full items-center gap-2 rounded-xl px-2 py-1.5 transition-colors hover:bg-ink-700/60 sm:px-2.5'
+    'group flex w-full items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-ink-800 sm:px-2.5'
 
   return (
     <div ref={ref} className="relative shrink-0">
@@ -126,7 +126,7 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
           />
           <div
             role="menu"
-            className="animate-slide-up pb-safe fixed inset-x-2 bottom-2 z-50 max-h-[80dvh] overflow-y-auto rounded-2xl border border-line-strong bg-ink-850 p-2 shadow-2xl shadow-black/50
+            className="animate-slide-up pb-safe fixed inset-x-2 bottom-2 z-50 max-h-[80dvh] overflow-y-auto rounded-xl border border-line-strong bg-ink-900 p-1.5 shadow-(--shadow-pop)
               sm:animate-pop-in sm:absolute sm:inset-x-auto sm:right-0 sm:bottom-auto sm:mt-2 sm:max-h-[calc(100dvh-90px)] sm:w-[400px] sm:pb-2"
           >
             <div className="flex items-center justify-between px-3 pt-1 pb-1 sm:hidden">
@@ -149,7 +149,7 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
                   disabled={!!busy}
                   className="flex min-w-0 flex-1 items-center gap-3 py-0.5 text-left"
                 >
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-emerald/20 to-sky/20 text-[13px] font-bold text-sky-soft">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-md border border-line bg-ink-800 text-[13px] font-bold text-sky-soft">
                     {i + 1}
                   </span>
                   <span className="min-w-0 flex-1">
@@ -219,15 +219,15 @@ export default function Header({
         : 'Talabalar portali'
 
   return (
-    <header className="no-print z-20 border-b border-line bg-ink-950/80 backdrop-blur-md sticky top-0">
-      <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
+    <header className="no-print sticky top-0 z-20 border-b border-line bg-ink-950/85 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[1680px] items-center justify-between gap-3 px-3 sm:px-6">
         {/* Chap qism: Hamburger (mobilda) va Sarlavha */}
         <div className="flex min-w-0 items-center gap-2.5">
           {onOpenSidebar && (
             <button
               type="button"
               onClick={onOpenSidebar}
-              className="grid size-9 shrink-0 place-items-center rounded-xl border border-line bg-ink-900 text-fg-muted hover:text-fg hover:bg-ink-850 lg:hidden"
+              className="grid size-9 shrink-0 place-items-center rounded-lg border border-line bg-ink-900 text-fg-muted hover:bg-ink-850 hover:text-fg lg:hidden"
               aria-label="Menyu ochish"
             >
               <Menu size={18} />
@@ -235,13 +235,11 @@ export default function Header({
           )}
 
           <div className="min-w-0">
-            <div className="truncate text-[10px] font-bold tracking-[0.14em] text-emerald-soft uppercase sm:text-[10.5px]">
-              Shahrisabz Abu Ali ibn Sino nomidagi JTSM
+            <h1 className="truncate text-[15px] leading-tight font-extrabold tracking-tight text-fg sm:text-[16.5px]">{titleText}</h1>
+            <div className="truncate text-[11px] leading-tight text-fg-subtle sm:text-[11.5px]">
+              <span className="font-semibold text-fg-muted">2026/2027</span>
+              <span className="hidden min-[480px]:inline"> · Shahrisabz Abu Ali ibn Sino nomidagi JTSM</span>
             </div>
-            <h1 className="truncate text-[15px] font-black tracking-tight text-fg sm:text-[17px]">
-              {titleText}
-              <span className="hidden font-semibold text-fg-subtle min-[480px]:inline"> · 2026/2027</span>
-            </h1>
           </div>
         </div>
 
@@ -290,10 +288,10 @@ export default function Header({
               className="btn-success h-9 px-3 text-[13px]"
               onClick={onAdd}
               title="Yangi talaba qo'shish"
+              aria-label="Yangi talaba qo'shish"
             >
               <UserPlus size={15} />
               <span className="hidden sm:inline">Talaba qo'shish</span>
-              <span className="sm:hidden">Qo'shish</span>
             </button>
           )}
 

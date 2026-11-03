@@ -335,25 +335,21 @@ export default function CurriculumSection({
   return (
     <div className="space-y-4 animate-fade-in pb-12">
       {/* 1-qator: O'quv yili tanlagich va Yangilash */}
-      <div className="panel p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-ink-900/60 border-line">
+      <div className="panel flex flex-wrap items-center justify-between gap-3 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 text-fg-muted font-bold text-[13px] mr-1">
             <Calendar size={16} className="text-sky" />
             <span>O'quv yili:</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1 rounded-xl border border-line bg-ink-950 p-1">
+          <div className="seg flex-wrap">
             {availableYears.map((yr) => (
               <button
                 key={yr}
                 type="button"
                 onClick={() => setSelectedYear(yr)}
-                className={cx(
-                  'rounded-lg px-3 py-1.5 text-[12.5px] font-bold transition-all',
-                  selectedYear === yr
-                    ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white shadow-sm'
-                    : 'text-fg-muted hover:text-fg hover:bg-ink-800',
-                )}
+                aria-pressed={selectedYear === yr}
+                className="seg-btn mono px-3"
               >
                 {yr}
               </button>
@@ -412,9 +408,9 @@ export default function CurriculumSection({
         </div>
       ) : (
         /* Asosiy 2 ustunli tuzilma: Chapda Rejalar kartochkalari, O'ngda Semestr va Fanlar jadvali */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
           {/* Chap ustun (4 ustun): O'quv rejalari ro'yxati */}
-          <div className="lg:col-span-4 space-y-3">
+          <div className="min-w-0 space-y-3">
             <div className="flex items-center justify-between px-1 text-[12px] font-bold text-fg-subtle uppercase tracking-wider">
               <span>Yo'nalishlar ({yearPlans.length})</span>
               <button
@@ -444,7 +440,7 @@ export default function CurriculumSection({
                     className={cx(
                       'panel p-3.5 transition-all cursor-pointer border text-left relative group',
                       isSelected
-                        ? 'border-sky/60 bg-gradient-to-r from-blue/15 to-sky/10 ring-1 ring-sky/30 shadow-md border-l-4 border-l-sky'
+                        ? 'border-sky/60 bg-sky/8 ring-1 ring-sky/30 shadow-md border-l-4 border-l-sky'
                         : 'border-line hover:border-line-strong hover:bg-ink-850/80',
                     )}
                   >
@@ -570,7 +566,7 @@ export default function CurriculumSection({
           </div>
 
           {/* O'ng ustun (8 ustun): Semestrlar va Fanlar ro'yxati */}
-          <div className="lg:col-span-8 space-y-4">
+          <div className="min-w-0 space-y-4">
             {activePlan && (
               <>
                 {/* Yuqori qism: Reja tafsilotlari va Semestr switch */}
@@ -619,7 +615,7 @@ export default function CurriculumSection({
                   </div>
 
                   {/* Semestrlar tugmalari (1-dan 6-semestrgacha) - 1366 va mobile ga moslashuvchan grid */}
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-2 border-t border-line/60">
+                  <div className="seg grid grid-cols-3 sm:grid-cols-6">
                     {[1, 2, 3, 4, 5, 6].map((sem) => {
                       const count = activePlan.semestrlar?.[String(sem)]?.fanlar?.length || 0
                       const isActive = activeSemestr === sem
@@ -628,20 +624,11 @@ export default function CurriculumSection({
                           key={sem}
                           type="button"
                           onClick={() => setActiveSemestr(sem)}
-                          className={cx(
-                            'flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-2 text-[12.5px] font-bold transition-all',
-                            isActive
-                              ? 'bg-gradient-to-r from-blue/90 to-sky/90 text-white shadow-sm ring-1 ring-sky/50'
-                              : 'border border-line bg-ink-950/80 text-fg-muted hover:text-fg hover:bg-ink-850',
-                          )}
+                          aria-pressed={isActive}
+                          className="seg-btn h-8 gap-1.5 px-1.5"
                         >
                           <span>{sem}-semestr</span>
-                          <span
-                            className={cx(
-                              'rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold tabular-nums',
-                              isActive ? 'bg-white/20 text-white' : 'bg-ink-800 text-fg-subtle',
-                            )}
-                          >
+                          <span className={cx('count', isActive && 'bg-sky/20 text-sky-soft')}>
                             {count}
                           </span>
                         </button>
@@ -651,7 +638,7 @@ export default function CurriculumSection({
                 </div>
 
                 {/* Fanlar ro'yxati va yangi fan qo'shish */}
-                <div className="panel overflow-hidden border-line bg-ink-900/60 shadow-lg">
+                <div className="panel overflow-hidden">
                   <div className="p-3.5 border-b border-line flex items-center justify-between gap-3 bg-ink-950/40">
                     <div className="flex items-center gap-2">
                       <Award size={16} className="text-amber" />
@@ -793,7 +780,7 @@ export default function CurriculumSection({
             className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
             onClick={() => setPlanModalOpen(false)}
           />
-          <div className="relative w-full max-w-lg rounded-2xl border border-line bg-ink-900 p-6 shadow-2xl space-y-5 animate-scale-up">
+          <div className="relative w-full max-w-lg rounded-xl border border-line bg-ink-900 p-6 shadow-2xl space-y-5 animate-scale-up">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h3 className="text-[16px] font-extrabold text-fg">
@@ -950,7 +937,7 @@ export default function CurriculumSection({
             className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
             onClick={() => setNewYearModalOpen(false)}
           />
-          <div className="relative w-full max-w-sm rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4 animate-scale-up">
+          <div className="relative w-full max-w-sm rounded-xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4 animate-scale-up">
             <div className="flex items-center justify-between border-b border-line pb-2.5">
               <h3 className="text-[15px] font-bold text-fg">Yangi o'quv yili kiritish</h3>
               <button
@@ -1012,7 +999,7 @@ export default function CurriculumSection({
             className="fixed inset-0 bg-ink-950/80 backdrop-blur-md"
             onClick={() => setAssignModalOpen(false)}
           />
-          <div className="relative w-full max-w-xl rounded-2xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4 animate-scale-up">
+          <div className="relative w-full max-w-xl rounded-xl border border-line bg-ink-900 p-5 shadow-2xl space-y-4 animate-scale-up">
             <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
                 <h3 className="text-[16px] font-extrabold text-fg">

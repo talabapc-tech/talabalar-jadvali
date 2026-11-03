@@ -94,7 +94,7 @@ function SectionCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-line bg-ink-900/70 p-4">
+    <section className="rounded-xl border border-line bg-ink-900/70 p-4">
       <h4 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-fg">
         <Icon size={15} className={iconColor} />
         <span>{title}</span>
@@ -215,7 +215,7 @@ export default function StaffModal({
             </div>
           )}
 
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-emerald/25 to-sky/25 text-emerald-soft">
+          <span className="grid size-9 place-items-center rounded-xl border border-emerald/25 bg-emerald/10 text-emerald-soft">
             <UserCheck size={18} />
           </span>
 

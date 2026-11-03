@@ -183,7 +183,7 @@ export default function LoginPage() {
         {/* Qurilmani avtomatik tanib olish jarayoni ko'rinishi */}
         {autoChecking && deviceRecognized ? (
           <div className="panel animate-fade-in p-7 text-center shadow-2xl shadow-black/70">
-            <div className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl border border-emerald/40 bg-emerald/15 text-emerald-soft">
+            <div className="mx-auto mb-4 grid size-14 place-items-center rounded-xl border border-emerald/40 bg-emerald/15 text-emerald-soft">
               <Smartphone size={28} className="animate-pulse" />
             </div>
             <h2 className="text-[17px] font-extrabold text-fg">Qurilma tanildi</h2>
@@ -210,7 +210,7 @@ export default function LoginPage() {
           >
             {/* Yuqori sarlavha va logo */}
             <div className="mb-6 flex items-center gap-3.5">
-              <div className="grid size-12 place-items-center rounded-2xl border border-line bg-gradient-to-br from-ink-850 to-ink-900 shadow-inner">
+              <div className="grid size-12 place-items-center rounded-xl border border-line bg-ink-850">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo.svg" alt="Texnikum" className="size-7 object-contain" />
               </div>

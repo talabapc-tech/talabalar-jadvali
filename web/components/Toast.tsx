@@ -33,7 +33,7 @@ export function Toasts({ toasts }: { toasts: Toast[] }) {
       {toasts.map((t) => {
         const { icon: Icon, cls } = TONES[t.tone]
         return (
-          <div key={t.id} className={cx('animate-slide-up flex items-start gap-2.5 rounded-xl border bg-ink-850/95 px-4 py-3 text-[13px] font-semibold shadow-2xl shadow-black/40', cls)}>
+          <div key={t.id} className={cx('animate-slide-up flex items-start gap-2.5 rounded-xl border bg-ink-850/95 px-4 py-3 text-[13px] font-semibold shadow-(--shadow-pop)', cls)}>
             <Icon size={17} className="mt-px shrink-0" />
             <span className="text-fg">{t.text}</span>
           </div>

@@ -25,7 +25,7 @@ function Select({ label, value, onChange, options }: {
   return (
     <label className="min-w-0">
       <span className="label truncate" title={label}>{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={cx('field cursor-pointer pr-8', value && 'border-sky/50 text-sky-soft')}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={cx('field h-9 cursor-pointer py-1.5 pr-8', value && 'border-sky/50 bg-sky/5 text-sky-soft')}>
         <option value="">Barchasi</option>
         {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
       </select>
@@ -58,18 +58,18 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
   }, [])
 
   return (
-    <section className="no-print panel p-3 sm:p-4">
-      <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+    <section className="no-print panel p-3 sm:p-3.5">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
         <label className="min-w-0 flex-1 basis-full sm:min-w-[240px] sm:basis-auto">
-          <span className="label hidden sm:block">Qidiruv — F.I.SH, pasport, JSHSHIR, shartnoma, maktab</span>
+          <span className="sr-only">Qidiruv — F.I.SH, pasport, JSHSHIR, shartnoma, maktab</span>
           <div className="relative">
             <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-fg-subtle" />
             <input
               ref={searchRef}
               value={filters.search}
               onChange={(e) => onFilter({ search: e.target.value })}
-              placeholder="Ism, pasport, JSHSHIR, shartnoma №…"
-              className="field h-11 pr-10 pl-9 sm:h-10 [&::-webkit-search-cancel-button]:hidden"
+              placeholder="Qidirish: ism, pasport, JSHSHIR, shartnoma №, maktab…"
+              className="field h-11 pr-10 pl-9 sm:h-9 [&::-webkit-search-cancel-button]:hidden"
               type="search"
               enterKeyHint="search"
               autoComplete="off"
@@ -93,12 +93,12 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className={cx('btn-ghost h-10 flex-1 md:hidden', (open || activeCount > 0) && 'border-sky/50 text-sky-soft')}
+          className={cx('btn-ghost h-9 flex-1 md:hidden', (open || activeCount > 0) && 'border-sky/50 text-sky-soft')}
         >
           <SlidersHorizontal size={15} /> Filtrlar
           {activeCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-sky text-[11px] font-bold text-ink-950">{activeCount}</span>}
         </button>
-        <div className="flex h-10 rounded-xl border border-line bg-ink-950/60 p-0.5" role="tablist" aria-label="Ko'rinish">
+        <div className="seg h-9" role="tablist" aria-label="Ko'rinish">
           {MODES.map(([m, Icon, t]) => (
             <button
               key={m}
@@ -108,9 +108,7 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
               aria-label={t}
               title={t}
               onClick={() => onMode(m)}
-              className={cx('flex items-center gap-1.5 rounded-[10px] px-2.5 text-[12.5px] font-semibold transition-colors sm:px-3',
-                m === 'table' && 'hidden md:flex',
-                mode === m ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white' : 'text-fg-muted hover:text-fg')}
+              className={cx('seg-btn h-full px-2.5 sm:px-3', m === 'table' && 'hidden md:flex')}
             >
               <Icon size={15} /> <span className="hidden sm:inline">{t}</span>
             </button>
@@ -118,7 +116,7 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
         </div>
       </div>
 
-      <div className={cx('mt-3 grid-cols-2 gap-2 sm:gap-3 md:grid md:grid-cols-4 xl:grid-cols-7', open ? 'grid' : 'hidden')}>
+      <div className={cx('mt-3 grid-cols-2 gap-2 sm:gap-2.5 md:grid md:grid-cols-4 xl:grid-cols-7', open ? 'grid' : 'hidden')}>
         <Select label="Guruh" value={filters.group} onChange={(v) => onFilter({ group: v })}
           options={[
             // Kontingent plitkalarida Ctrl bilan bir nechta guruh tanlanganda
@@ -138,7 +136,7 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
           options={[['ok', "To'liq mos"], ['translit', 'Imlo farqi (q/k, x/h)'], ['farq', "Ro'yxatdan farq bor"], ['tekshir', 'Tekshirish kerak'], ['boshqa', 'Boshqa shaxs hujjati'], ['none', 'Tekshirilmagan']]} />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3 sm:mt-4 sm:pt-3.5">
+      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
         <span className="text-[13px] text-fg-muted">
           <span className="hidden sm:inline">Ko'rsatilmoqda: </span><strong className="text-fg tabular-nums">{shown}</strong>
           <span className="text-fg-subtle"> / {total}</span>

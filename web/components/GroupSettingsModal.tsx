@@ -82,7 +82,7 @@ export default function GroupSettingsModal({ settings, counts, preselected, onCl
       <div className="animate-pop-in flex h-full w-full max-w-[920px] flex-col overflow-hidden border-line-strong bg-ink-900 shadow-2xl shadow-black/60 sm:h-auto sm:max-h-[92vh] sm:rounded-3xl sm:border"
         role="dialog" aria-modal="true" aria-label="Guruh sozlamalari">
         <header className="flex items-center gap-3 border-b border-line px-4 py-3 sm:px-5 sm:py-4">
-          <span className="grid size-10 place-items-center rounded-2xl bg-sky/15 text-sky"><Settings2 size={20} /></span>
+          <span className="grid size-10 place-items-center rounded-xl bg-sky/15 text-sky"><Settings2 size={20} /></span>
           <div className="min-w-0 flex-1">
             <h3 className="text-[16px] font-bold text-fg">Guruh sozlamalari</h3>
             <p className="hidden text-[12.5px] text-fg-muted sm:block">Kursdan kursga ko'chirish, guruh rahbari va yo'nalish. Talabalarning guruhi o'zgarmaydi.</p>
@@ -122,7 +122,7 @@ export default function GroupSettingsModal({ settings, counts, preselected, onCl
                   <div className="inline-flex overflow-hidden rounded-lg border border-line">
                     {KURS_LIST.map((k) => (
                       <button key={k} type="button" onClick={() => patch(g, { kurs: k })} aria-pressed={draft[g].kurs === k} title={`${k}-kurs`}
-                        className={cx('mono px-3 py-1.5 text-[12px] font-bold md:px-2.5 md:py-1', draft[g].kurs === k ? 'bg-gradient-to-r from-blue/80 to-sky/80 text-white' : 'text-fg-muted hover:bg-ink-800 hover:text-fg')}>
+                        className={cx('mono px-3 py-1.5 text-[12px] font-bold md:px-2.5 md:py-1', draft[g].kurs === k ? 'bg-accent text-white' : 'text-fg-muted hover:bg-ink-800 hover:text-fg')}>
                         {ROMAN[k]}
                       </button>
                     ))}

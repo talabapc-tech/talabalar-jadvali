@@ -26,7 +26,7 @@ interface Props {
 function Section({ n, title, children, tone = 'blue' }: { n: number; title: string; children: React.ReactNode; tone?: 'blue' | 'emerald' | 'sky' | 'amber' }) {
   const tones = { blue: 'from-blue to-sky', emerald: 'from-emerald to-emerald-soft', sky: 'from-sky to-sky-soft', amber: 'from-amber to-amber-soft' }
   return (
-    <section className="rounded-2xl border border-line bg-ink-900/70 p-4">
+    <section className="rounded-xl border border-line bg-ink-900/70 p-4">
       <h4 className="mb-3 flex items-center gap-2.5 text-[13px] font-bold text-fg">
         <span className={cx('grid size-6 place-items-center rounded-lg bg-gradient-to-br text-[12px] font-extrabold text-ink-950', tones[tone])}>{n}</span>
         {title}

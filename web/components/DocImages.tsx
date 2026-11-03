@@ -163,7 +163,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
   return (
     <div className="space-y-3">
       {/* Compact AI / QR / Upload toolbar */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-ink-900/80 p-2">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-line bg-ink-900 p-2">
         <select
           value={model}
           onChange={(e) => { const m = e.target.value; setModel(m); setSavedAiModel(m) }}
@@ -193,7 +193,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
       </div>
 
       {showUpload && (
-        <div className="animate-pop-in space-y-3 rounded-2xl border border-sky/35 bg-ink-900/90 p-3.5">
+        <div className="animate-pop-in space-y-3 rounded-xl border border-sky/35 bg-ink-900 p-3.5">
           <DocDropZone
             title="Shartnoma hujjati (.docx)"
             icon={FileText}
@@ -225,7 +225,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
       )}
 
       {(statusMsg || qrResult) && (
-        <div className="rounded-xl border border-line bg-ink-900/80 px-3 py-2 text-[12px] text-fg-muted">
+        <div className="rounded-xl border border-line bg-ink-900 px-3 py-2 text-[12px] text-fg-muted">
           {statusMsg && <div>{statusMsg}</div>}
           {qrResult && (
             <div className="mt-1 flex items-center gap-2 text-emerald-soft">
@@ -237,7 +237,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
       )}
 
       {extracted && Object.keys(extracted).length > 0 && (
-        <div className="animate-pop-in space-y-2 rounded-2xl border border-emerald/45 bg-emerald/10 p-3 text-[12px]">
+        <div className="animate-pop-in space-y-2 rounded-xl border border-emerald/45 bg-emerald/10 p-3 text-[12px]">
           <div className="font-bold text-emerald-soft">AI o'qigan ma'lumotlar (kartaga saqlandi):</div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-fg">
             {([
@@ -253,7 +253,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
 
       {images === null ? (
         <div className="grid gap-3">
-          {[0, 1].map((i) => <div key={i} className="h-56 animate-pulse rounded-2xl border border-line bg-ink-850" />)}
+          {[0, 1].map((i) => <div key={i} className="h-56 animate-pulse rounded-xl border border-line bg-ink-850" />)}
         </div>
       ) : !images.length ? (
         <div
@@ -274,9 +274,9 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
             }
             setShowUpload(true)
           }}
-          className="grid place-items-center gap-3 rounded-2xl border-2 border-dashed border-sky/35 bg-ink-950/40 px-6 py-10 text-center transition hover:border-sky/60"
+          className="grid place-items-center gap-3 rounded-xl border-2 border-dashed border-sky/35 bg-ink-950/40 px-6 py-10 text-center transition hover:border-sky/60"
         >
-          <div className="grid size-13 place-items-center rounded-2xl bg-sky/10 text-sky-soft">
+          <div className="grid size-13 place-items-center rounded-xl bg-sky/10 text-sky-soft">
             <Upload size={24} />
           </div>
           <div>
@@ -304,7 +304,7 @@ export default function DocImages({ file, studentRow, student, onApplyFields }: 
             const r = rot[i] ?? 0
             const sideways = Math.abs(r % 180) === 90
             return (
-              <figure key={i} className="overflow-hidden rounded-2xl border border-line bg-ink-950/60">
+              <figure key={i} className="overflow-hidden rounded-xl border border-line bg-ink-950/60">
                 <figcaption className="flex items-center gap-2 border-b border-line px-3 py-2 text-[12px] font-semibold">
                   <Icon size={14} className={l.tone} />
                   <span className="text-fg">{l.text}</span>

@@ -273,7 +273,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
         {/* Modal Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-line px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-2xl border border-sky/30 bg-sky/10 text-sky">
+            <div className="grid size-10 place-items-center rounded-xl border border-sky/30 bg-sky/10 text-sky">
               <Settings size={20} />
             </div>
             <div>
@@ -344,7 +344,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
           {/* TAB 1: AI MODELLAR */}
           {tab === 'ai' && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-sky/20 bg-sky/5 p-4 text-[12.5px] text-fg-muted">
+              <div className="rounded-xl border border-sky/20 bg-sky/5 p-4 text-[12.5px] text-fg-muted">
                 <div className="flex items-center gap-2 font-semibold text-sky-soft">
                   <Sparkles size={16} />
                   <span>Hujjatlarni o'qish (OCR) va AI tahlil modellari</span>
@@ -371,10 +371,10 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
                       <div
                         key={m.id}
                         className={cx(
-                          'flex flex-col gap-3 rounded-2xl border p-4 transition-all sm:flex-row sm:items-center sm:justify-between',
+                          'flex flex-col gap-3 rounded-xl border p-4 transition-all sm:flex-row sm:items-center sm:justify-between',
                           m.enabled
                             ? isDef
-                              ? 'border-sky/50 bg-gradient-to-r from-sky/10 via-ink-850 to-ink-850'
+                              ? 'border-sky/50 bg-sky/8'
                               : 'border-line-strong bg-ink-850/80 hover:border-line-strong'
                             : 'border-line/60 bg-ink-950/40 opacity-60',
                         )}
@@ -494,7 +494,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
               </div>
 
               {/* Yangi model qo'shish */}
-              <div className="rounded-2xl border border-line-strong bg-ink-950/60 p-4">
+              <div className="rounded-xl border border-line-strong bg-ink-950/60 p-4">
                 <div className="mb-3 flex items-center gap-2 text-[13px] font-bold text-fg">
                   <Plus size={15} className="text-sky" />
                   <span>Boshqa model qo'shish (OpenRouter)</span>
@@ -547,7 +547,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
           {/* TAB 2: API KALITLAR */}
           {tab === 'keys' && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-line bg-ink-950/60 p-4 text-[12.5px] text-fg-muted">
+              <div className="rounded-xl border border-line bg-ink-950/60 p-4 text-[12.5px] text-fg-muted">
                 <div className="flex items-center gap-2 font-semibold text-fg">
                   <Key size={16} className="text-amber" />
                   <span>Tashqi xizmatlar bilan integratsiya kalitlari</span>
@@ -612,7 +612,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
               ) : null}
 
               {/* 1. OpenRouter API Key */}
-              <div className="space-y-1.5 rounded-2xl border border-line bg-ink-850/60 p-4">
+              <div className="space-y-1.5 rounded-xl border border-line bg-ink-850/60 p-4">
                 <div className="flex items-center justify-between">
                   <label className="text-[13px] font-bold text-fg">OpenRouter API Kaliti</label>
                   <button
@@ -645,7 +645,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
               </div>
 
               {/* 2. Telegram Bot Token & Chat ID */}
-              <div className="space-y-3 rounded-2xl border border-line bg-ink-850/60 p-4">
+              <div className="space-y-3 rounded-xl border border-line bg-ink-850/60 p-4">
                 <div className="flex items-center justify-between">
                   <label className="text-[13px] font-bold text-fg">Telegram Bot & Bildirishnomalar</label>
                   <button
@@ -726,7 +726,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
               </div>
 
               {/* 3. Web Jurnal & MyTest */}
-              <div className="space-y-3 rounded-2xl border border-line bg-ink-850/60 p-4">
+              <div className="space-y-3 rounded-xl border border-line bg-ink-850/60 p-4">
                 <label className="text-[13px] font-bold text-fg">Web Jurnal & MyTest Integratsiyasi</label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
@@ -781,7 +781,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
           {tab === 'system' && (
             <div className="space-y-6">
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-line bg-ink-850/60 p-4">
+                <div className="rounded-xl border border-line bg-ink-850/60 p-4">
                   <div className="flex items-center gap-2 text-[12px] font-bold text-fg-muted">
                     <Globe size={15} className="text-sky" />
                     <span>Vercel Platformasi</span>
@@ -790,7 +790,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
                   <div className="flex items-center gap-1.5 text-[11.5px] text-emerald-soft"><Zap size={12} className="text-amber fill-amber" /> Tezkor CDN va Kesh faol</div>
                 </div>
 
-                <div className="rounded-2xl border border-line bg-ink-850/60 p-4">
+                <div className="rounded-xl border border-line bg-ink-850/60 p-4">
                   <div className="flex items-center gap-2 text-[12px] font-bold text-fg-muted">
                     <HardDrive size={15} className="text-emerald" />
                     <span>Supabase Baza</span>
@@ -799,7 +799,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
                   <div className="text-[11.5px] text-fg-subtle">Avtomatik zaxiralash</div>
                 </div>
 
-                <div className="rounded-2xl border border-line bg-ink-850/60 p-4">
+                <div className="rounded-xl border border-line bg-ink-850/60 p-4">
                   <div className="flex items-center gap-2 text-[12px] font-bold text-fg-muted">
                     <ShieldCheck size={15} className="text-amber" />
                     <span>Xavfsizlik</span>
@@ -809,7 +809,7 @@ export default function SettingsModal({ open, onClose, notify }: Props) {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-2xl border border-line bg-ink-850/60 p-4">
+              <div className="space-y-3 rounded-xl border border-line bg-ink-850/60 p-4">
                 <div className="text-[13px] font-bold text-fg">Xotira va Keshni boshqarish</div>
                 <p className="text-[12px] text-fg-muted">
                   Agar portalda eski rasmlar yoki ma&apos;lumotlar ko&apos;rinayotgan bo&apos;lsa, lokal brauzer keshini tozalashingiz mumkin.

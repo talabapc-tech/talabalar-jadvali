@@ -152,7 +152,7 @@ export default function VersionBadge({
         className={`group flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-mono shadow-md backdrop-blur-md transition-all ${
           open
             ? 'border-emerald-500/50 bg-ink-900 text-fg ring-1 ring-emerald-500/30 shadow-emerald-500/10'
-            : 'border-line/70 bg-ink-950/75 text-fg-subtle hover:border-line-hover hover:bg-ink-900/90 hover:text-fg'
+            : 'border-line/70 bg-ink-950/75 text-fg-subtle hover:border-line-hover hover:bg-ink-900 hover:text-fg'
         }`}
       >
         <span className="relative flex h-2 w-2">
@@ -168,7 +168,7 @@ export default function VersionBadge({
       {/* Ochiluvchi batafsil axborot oynachasi */}
       {open && (
         <div
-          className={`animate-pop-in absolute z-50 w-72 rounded-2xl ${
+          className={`animate-pop-in absolute z-50 w-72 rounded-xl ${
             inSidebar ? (collapsed ? 'bottom-0 left-full ml-3' : 'bottom-full left-0 mb-2') : 'bottom-8 left-0 mb-2'
           } border border-line-strong bg-ink-900/95 p-3.5 shadow-2xl backdrop-blur-xl`}
         >

@@ -204,7 +204,7 @@ export default function MajlisApp() {
               <ArrowLeft size={17} />
             </button>
           ) : (
-            <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-sky/30 bg-gradient-to-br from-emerald/20 via-blue/20 to-sky/20">
+            <div className="grid size-9 shrink-0 place-items-center rounded-xl border border-line-strong bg-ink-800">
               <CalendarCheck size={18} className="text-sky-soft" />
             </div>
           )}

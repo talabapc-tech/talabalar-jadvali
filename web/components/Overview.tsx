@@ -24,12 +24,12 @@ function Tile({
   tone: 'blue' | 'emerald' | 'amber' | 'sky' | 'rose' | 'violet'; active?: boolean; onClick?: () => void; className?: string
 }) {
   const tones = {
-    blue: 'from-blue/25 to-blue/5 text-blue-soft',
-    emerald: 'from-emerald/25 to-emerald/5 text-emerald-soft',
-    amber: 'from-amber/25 to-amber/5 text-amber',
-    sky: 'from-sky/25 to-sky/5 text-sky-soft',
-    rose: 'from-rose/25 to-rose/5 text-rose',
-    violet: 'from-violet/25 to-violet/5 text-violet',
+    blue: 'bg-blue/12 text-blue-soft',
+    emerald: 'bg-emerald/12 text-emerald-soft',
+    amber: 'bg-amber/12 text-amber',
+    sky: 'bg-sky/12 text-sky-soft',
+    rose: 'bg-rose/12 text-rose',
+    violet: 'bg-violet/12 text-violet',
   }
   return (
     <button
@@ -37,22 +37,19 @@ function Tile({
       onClick={onClick}
       aria-pressed={!!active}
       className={cx(
-        'panel group flex items-center gap-2.5 p-2.5 text-left transition-colors hover:border-line-strong hover:bg-ink-850 sm:gap-3.5 sm:p-4',
-        active && 'border-sky/50 bg-ink-850 ring-1 ring-sky/30',
+        'panel group min-w-0 px-3 py-2.5 text-left transition-colors hover:border-line-strong hover:bg-ink-850 sm:px-3.5 sm:py-3',
+        active && 'border-sky/50 bg-ink-850 ring-1 ring-sky/25',
         className,
       )}
     >
-      <span className={cx('hidden size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br sm:grid', tones[tone])}>
-        <Icon size={21} strokeWidth={2.2} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-start gap-1.5 text-[10.5px] leading-tight font-bold tracking-wide text-fg-subtle uppercase sm:text-[11.5px]">
-          <Icon size={12} strokeWidth={2.4} className={cx('mt-px shrink-0 sm:hidden', tones[tone].split(' ').pop())} />
-          {label}
+      <span className="block truncate text-[12px] font-semibold text-fg-muted" title={label}>{label}</span>
+      <span className="mt-1 flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-[21px] leading-tight font-extrabold tracking-tight text-fg tabular-nums sm:text-[22px]">{value}</span>
+        <span className={cx('grid size-7 shrink-0 place-items-center rounded-md', tones[tone])}>
+          <Icon size={15} strokeWidth={2.2} />
         </span>
-        <span className="block text-[20px] leading-tight font-extrabold tracking-tight text-fg tabular-nums sm:text-[22px]">{value}</span>
-        {sub && <span className="block truncate text-[11.5px] text-fg-muted sm:text-[12px]">{sub}</span>}
       </span>
+      {sub && <span className="mt-0.5 block truncate text-[11.5px] text-fg-subtle">{sub}</span>}
     </button>
   )
 }
@@ -92,26 +89,26 @@ function Overview({ students, groups, filters, onFilter, onGroupSettings }: Prop
   const toggleGroup = (g: string) => onFilter({ group: filters.group === g ? '' : g })
 
   return (
-    <section className="space-y-4">
-      {/* 7 ta plitka: telefonda 2 ustun, kompyuterda 4 — "Hujjati chala" ikki ustunni egallab bo'sh joy qoldirmaydi */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 2xl:grid-cols-7">
-        <Tile icon={Users} tone="blue" label={filters.kurs ? `${filters.kurs}-kurs kontingenti` : 'Rasmiy kontingent'} value={stats.official} sub={`${groups.length} ta akademik guruh`}
+    <section className="space-y-3.5">
+      {/* 7 ta plitka: keng ekranda bir qatorda (1366 da ham), torroqda birinchisi ikki ustunni egallaydi — bo'sh joy qolmaydi */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-2.5 xl:grid-cols-7">
+        <Tile icon={Users} tone="blue" label={filters.kurs ? `${filters.kurs}-kurs kontingenti` : 'Rasmiy kontingent'} value={stats.official} sub={`${groups.length} ta guruh`}
+          className="col-span-2 xl:col-span-1"
           active={!filters.group && !filters.verified && !filters.baza && !filters.status} onClick={() => onFilter({ group: '', verified: '', baza: '', status: '' })} />
-        <Tile icon={BadgeCheck} tone="emerald" label="Tasdiqlangan" value={<>{stats.verified}<span className="text-[15px] text-fg-subtle"> / {stats.official}</span></>}
-          sub={<span className="flex items-center gap-2"><span className="w-16"><ProgressBar value={pct} /></span>{pct}%</span>}
+        <Tile icon={BadgeCheck} tone="emerald" label="Tasdiqlangan" value={<>{stats.verified}<span className="text-[14px] font-bold text-fg-subtle"> / {stats.official}</span></>}
+          sub={<span className="flex items-center gap-2"><span className="w-12"><ProgressBar value={pct} /></span>{pct}%</span>}
           active={filters.verified === 'TASDIQLANDI'} onClick={() => onlyVerified('TASDIQLANDI')} />
         <Tile icon={Clock} tone="amber" label="Kutilmoqda" value={stats.official - stats.verified} sub="Operator tasdig'i"
           active={filters.verified === 'KUTILMOQDA'} onClick={() => onlyVerified('KUTILMOQDA')} />
         <Tile icon={Database} tone="sky" label="Bazaga kiritilgan"
-          value={<>{stats.bazaIn}<span className="text-[15px] text-fg-subtle"> / {stats.official}</span></>}
-          sub={stats.bazaOut > 0 ? <span className="font-semibold text-rose">{stats.bazaOut} ta kiritilmagan</span> : <span className="flex items-center gap-2"><span className="w-16"><ProgressBar value={bazaPct} tone="sky" /></span>{bazaPct}%</span>}
+          value={<>{stats.bazaIn}<span className="text-[14px] font-bold text-fg-subtle"> / {stats.official}</span></>}
+          sub={stats.bazaOut > 0 ? <span className="font-semibold text-rose">{stats.bazaOut} ta kiritilmagan</span> : <span className="flex items-center gap-2"><span className="w-12"><ProgressBar value={bazaPct} tone="sky" /></span>{bazaPct}%</span>}
           active={!!filters.baza} onClick={toggleBazaFilter} />
         <Tile icon={FileWarning} tone="sky" label="Hujjati chala" value={stats.chala + stats.yoq} sub={`${stats.chala} chala · ${stats.yoq} bo'sh`}
-          className="col-span-2 2xl:col-span-1"
           active={filters.status === 'chala'} onClick={() => onFilter({ status: filters.status === 'chala' ? '' : 'chala' })} />
-        <Tile icon={CalendarOff} tone="violet" label="Akademik ta'til" value={stats.leave} sub="Kontingentga kirmaydi"
+        <Tile icon={CalendarOff} tone="violet" label="Akademik ta'til" value={stats.leave} sub="Hisobdan tashqari"
           active={filters.group === ACADEMIC_LEAVE_GROUP} onClick={() => toggleGroup(ACADEMIC_LEAVE_GROUP)} />
-        <Tile icon={UserMinus} tone="rose" label="Safdan chiqarilgan" value={stats.withdrawn} sub="Kontingentga kirmaydi"
+        <Tile icon={UserMinus} tone="rose" label="Safdan chiqarilgan" value={stats.withdrawn} sub="Hisobdan tashqari"
           active={filters.group === WITHDRAWN_GROUP} onClick={() => toggleGroup(WITHDRAWN_GROUP)} />
       </div>
 

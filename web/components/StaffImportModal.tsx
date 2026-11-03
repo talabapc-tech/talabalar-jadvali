@@ -154,7 +154,7 @@ export default function StaffImportModal({ onClose, onImportSuccess }: Props) {
         aria-label="Xodimlarni Excel orqali yuklash"
       >
         <header className="flex items-center gap-3 border-b border-line bg-ink-850/80 px-5 py-3.5">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-emerald/25 to-sky/25 text-emerald-soft">
+          <span className="grid size-9 place-items-center rounded-xl border border-emerald/25 bg-emerald/10 text-emerald-soft">
             <FileSpreadsheet size={18} />
           </span>
           <div className="min-w-0 flex-1">
@@ -179,7 +179,7 @@ export default function StaffImportModal({ onClose, onImportSuccess }: Props) {
           )}
 
           {/* Fayl yuklash va shablon tugmasi */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-ink-900/60 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-ink-900/60 p-4">
             <div>
               <div className="text-[13px] font-bold text-fg">Excel fayli namunasi kerakmi?</div>
               <div className="text-[12px] text-fg-muted">To'g'ri ustunlar bilan tayyorlangan shablonni yuklab oling:</div>
@@ -194,7 +194,7 @@ export default function StaffImportModal({ onClose, onImportSuccess }: Props) {
             </button>
           </div>
 
-          <label className="grid place-items-center gap-3 rounded-2xl border-2 border-dashed border-line-strong bg-ink-950/40 px-6 py-10 text-center transition hover:border-sky/60 cursor-pointer">
+          <label className="grid place-items-center gap-3 rounded-xl border-2 border-dashed border-line-strong bg-ink-950/40 px-6 py-10 text-center transition hover:border-sky/60 cursor-pointer">
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -204,7 +204,7 @@ export default function StaffImportModal({ onClose, onImportSuccess }: Props) {
                 if (f) void handleFile(f)
               }}
             />
-            <div className="grid size-14 place-items-center rounded-2xl bg-sky/10 text-sky-soft">
+            <div className="grid size-14 place-items-center rounded-xl bg-sky/10 text-sky-soft">
               {loading ? <Loader2 size={26} className="animate-spin" /> : <Upload size={26} />}
             </div>
             <div>

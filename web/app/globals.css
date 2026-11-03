@@ -7,24 +7,31 @@
   havorang (sky)   = ma'lumot, havolalar, belgilar.
 */
 @theme {
-  --color-ink-950: #040b14;
-  --color-ink-900: #07111f;
-  --color-ink-850: #0a1728;
-  --color-ink-800: #0e1e33;
-  --color-ink-700: #15294a;
-  --color-ink-600: #1f3a63;
+  /* Sirtlar: neytral-sovuq "grafit" — ko'zni charchatmaydi, aksentlar aniq ko'rinadi */
+  --color-ink-950: #090d14;
+  --color-ink-900: #0f141e;
+  --color-ink-850: #131a26;
+  --color-ink-800: #19212f;
+  --color-ink-700: #232d3f;
+  --color-ink-600: #334058;
 
-  --color-line: rgb(125 175 235 / 0.12);
-  --color-line-strong: rgb(125 175 235 / 0.22);
+  --color-line: rgb(148 168 199 / 0.11);
+  --color-line-strong: rgb(148 168 199 / 0.21);
 
-  --color-fg: #e8f1fb;
-  --color-fg-muted: #93acc8;
-  --color-fg-subtle: #5f7a99;
+  --color-fg: #e8edf5;
+  --color-fg-muted: #9eaabc;
+  --color-fg-subtle: #6c788c;
+
+  /* Asosiy harakat rangi (to'liq tugmalar) — oq matn bilan yetarli kontrast */
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-success: #059669;
+  --color-success-hover: #047857;
 
   --color-emerald: #10b981;
   --color-emerald-soft: #34d399;
   --color-blue: #3b82f6;
-  --color-blue-soft: #60a5fa;
+  --color-blue-soft: #6ea2fb;
   --color-sky: #38bdf8;
   --color-sky-soft: #7dd3fc;
   --color-amber: #f59e0b;
@@ -35,10 +42,13 @@
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.18), 0 0 0 1px rgb(255 255 255 / 0.015) inset;
+  --shadow-pop: 0 12px 40px -8px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.25);
+
   --animate-fade-in: fade-in 0.18s ease-out;
   --animate-pop-in: pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
   --animate-slide-up: slide-up 0.25s ease-out;
-  /* Modal oynalar va mobil yon menyu (ilgari klasslar ishlatilgan, lekin aniqlanmagan edi) */
+  /* Modal oynalar va mobil yon menyu */
   --animate-scale-up: scale-up 0.18s cubic-bezier(0.2, 0, 0, 1);
   --animate-slide-right: slide-right 0.24s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -59,15 +69,15 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --color-ink-950: #f1f5f9;
+  --color-ink-950: #f3f5f9;
   --color-ink-900: #ffffff;
   --color-ink-850: #f8fafc;
-  --color-ink-800: #e2e8f0;
-  --color-ink-700: #cbd5e1;
-  --color-ink-600: #94a3b8;
+  --color-ink-800: #edf1f6;
+  --color-ink-700: #dde3ec;
+  --color-ink-600: #b3bdcc;
 
-  --color-line: rgb(15 23 42 / 0.1);
-  --color-line-strong: rgb(15 23 42 / 0.18);
+  --color-line: rgb(15 23 42 / 0.09);
+  --color-line-strong: rgb(15 23 42 / 0.17);
 
   --color-fg: #0f172a;
   --color-fg-muted: #475569;
@@ -81,6 +91,9 @@
   --color-amber-soft: #b45309;
   --color-violet: #7c3aed;
   --color-rose: #e11d48;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 3px rgb(15 23 42 / 0.04);
+  --shadow-pop: 0 16px 40px -10px rgb(15 23 42 / 0.25), 0 2px 6px rgb(15 23 42 / 0.08);
 }
 
 html {
@@ -102,6 +115,8 @@ body {
 /* Yorug' mavzuda kulrang tugmalar "o'chiq" ko'rinmasin — oq fon, ustiga borganda kulrang */
 :root[data-theme='light'] .btn-ghost:not(:disabled) { background-color: #fff; }
 :root[data-theme='light'] .btn-ghost:not(:disabled):hover { background-color: var(--color-ink-800); }
+:root[data-theme='light'] .seg-btn[aria-selected='true'],
+:root[data-theme='light'] .seg-btn[aria-pressed='true'] { background-color: #fff; box-shadow: 0 1px 2px rgb(15 23 42 / 0.12); }
 
 /* Telefonda pastki tugmalar "home" chizig'i ostida qolmasin */
 .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
@@ -115,10 +130,10 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(900px 520px at 8% -10%, rgb(16 185 129 / 0.13), transparent 60%),
-    radial-gradient(900px 600px at 95% -5%, rgb(59 130 246 / 0.16), transparent 60%),
-    radial-gradient(700px 500px at 50% 110%, rgb(56 189 248 / 0.07), transparent 60%);
+    radial-gradient(1100px 420px at 85% -12%, rgb(59 130 246 / 0.07), transparent 65%),
+    radial-gradient(800px 380px at 10% -14%, rgb(16 185 129 / 0.05), transparent 65%);
 }
+:root[data-theme='light'] body::before { display: none; }
 
 ::selection { background: rgb(56 189 248 / 0.35); }
 
@@ -126,37 +141,49 @@ body::before {
 
 /* Qayta ishlatiladigan klasslar (Tailwind v4 da @apply bilan ulash uchun @utility bo'lishi shart) */
 @utility panel {
-  @apply rounded-2xl border border-line bg-ink-900/80;
+  @apply rounded-xl border border-line bg-ink-900 shadow-(--shadow-card);
 }
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-colors duration-150 select-none
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-[13px] font-semibold whitespace-nowrap transition-[background-color,border-color,color,box-shadow] duration-150 select-none
     disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky;
 }
 @utility btn-ghost {
-  @apply btn border border-line bg-ink-800/60 text-fg-muted hover:border-line-strong hover:bg-ink-700/60 hover:text-fg;
+  @apply btn border border-line bg-ink-850 text-fg-muted hover:border-line-strong hover:bg-ink-800 hover:text-fg;
 }
 @utility btn-primary {
-  @apply btn bg-gradient-to-r from-blue to-sky text-white shadow-[0_6px_20px_-6px_rgb(56_189_248/0.55)] hover:brightness-110;
+  @apply btn border border-transparent bg-accent text-white shadow-sm hover:bg-accent-hover;
 }
 @utility btn-success {
-  @apply btn bg-gradient-to-r from-emerald to-emerald-soft text-ink-950 shadow-[0_6px_20px_-6px_rgb(16_185_129/0.55)] hover:brightness-110;
+  @apply btn border border-transparent bg-success text-white shadow-sm hover:bg-success-hover;
 }
 @utility btn-danger {
-  @apply btn border border-rose/40 bg-rose/10 text-rose hover:bg-rose/20;
+  @apply btn border border-rose/35 bg-rose/10 text-rose hover:bg-rose/20;
 }
 /* Telefonda 16px — iPhone maydonga bosilganda sahifani kattalashtirib yubormaydi */
 @utility field {
-  @apply w-full rounded-xl border border-line bg-ink-950/70 px-3 py-2 text-base text-fg placeholder:text-fg-subtle
-    outline-none transition-colors focus:border-sky/70 focus:bg-ink-950 focus:ring-2 focus:ring-sky/20 sm:text-[13.5px];
+  @apply w-full rounded-lg border border-line bg-ink-950/60 px-3 py-2 text-base text-fg placeholder:text-fg-subtle
+    outline-none transition-[border-color,box-shadow,background-color] hover:border-line-strong focus:border-sky/70 focus:bg-ink-950 focus:ring-3 focus:ring-sky/15 sm:text-[13.5px];
 }
 @utility label {
-  @apply mb-1.5 block text-[11px] font-bold tracking-wider text-fg-subtle uppercase;
+  @apply mb-1.5 block text-[11px] font-semibold tracking-wide text-fg-subtle uppercase;
 }
 @utility chip {
-  @apply inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11.5px] font-semibold whitespace-nowrap;
+  @apply inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11.5px] font-semibold whitespace-nowrap;
 }
 @utility mono {
   @apply font-mono tracking-tight;
+}
+/* Bir xil segmentli tanlagich (Karta/Ixcham/Jadval, kurslar, semestrlar) */
+@utility seg {
+  @apply inline-flex items-center gap-0.5 rounded-lg border border-line bg-ink-950/50 p-0.5;
+}
+@utility seg-btn {
+  @apply flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-semibold whitespace-nowrap text-fg-muted transition-colors hover:text-fg
+    aria-selected:bg-ink-700 aria-selected:text-fg aria-selected:shadow-sm aria-pressed:bg-ink-700 aria-pressed:text-fg aria-pressed:shadow-sm;
+}
+/* Kichik raqamli belgi (son) */
+@utility count {
+  @apply rounded-md bg-ink-700/70 px-1.5 text-[11px] font-semibold tabular-nums text-fg-muted;
 }
 
 /* Chop etish (Guruhlar jurnali → "Chop etish"): oq qog'oz, tugmalar va menyular yashiriladi */
