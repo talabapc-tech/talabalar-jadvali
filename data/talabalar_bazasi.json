@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-29 16:21:23",
+  "updated_at": "2026-11-03 09:14:44",
   "total_students": 569,
   "students": [
     {
@@ -2045,8 +2045,8 @@
       "cert_fish": "Mavjud",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
-      "baza": "KIRITILMAGAN",
+      "verified": "TASDIQLANDI",
+      "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
     },
@@ -6013,7 +6013,7 @@
       "cert_fish": "",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
@@ -6077,7 +6077,7 @@
       "cert_fish": "",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
@@ -10685,7 +10685,7 @@
       "cert_fish": "Mavjud",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
@@ -12541,7 +12541,7 @@
       "cert_fish": "Mavjud",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "T-40/2",
       "buyruq_sana": "02.09.2026"
@@ -12606,7 +12606,7 @@
       "name_match": "",
       "name_flag": "",
       "verified": "TASDIQLANDI",
-      "baza": "KIRITILMAGAN",
+      "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
     },
@@ -12829,8 +12829,8 @@
       "cert_fish": "Mavjud",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
-      "baza": "KIRITILMAGAN",
+      "verified": "TASDIQLANDI",
+      "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
     },
@@ -12989,7 +12989,7 @@
       "cert_fish": "Mavjud",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "",
       "buyruq_sana": ""
@@ -15101,7 +15101,7 @@
       "cert_fish": "",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "T-40/2",
       "buyruq_sana": "02.09.2026"
@@ -17341,7 +17341,7 @@
       "cert_fish": "",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "---",
       "buyruq_sana": "10.10.2026"
@@ -17437,7 +17437,7 @@
       "cert_fish": "Yo'q",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "---",
       "buyruq_sana": "09.10.2026"
@@ -17501,7 +17501,7 @@
       "cert_fish": "",
       "name_match": "",
       "name_flag": "",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILDI",
       "buyruq": "---",
       "buyruq_sana": "09.10.2026"
@@ -17694,7 +17694,7 @@
       "name_match": "",
       "name_flag": "",
       "verified": "TASDIQLANDI",
-      "baza": "KIRITILMAGAN",
+      "baza": "KIRITILDI",
       "buyruq": "---",
       "buyruq_sana": "28.10.2026"
     },
@@ -17821,7 +17821,7 @@
       "cert_fish": "Turayeva Gulasal Jura qizi",
       "name_match": "Pasport: MOS | Shahodatnoma: MOS",
       "name_flag": "ok",
-      "verified": "KUTILMOQDA",
+      "verified": "TASDIQLANDI",
       "baza": "KIRITILMAGAN",
       "buyruq": "---",
       "buyruq_sana": "22.10.2026"
