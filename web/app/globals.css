@@ -38,11 +38,20 @@
   --animate-fade-in: fade-in 0.18s ease-out;
   --animate-pop-in: pop-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
   --animate-slide-up: slide-up 0.25s ease-out;
+  /* Modal oynalar va mobil yon menyu (ilgari klasslar ishlatilgan, lekin aniqlanmagan edi) */
+  --animate-scale-up: scale-up 0.18s cubic-bezier(0.2, 0, 0, 1);
+  --animate-slide-right: slide-right 0.24s cubic-bezier(0.2, 0, 0, 1);
 }
 
 @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.97) translateY(6px) } to { opacity: 1; transform: none } }
 @keyframes slide-up { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+@keyframes scale-up { from { opacity: 0; transform: scale(0.96) } to { opacity: 1; transform: none } }
+@keyframes slide-right { from { transform: translateX(-100%) } to { transform: none } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
 
 :root {
   color-scheme: dark;

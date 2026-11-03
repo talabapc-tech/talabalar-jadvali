@@ -89,6 +89,25 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   const [curriculumAddOpen, setCurriculumAddOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // Menyu qisqartirilgan/kengaytirilgan holati sahifa yangilanganda ham saqlanadi
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('sidebar_collapsed') === '1') setSidebarCollapsed(true)
+    } catch {
+      /* bo'sh */
+    }
+  }, [])
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((c) => {
+      try {
+        localStorage.setItem('sidebar_collapsed', c ? '0' : '1')
+      } catch {
+        /* bo'sh */
+      }
+      return !c
+    })
+  }, [])
+  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
   // Guruh sozlamalari (data/guruhlar.json): kurs, rahbar, yo'nalish — config.ts dagi qiymatlar ustiga
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
@@ -284,13 +303,13 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
         pendingCount={data.pendingCount}
         notify={notify}
         mobileOpen={sidebarOpen}
-        onMobileClose={() => setSidebarOpen(false)}
+        onMobileClose={closeSidebar}
         onOpenSettings={() => setSettingsOpen(true)}
         collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onToggleCollapse={toggleSidebarCollapsed}
       />
 
-      <div className={cx('transition-all duration-150 min-h-screen flex flex-col', sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[240px]')}>
+      <div className={cx('transition-[padding] duration-200 ease-out min-h-screen flex flex-col', sidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[240px]')}>
         <Header
           students={data.students}
           onRefresh={onRefresh}

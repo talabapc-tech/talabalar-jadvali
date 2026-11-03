@@ -51,7 +51,19 @@ function formatTashkent(isoDate: string): string {
   return `${p(d.getUTCDate())}.${p(d.getUTCMonth() + 1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`
 }
 
-export default function VersionBadge() {
+/**
+ * Versiya belgisi.
+ *  floating — sahifa burchagida suzib turadi (yon menyusi yo'q sahifalar uchun, masalan /majlis);
+ *  sidebar  — yon menyuning pastida, hech narsani to'smaydi; collapsed — faqat nuqta.
+ */
+export default function VersionBadge({
+  variant = 'floating',
+  collapsed = false,
+}: {
+  variant?: 'floating' | 'sidebar'
+  collapsed?: boolean
+} = {}) {
+  const inSidebar = variant === 'sidebar'
   const [data, setData] = useState<VersionData>(defaultVersion)
   const [timeAgo, setTimeAgo] = useState('')
   const [open, setOpen] = useState(false)
@@ -85,16 +97,21 @@ export default function VersionBadge() {
     return () => clearInterval(timer)
   }, [data.lastPushDate, data.commitDate])
 
-  // Tashqariga bosganda popoverni yopish
+  // Tashqariga bosganda yoki Escape'da popoverni yopish
   useEffect(() => {
     if (!open) return
-    const handleClick = (e: MouseEvent) => {
+    const handleClick = (e: PointerEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    const handleKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('pointerdown', handleClick)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('pointerdown', handleClick)
+      document.removeEventListener('keydown', handleKey)
+    }
   }, [open])
 
   const dateStr = (data.lastPushDate || data.commitDate)
@@ -102,8 +119,32 @@ export default function VersionBadge() {
     : '—'
 
   return (
-    <aside aria-label="Versiya ma'lumoti" ref={popoverRef} className="fixed bottom-3 left-3 z-30 select-none">
-      {/* Kichik qulay belgi (Badge) */}
+    <div
+      role="complementary"
+      aria-label="Versiya ma'lumoti"
+      ref={popoverRef}
+      className={inSidebar ? 'relative select-none' : 'fixed bottom-3 left-3 z-30 select-none'}
+    >
+      {inSidebar ? (
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          aria-expanded={open}
+          title={`Versiya: v${data.version} · Oxirgi yangilanish: ${timeAgo} (${dateStr})`}
+          className={`flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-[10.5px] font-mono transition-colors ${
+            collapsed ? 'justify-center' : ''
+          } ${open ? 'bg-ink-800 text-fg' : 'text-fg-subtle hover:bg-ink-800/70 hover:text-fg'}`}
+        >
+          <span className="size-1.5 shrink-0 rounded-full bg-emerald" />
+          {!collapsed && (
+            <>
+              <span className="font-semibold text-emerald-soft">v{data.version}</span>
+              <span className="text-line-strong">·</span>
+              <span className="truncate">{timeAgo}</span>
+            </>
+          )}
+        </button>
+      ) : (
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -122,10 +163,15 @@ export default function VersionBadge() {
         <span className="text-line-strong">·</span>
         <span className="text-[10.5px] transition-colors group-hover:text-fg">{timeAgo}</span>
       </button>
+      )}
 
       {/* Ochiluvchi batafsil axborot oynachasi */}
       {open && (
-        <div className="animate-pop-in absolute bottom-8 left-0 z-40 mb-2 w-72 rounded-2xl border border-line-strong bg-ink-900/95 p-3.5 shadow-2xl backdrop-blur-xl">
+        <div
+          className={`animate-pop-in absolute z-50 w-72 rounded-2xl ${
+            inSidebar ? (collapsed ? 'bottom-0 left-full ml-3' : 'bottom-full left-0 mb-2') : 'bottom-8 left-0 mb-2'
+          } border border-line-strong bg-ink-900/95 p-3.5 shadow-2xl backdrop-blur-xl`}
+        >
           <div className="flex items-center justify-between border-b border-line pb-2.5">
             <div className="flex items-center gap-2">
               <span className="grid size-6 place-items-center rounded-lg bg-emerald-500/15 text-emerald-400">
@@ -137,6 +183,7 @@ export default function VersionBadge() {
               type="button"
               onClick={() => setOpen(false)}
               className="rounded-md p-1 text-fg-subtle hover:bg-ink-800 hover:text-fg"
+              aria-label="Yopish"
             >
               <X size={13} />
             </button>
@@ -190,6 +237,6 @@ export default function VersionBadge() {
           </div>
         </div>
       )}
-    </aside>
+    </div>
   )
 }

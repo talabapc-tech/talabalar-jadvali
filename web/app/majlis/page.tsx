@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import MajlisApp from '@/components/majlis/MajlisApp'
+import VersionBadge from '@/components/VersionBadge'
 
 export const metadata: Metadata = {
   title: 'Majlislar davomati',
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
-  return <MajlisApp />
+  return (
+    <>
+      <MajlisApp />
+      <VersionBadge />
+    </>
+  )
 }
