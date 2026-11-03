@@ -55,7 +55,8 @@ import {
   type Kiritiladigan,
   type Reyting,
 } from '@/lib/baholar'
-import { exportBaholar, type ExportGrade } from '@/lib/baholar-excel'
+import { exportBaza, exportHisobot, exportQaydnomalar, type BaholarExportData, type ExportAmaliyot, type ExportGrade } from '@/lib/baholar-excel'
+import BaholarExportModal, { type ExportTanlov } from './BaholarExportModal'
 import { parseClipboardGrid, useEditHistory } from '@/lib/use-edit-history'
 import { useFlip, useSortable } from '@/lib/use-sortable'
 import type { Notify } from './Toast'
@@ -1008,55 +1009,90 @@ export default function BaholarSection({
 
   /* ---------------------------- Excel Eksport ---------------------------- */
 
-  const onExport = async () => {
-    try {
-      const amaliyot: Parameters<typeof exportBaholar>[0]['amaliyot'] = []
+  const [exportOpen, setExportOpen] = useState(false)
+  const joriyFanNomlari = useMemo(() => fanlar.map((f) => f.nom), [fanlar])
+
+  /**
+   * Tanlangan semestr bo'yicha eksport. Fanlar — o'quv rejaning shu semestri (boshqa semestr fanlari
+   * aralashmaydi); reja bo'lmasa — semestrdagi baholar jadvali fanlari. Ochiq turgan semestr saqlanmagan
+   * tahrirlar bilan olinadi, boshqasi serverdan yuklanadi. Talabalarning hech biri tushib qolmaydi.
+   */
+  const onExport = async ({ semestr: sem, turi, fanlar: tanlangan }: ExportTanlov) => {
+    const talabalar = [...rows, ...noPinfl]
+    const planFanlar = [...(curriculumPlan?.semestrlar?.[String(sem)]?.fanlar ?? [])]
+      .sort((x, y) => x.tartib - y.tartib)
+      .map((f) => f.nom)
+
+    const toExport = (g: Record<Kiritiladigan, number | null>, rey: Reyting): ExportGrade => ({
+      y: g.yakuniy, j: g.joriy, o: g.oraliq, r: g.r_semestr ?? rey.r_semestr,
+      y100: rey.yakuniy100, j100: rey.joriy100, o100: rey.oraliq100, r100: rey.r100,
+    })
+    const fromRow = (stored: BahoRow | undefined, pinfl: string, fan: string): ExportGrade => {
+      const g = { yakuniy: null, joriy: null, oraliq: null, r_semestr: null } as Record<Kiritiladigan, number | null>
+      for (const k of KIRITILADIGAN) g[k] = stored?.[k] ?? null
+      return toExport(g, hisoblaReyting(reytingSeed(pinfl, sem, fan), g))
+    }
+    const BOSH: ExportGrade = { y: null, j: null, o: null, r: null, y100: null, j100: null, o100: null, r100: null }
+
+    let semFanlar: string[]
+    let gradeOf: (pinfl: string, fan: string) => ExportGrade
+    const amaliyot: ExportAmaliyot[] = []
+    const amBosh = (name: string, nom: string): ExportAmaliyot => ({ name, nom, joy: '', boshlanish: '', tugash: '', ball: null, ball100: null, izoh: '' })
+
+    if (sem === semestr) {
+      semFanlar = planFanlar.length ? planFanlar : fanlar.map((f) => f.nom)
+      gradeOf = (pinfl, fan) => {
+        const c = calc.get(`${pinfl}|${fan}`)
+        return c ? toExport(c.g, c.rey) : fromRow(bahoMap.get(`${pinfl}|${fan}`), pinfl, fan)
+      }
       for (const nom of amNoms) {
-        for (const s of rows) {
+        for (const s of talabalar) {
+          if (!s.pinfl) { amaliyot.push(amBosh(fullName(s), nom)); continue }
           const cur = nom === amNom
           const get = (f: AmField) => (cur ? amShown(s.pinfl, f) : amServer(s.pinfl, f, nom))
           const ball = parseBaho(get('ball'))
-          const b = ball === undefined ? null : ball
-          const r = {
-            name: fullName(s),
-            nom,
-            joy: get('joy'),
-            boshlanish: get('boshlanish'),
-            tugash: get('tugash'),
-            ball: b,
+          amaliyot.push({
+            name: fullName(s), nom,
+            joy: get('joy'), boshlanish: get('boshlanish'), tugash: get('tugash'),
+            ball: ball === undefined ? null : ball,
             ball100: cur ? amReyting(s.pinfl) : (amMap.get(`${s.pinfl}|${nom}`)?.ball100 ?? null),
             izoh: get('izoh'),
-          }
-          if (r.joy || r.boshlanish || r.tugash || r.ball !== null || r.izoh) amaliyot.push(r)
+          })
         }
       }
-      const yillik = rows.map((s) => /(\d)\s*yillik/i.exec(s.yon || '')?.[1]).find(Boolean)
-      await exportBaholar({
-        guruh,
-        semestr,
-        rahbar: GROUP_SETTINGS[guruh]?.rahbar ?? '',
-        davomiylik: yillik ? `${yillik} yillik` : '',
-        talabalar: rows.map((s) => ({ name: fullName(s) })),
-        fanlar: fanlar.map((f) => f.nom),
-        grade: (i, fan): ExportGrade => {
-          const c = calc.get(`${rows[i].pinfl}|${fan}`)
-          return {
-            y: c?.g.yakuniy ?? null,
-            j: c?.g.joriy ?? null,
-            o: c?.g.oraliq ?? null,
-            r: c?.g.r_semestr ?? c?.rey.r_semestr ?? null,
-            y100: c?.rey.yakuniy100 ?? null,
-            j100: c?.rey.joriy100 ?? null,
-            o100: c?.rey.oraliq100 ?? null,
-            r100: c?.rey.r100 ?? null,
-          }
-        },
-        amaliyot,
-      })
-      notify('Excel fayl yuklandi')
-    } catch (e) {
-      notify(`Excel yaratilmadi: ${(e as Error).message}`, 'error')
+    } else {
+      const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${sem}`, { cache: 'no-store' })
+      const body = (await res.json().catch(() => ({}))) as Partial<BaholarPayload> & { error?: string }
+      if (!res.ok || !body.ok) throw new Error(body.error || `Server ${res.status} qaytardi`)
+      const bm = new Map((body.baholar ?? []).map((r) => [`${r.pinfl}|${r.fan}`, r]))
+      semFanlar = planFanlar.length ? planFanlar : (body.fanlar ?? []).map((f) => f.nom)
+      gradeOf = (pinfl, fan) => fromRow(bm.get(`${pinfl}|${fan}`), pinfl, fan)
+      const am = body.amaliyot ?? []
+      const noms = [...new Set(am.map((x) => x.nom))]
+      const amM = new Map(am.map((x) => [`${x.pinfl}|${x.nom}`, x]))
+      for (const nom of noms.length ? noms : [DEFAULT_AMALIYOT]) {
+        for (const s of talabalar) {
+          const x = s.pinfl ? amM.get(`${s.pinfl}|${nom}`) : undefined
+          amaliyot.push(x ? { name: fullName(s), nom, joy: x.joy, boshlanish: x.boshlanish, tugash: x.tugash, ball: x.ball, ball100: x.ball100, izoh: x.izoh } : amBosh(fullName(s), nom))
+        }
+      }
     }
+
+    const yillik = talabalar.map((s) => /(\d)\s*yillik/i.exec(s.yon || '')?.[1]).find(Boolean)
+    const d: BaholarExportData = {
+      guruh,
+      semestr: sem,
+      rahbar: GROUP_SETTINGS[guruh]?.rahbar ?? '',
+      davomiylik: curriculumPlan?.muddati || (yillik ? `${yillik} yillik` : ''),
+      talabalar: talabalar.map((s) => ({ name: fullName(s) })),
+      fanlar: turi === 'qaydnoma' && tanlangan.length ? tanlangan : semFanlar,
+      grade: (i, fan) => (talabalar[i].pinfl ? gradeOf(talabalar[i].pinfl, fan) : BOSH),
+      amaliyot,
+    }
+    if (turi === 'baza') await exportBaza(d)
+    else if (turi === 'qaydnoma') await exportQaydnomalar(d)
+    else await exportHisobot(d)
+    notify(`Excel fayl yuklandi: ${sem}-semestr, ${d.fanlar.length} ta fan`)
   }
 
   /* ---------------------------- O'qituvchiga ulashish boshqaruvi ---------------------------- */
@@ -1312,9 +1348,9 @@ export default function BaholarSection({
             <button
               type="button"
               className="btn-ghost h-9 px-3"
-              onClick={onExport}
+              onClick={() => setExportOpen(true)}
               disabled={!data || !rows.length}
-              title="Excel varaqni yuklab olish"
+              title="Excelga yuklab olish: semestr va fayl turini tanlaysiz"
             >
               <FileSpreadsheet size={15} />
               <span className="hidden sm:inline">Excel</span>
@@ -2235,6 +2271,17 @@ export default function BaholarSection({
       )}
 
       {/* ----------------- MODAL: Fanlarni yashirish / ko'rsatish ----------------- */}
+      {exportOpen && (
+        <BaholarExportModal
+          guruh={guruh}
+          semestr={semestr}
+          plan={curriculumPlan}
+          joriyFanlar={joriyFanNomlari}
+          onClose={() => setExportOpen(false)}
+          onExport={onExport}
+        />
+      )}
+
       {fanVisibilityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div

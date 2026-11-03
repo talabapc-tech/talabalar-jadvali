@@ -5,9 +5,10 @@ import { cleanXlsxBuffer, downloadBlob } from './excel'
 import { BAHO_TURLARI, bahoOf } from './baholar'
 
 /*
-  Guruh baholarining Excel hisoboti (namuna: "25-23. 1-s BAHOLAR 3yillik (REYTING).xlsx").
-  Varaqlar: # (Reyting) — bazaning adminiga yuboriladigan 100 ballik jadval; # — 5 ballik nusxa;
-  1–4-shakl hisobotlari; har bir fan uchun alohida hisobot; Malakaviy amaliyot.
+  Guruh baholarining Excel fayllari (namuna: "25-23. 1-s BAHOLAR 3yillik (REYTING).xlsx"). Uch xil fayl:
+  - Baza uchun: # (Reyting) — 100 ballik jadval, # — 5 ballik nusxa, Malakaviy amaliyot (har bir talaba).
+  - Qaydnomalar: Mundarija + har bir fan uchun alohida qaydnoma varag'i.
+  - Hisobot: 1–4-shakllar.
   Hisobotlardagi sonlar tayyor qiymat bilan yoziladi; davomat (dars soati) kataklari bo'sh va formulali.
 */
 
@@ -53,6 +54,8 @@ export function baholarFileName(d: Pick<BaholarExportData, 'guruh' | 'semestr' |
   return `${d.guruh}. ${d.semestr}-s BAHOLAR${d.davomiylik ? ` ${d.davomiylik.replace(/\s+/g, '')}` : ''} (REYTING).xlsx`
 }
 
+export type ExportTuri = 'baza' | 'qaydnoma' | 'hisobot'
+
 const FILL5: Record<number, string> = { 5: 'BBF7D0', 4: 'BFDBFE', 3: 'FEF08A', 2: 'FECACA' }
 const FAN_RANGLAR = ['1D4ED8', '0F766E', '7C3AED', 'B45309', 'BE123C', '0369A1']
 
@@ -67,7 +70,7 @@ const st = (o: { bold?: boolean; sz?: number; color?: string; fill?: string; h?:
   ...(o.border === false ? {} : { border }),
 })
 
-interface Cell { v?: string | number; t?: 's' | 'n'; f?: string; z?: string; s?: Style }
+interface Cell { v?: string | number; t?: 's' | 'n'; f?: string; z?: string; s?: Style; l?: { Target: string; Tooltip?: string } }
 
 class Sheet {
   cells = new Map<string, Cell>()
@@ -368,8 +371,10 @@ function shakl4(d: BaholarExportData, fr3: number) {
 function fanHisobot(d: BaholarExportData, fan: string): Sheet {
   const sh = new Sheet()
   const { yil } = davr(d.guruh, d.semestr)
-  sh.merge(0, 0, 0, 9, `${fan.trim()} — ${d.guruh} guruh, ${yil} o‘quv yili, ${d.semestr}-semestr`, st({ bold: true, sz: 14, color: '1E3A8A', border: false }))
+  sh.merge(0, 0, 0, 9, `${fan.trim()} — ${d.guruh} guruh, ${yil} o‘quv yili, ${d.semestr}-semestr qaydnomasi`, st({ bold: true, sz: 14, color: '1E3A8A', border: false }))
   sh.height(0, 30)
+  sh.merge(1, 0, 1, 1, '← Mundarija', st({ h: 'left', border: false, sz: 10, color: '2563EB', bold: true }))
+  sh.cells.get('1:0')!.l = { Target: "#'Mundarija'!A1", Tooltip: 'Fanlar ro‘yxatiga qaytish' }
   const head = st({ bold: true, color: 'FFFFFF', fill: '1E3A8A', wrap: true })
   sh.merge(2, 0, 3, 0, '№', head)
   sh.merge(2, 1, 3, 1, 'Talabaning F.I.SH', head)
@@ -440,8 +445,36 @@ function amaliyotSheet(d: BaholarExportData): Sheet {
     sh.put(r, 8, a.izoh, st({ h: 'left', fill: z, wrap: true }))
     sh.height(r, 20)
   })
-  if (!d.amaliyot.length) sh.merge(3, 0, 3, 8, 'Malakaviy amaliyot ma’lumoti kiritilmagan', st({ italic: true, color: '64748B', border: false }))
   sh.cols = [{ wch: 5 }, { wch: 38 }, { wch: 24 }, { wch: 36 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 30 }]
+  return sh
+}
+
+/* ------------------------------------------------------------------ mundarija (qaydnomalar fayli) */
+
+function mundarija(d: BaholarExportData, varaqlar: string[]): Sheet {
+  const sh = new Sheet()
+  const { yil, kurs } = davr(d.guruh, d.semestr)
+  sh.merge(0, 0, 0, 6, `${d.guruh} guruh · ${kurs}-kurs · ${yil} o‘quv yili · ${d.semestr}-semestr\nFANLAR BO‘YICHA QAYDNOMALAR — MUNDARIJA`, st({ bold: true, sz: 13, color: '1E3A8A', border: false, wrap: true }))
+  sh.height(0, 44)
+  const head = st({ bold: true, color: 'FFFFFF', fill: '1E3A8A', wrap: true })
+  ;['№', 'Fan nomi (bosing — qaydnomaga o‘tadi)', 'Talabalar', 'Baholangan', 'O‘zlashtirish %', 'Sifatli o‘zlashtirish %', 'O‘rtacha baho'].forEach((t, c) => sh.put(2, c, t, head))
+  sh.height(2, 32)
+  d.fanlar.forEach((f, i) => {
+    const r = 3 + i
+    const s = stat(d, f)
+    const z = i % 2 ? 'F8FAFC' : undefined
+    sh.put(r, 0, i + 1, st({ fill: z }))
+    sh.put(r, 1, f.trim(), st({ h: 'left', fill: z, color: '2563EB', bold: true, wrap: true }), { l: { Target: `#'${varaqlar[i].replace(/'/g, "''")}'!A1`, Tooltip: `${f.trim()} qaydnomasi` } })
+    sh.put(r, 2, d.talabalar.length, st({ fill: z }))
+    sh.put(r, 3, s.n, st({ fill: z }))
+    sh.put(r, 4, s.n ? s.oz : '', st({ fill: z }), s.n ? { z: PCT } : {})
+    sh.put(r, 5, s.n ? s.sifat : '', st({ fill: z }), s.n ? { z: PCT } : {})
+    const m = mean(d.talabalar.map((_, ti) => d.grade(ti, f).r))
+    sh.put(r, 6, m === null ? '' : Math.round(m * 100) / 100, st({ bold: true, fill: z }), m === null ? {} : { z: '0.00' })
+    sh.height(r, 22)
+  })
+  sh.merge(4 + d.fanlar.length, 0, 4 + d.fanlar.length, 6, `Jami: ${d.fanlar.length} ta fan. Har bir fan alohida varaqda; varaq yuqorisidagi “← Mundarija” shu sahifaga qaytaradi.`, st({ h: 'left', border: false, italic: true, sz: 10, color: '475569' }))
+  sh.cols = [{ wch: 5 }, { wch: 54 }, { wch: 11 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 13 }]
   return sh
 }
 
@@ -456,44 +489,70 @@ function varaqNomi(nom: string, band: Set<string>): string {
   return t
 }
 
-export async function exportBaholar(d: BaholarExportData) {
+async function yozish(d: BaholarExportData, fileName: string, fill: (add: (sh: Sheet, name: string, tab?: string) => string) => [number, number, number][]) {
   const X = await import('xlsx-js-style')
   const wb = X.utils.book_new()
   const used = new Set<string>()
   const add = (sh: Sheet, name: string, tab?: string) => {
     const ws = sh.build(X) as Record<string, unknown>
     if (tab) ws['!tabColor'] = { rgb: tab }
-    X.utils.book_append_sheet(wb, ws as never, varaqNomi(name, used))
+    const nom = varaqNomi(name, used)
+    X.utils.book_append_sheet(wb, ws as never, nom)
+    return nom
   }
-
-  add(jadval(d, true), '# (Reyting)', '7C3AED')
-  add(jadval(d, false), '#', '0F766E')
-  add(shakl1(d), '1-SHAKL', '1D4ED8')
-  add(shakl2(d), '2-SHAKL', '1D4ED8')
-  const s3 = shakl3(d)
-  add(s3.sh, '3-shakl', '1D4ED8')
-  add(shakl4(d, s3.footerRow), '4-shakl', '1D4ED8')
-  d.fanlar.forEach((f, i) => add(fanHisobot(d, f), `${i + 1}. ${f.trim()}`, 'B45309'))
-  add(amaliyotSheet(d), 'Malakaviy amaliyot', 'BE123C')
-
+  const freezes = fill(add)
   const raw = X.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true, bookSST: false })
-  downloadBlob(cleanXlsxBuffer(patchXlsx(raw as ArrayBuffer, d.fanlar.length)), baholarFileName(d))
+  downloadBlob(cleanXlsxBuffer(patchXlsx(raw as ArrayBuffer, freezes)), fileName)
+}
+
+const fileStem = (d: BaholarExportData) => `${d.guruh}. ${d.semestr}-s`
+
+/** Baza uchun: 1) reyting (100 ball), 2) 5 ballik, 3) malakaviy amaliyot */
+export function exportBaza(d: BaholarExportData) {
+  return yozish(d, baholarFileName(d), (add) => {
+    add(jadval(d, true), '# (Reyting)', '7C3AED')
+    add(jadval(d, false), '#', '0F766E')
+    add(amaliyotSheet(d), 'Malakaviy amaliyot', 'BE123C')
+    return [[1, 3, 6], [2, 3, 6], [3, 2, 3]]
+  })
+}
+
+/** Har bir fan qaydnomasi alohida varaqda, birinchi varaq — mundarija */
+export function exportQaydnomalar(d: BaholarExportData) {
+  const nomi = d.fanlar.length === 1 ? `${fileStem(d)} ${d.fanlar[0].trim().slice(0, 60)} QAYDNOMA.xlsx` : `${fileStem(d)} QAYDNOMALAR.xlsx`
+  return yozish(d, nomi.replace(/[\\/:*?"<>|]/g, ' '), (add) => {
+    // Varaq nomlari oldindan aniqlanadi — mundarijadagi havolalar ularga ishora qiladi
+    const band = new Set<string>(['mundarija'])
+    const varaqlar = d.fanlar.map((f, i) => varaqNomi(`${i + 1}. ${f.trim()}`, band))
+    add(mundarija(d, varaqlar), 'Mundarija', '1E3A8A')
+    d.fanlar.forEach((f, i) => add(fanHisobot(d, f), varaqlar[i], 'B45309'))
+    return d.fanlar.map((_, i): [number, number, number] => [i + 2, 2, 4])
+  })
+}
+
+/** 1–4-shakl hisobotlari */
+export function exportHisobot(d: BaholarExportData) {
+  return yozish(d, `${fileStem(d)} HISOBOT (1-4 shakl).xlsx`, (add) => {
+    add(shakl1(d), '1-SHAKL', '1D4ED8')
+    add(shakl2(d), '2-SHAKL', '1D4ED8')
+    const s3 = shakl3(d)
+    add(s3.sh, '3-shakl', '1D4ED8')
+    add(shakl4(d, s3.footerRow), '4-shakl', '1D4ED8')
+    return [[2, 2, 5]]
+  })
 }
 
 /**
  * xlsx-js-style ikkita narsani yozmaydi: ustun/qator qotirish va "ochilganda qayta hisoblash".
  * Shuning uchun tayyor fayl ichidagi XML ga qo'lda qo'shiladi.
  */
-function patchXlsx(raw: ArrayBuffer | Uint8Array, nFan: number): Uint8Array {
+function patchXlsx(raw: ArrayBuffer | Uint8Array, freezes: [number, number, number][]): Uint8Array {
   const z = unzipSync(new Uint8Array(raw))
   const edit = (path: string, fn: (xml: string) => string) => { if (z[path]) z[path] = strToU8(fn(strFromU8(z[path]))) }
   const freeze = (idx: number, x: number, y: number) => edit(`xl/worksheets/sheet${idx}.xml`, (xml) =>
     xml.replace('<sheetView workbookViewId="0"/>',
       `<sheetView workbookViewId="0"><pane xSplit="${x}" ySplit="${y}" topLeftCell="${letter(x)}${y + 1}" activePane="bottomRight" state="frozen"/><selection pane="bottomRight"/></sheetView>`))
-  freeze(1, 3, 6)            // # (Reyting)
-  freeze(2, 3, 6)            // # (5 ballik)
-  freeze(4, 2, 5)            // 2-SHAKL
-  for (let i = 0; i < nFan; i++) freeze(7 + i, 2, 4)   // fan hisobotlari
+  for (const [idx, x, y] of freezes) freeze(idx, x, y)
   edit('xl/workbook.xml', (xml) => (xml.includes('<calcPr') ? xml : xml.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>')))
   return zipSync(z)
 }

@@ -1,427 +1,451 @@
 [
   {
-    "id": "plan-2026-farmatsiya-3y",
-    "oquvYili": "2026/2027",
-    "yonalish": "Farmatsiya ishi",
+    "id": "plan-2025-hamshira-3y-selected",
+    "oquvYili": "2025/2026",
+    "yonalish": "Hamshiralik ishi",
     "muddati": "3 yillik",
-    "kod": "50910401",
+    "kod": "50910203",
     "daraja": "O'rta maxsus professional",
-    "tavsif": "2026/2027 o'quv yili Farmatsiya ishi mutaxassisligi (26-01 guruhi)",
+    "tavsif": "2025/2026 qabul Hamshiralik ishi (25-16, 25-17, 25-18, 25-23 guruhlar — 2026/2027 bilan bir xil o'quv reja)",
     "groups": [
-      "26-01"
+      "25-16",
+      "25-17",
+      "25-18",
+      "25-23"
     ],
     "semestrlar": {
       "1": {
-        "semestr": 1,
         "fanlar": [
           {
-            "id": "farm-s1-f1",
-            "nom": "Kasbiy faoliyatda o'zbek/rus tili",
+            "id": "hamsh25s-s1-f1",
+            "nom": "Xorijiy til",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f2",
-            "nom": "Tibbiyotda xorijiy til",
+            "id": "hamsh25s-s1-f2",
+            "nom": "Lotin tili va tibbiy terminologiya",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f3",
-            "nom": "Lotin tili va farmatsevtik terminologiya",
+            "id": "hamsh25s-s1-f3",
+            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f4",
-            "nom": "Anatomiya, fiziologiya va patologiya",
+            "id": "hamsh25s-s1-f4",
+            "nom": "Tibbiyotda axborot texnologiyalari",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f5",
-            "nom": "Tiibbiy biologiya. Umumiy genetika",
+            "id": "hamsh25s-s1-f5",
+            "nom": "O'zbekistonni eng yangi tarixi",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f6",
-            "nom": "Umumiy gigiyena va ekologiya",
+            "id": "hamsh25s-s1-f6",
+            "nom": "Anatomiya, fiziologiya va patologiya",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f7",
-            "nom": "Noorganik kimyo",
+            "id": "hamsh25s-s1-f7",
+            "nom": "Gistologiya, sitologiya, embriologiya",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f8",
-            "nom": "Organik kimyo",
+            "id": "hamsh25s-s1-f8",
+            "nom": "Tiibbiy biologiya. Umumiy genetika",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f9",
-            "nom": "Mutaxassislikka kirish",
+            "id": "hamsh25s-s1-f9",
+            "nom": "Tibbiy va biologik fizika",
+            "soat": 60,
             "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s1-f10",
-            "nom": "Jismoniy tarbiya va sport",
-            "tartib": 10,
+            "id": "hamsh25s-s1-f10",
+            "nom": "Tibbiy kimyo. Biologik kimyo",
             "soat": 60,
+            "tartib": 10,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "hamsh25s-s1-f11",
+            "nom": "Xalq tabobati",
+            "soat": 60,
+            "tartib": 11,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 1
       },
       "2": {
-        "semestr": 2,
         "fanlar": [
           {
-            "id": "farm-s2-f1",
-            "nom": "Kasbiy faoliyatda o'zbek/rus tili",
+            "id": "hamsh25s-s2-f1",
+            "nom": "O'zbek (rus) tili",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f2",
-            "nom": "Tibbiyotda xorijiy til",
+            "id": "hamsh25s-s2-f2",
+            "nom": "Xorijiy til",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f3",
-            "nom": "Farmatsevtikada axborot texnologiyalari",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "farm-s2-f4",
+            "id": "hamsh25s-s2-f3",
             "nom": "Anatomiya, fiziologiya va patologiya",
+            "soat": 60,
+            "tartib": 3,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "hamsh25s-s2-f4",
+            "nom": "Gistologiya, sitologiya, embriologiya",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f5",
-            "nom": "Valeologiya",
+            "id": "hamsh25s-s2-f5",
+            "nom": "Farmakologiya va retseptura asoslari",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f6",
-            "nom": "Noorganik kimyo",
+            "id": "hamsh25s-s2-f6",
+            "nom": "Valeologiya",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f7",
-            "nom": "Analitik kimyo",
+            "id": "hamsh25s-s2-f7",
+            "nom": "Hamshiralik ishi.",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f8",
-            "nom": "Mutaxassislikka kirish",
+            "id": "hamsh25s-s2-f8",
+            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f9",
-            "nom": "Farmakologiya asoslari",
+            "id": "hamsh25s-s2-f9",
+            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "soat": 60,
             "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f10",
-            "nom": "2 semestr (mutaxassislikka kirish amaliyoti)",
+            "id": "hamsh25s-s2-f10",
+            "nom": "Nutritsiologiya diyetologiya asoslari bilan",
+            "soat": 60,
             "tartib": 10,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s2-f11",
-            "nom": "Jismoniy tarbiya va sport",
+            "id": "hamsh25s-s2-f11",
+            "nom": "2-semestr (mutaxassislikka kirish amaliyoti, parvarish hamshirasi, patronaj hamshirasi)",
+            "soat": 60,
             "tartib": 11,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "farm-s2-f12",
-            "nom": "Farmatsevtik yordam asoslari",
-            "tartib": 12,
-            "soat": 60,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 2
       },
       "3": {
-        "semestr": 3,
         "fanlar": [
           {
-            "id": "farm-s3-f1",
-            "nom": "Tibbiyotda xorijiy til",
+            "id": "hamsh25s-s3-f1",
+            "nom": "Xorijiy til",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s3-f2",
-            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "farm-s3-f3",
-            "nom": "Mikrobiologiya, virusologiya, immunologiya",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "farm-s3-f4",
+            "id": "hamsh25s-s3-f2",
             "nom": "Jamiyat sog'liqni saqlash va tibbiy statistikasi",
+            "soat": 60,
+            "tartib": 2,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "hamsh25s-s3-f3",
+            "nom": "Mikrobiologiya, virusologiya,",
+            "soat": 60,
+            "tartib": 3,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "hamsh25s-s3-f4",
+            "nom": "Hamshiralik ishi.",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s3-f5",
-            "nom": "Farmasevtik kimyo",
+            "id": "hamsh25s-s3-f5",
+            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s3-f6",
-            "nom": "Farmakologiya asoslari",
+            "id": "hamsh25s-s3-f6",
+            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s3-f7",
-            "nom": "Dori turlari texnologiyasi",
+            "id": "hamsh25s-s3-f7",
+            "nom": "Terapiya va gerontologiya",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s3-f8",
-            "nom": "Farmakognoziya va botanika asoslari",
+            "id": "hamsh25s-s3-f8",
+            "nom": "Asab -ruhiy kasalliklar va narkologiya",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s3-f9",
-            "nom": "Hamshiralik ishi texnikasi",
+            "id": "hamsh25s-s3-f9",
+            "nom": "Teri-tanosil kasalliklari va kosmetologiya",
+            "soat": 60,
             "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s3-f10",
-            "nom": "3 semestr (davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, fitobarmen yordamchisi)",
-            "tartib": 10,
+            "id": "hamsh25s-s3-f10",
+            "nom": "3-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
             "soat": 60,
+            "tartib": 10,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 3
       },
       "4": {
-        "semestr": 4,
         "fanlar": [
           {
-            "id": "farm-s4-f1",
-            "nom": "O'zbekistonni eng yangi tarixi",
+            "id": "hamsh25s-s4-f1",
+            "nom": "Umumiy gigiyena va ekologiya",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s4-f2",
-            "nom": "Farmasevtik kimyo",
+            "id": "hamsh25s-s4-f2",
+            "nom": "Hamshiralik ishi.",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s4-f3",
-            "nom": "Farmakologiya asoslari",
+            "id": "hamsh25s-s4-f3",
+            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s4-f4",
-            "nom": "Dori turlari texnologiyasi",
+            "id": "hamsh25s-s4-f4",
+            "nom": "Terapiya va gerontologiya",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s4-f5",
-            "nom": "Tibbiyot va farmasevtika tovarshunosligi",
+            "id": "hamsh25s-s4-f5",
+            "nom": "Yuqumli kasalliklar",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s4-f6",
-            "nom": "Farmakognoziya va botanika asoslari",
+            "id": "hamsh25s-s4-f6",
+            "nom": "Xavfsiz immunizatsiya",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s4-f7",
-            "nom": "Hamshiralik ishi texnikasi",
+            "id": "hamsh25s-s4-f7",
+            "nom": "Xirurgiya",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s4-f8",
-            "nom": "4 semestr. (davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, farmatsevtik sanoati korxonalarida operator yordamchisi)",
-            "tartib": 8,
+            "id": "hamsh25s-s4-f8",
+            "nom": "Akusherlik va ginekologiya",
             "soat": 60,
+            "tartib": 8,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "hamsh25s-s4-f9",
+            "nom": "4-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
+            "soat": 60,
+            "tartib": 9,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 4
       },
       "5": {
-        "semestr": 5,
         "fanlar": [
           {
-            "id": "farm-s5-f1",
-            "nom": "Tibbiyotda biznes asoslari",
+            "id": "hamsh25s-s5-f1",
+            "nom": "Biznes asoslari",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s5-f2",
-            "nom": "Dori turlari texnologiyasi",
+            "id": "hamsh25s-s5-f2",
+            "nom": "Kasbiy faoliyatning huquqiy asoslari va bioetika",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s5-f3",
-            "nom": "Farmasevtik biotexnologiya asoslari",
+            "id": "hamsh25s-s5-f3",
+            "nom": "Pediatriya va neonatologiya",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s5-f4",
-            "nom": "Tibbiyot va farmasevtika tovarshunosligi",
+            "id": "hamsh25s-s5-f4",
+            "nom": "Xirurgiya",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s5-f5",
-            "nom": "Fitoterapiya",
+            "id": "hamsh25s-s5-f5",
+            "nom": "Akusherlik va ginekologiya",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s5-f6",
-            "nom": "Klinik patologiya va birinchi tibbiy yordam",
+            "id": "hamsh25s-s5-f6",
+            "nom": "Otorinolaringologiya",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s5-f7",
-            "nom": "Yuqumli kasalliklar",
+            "id": "hamsh25s-s5-f7",
+            "nom": "Favqulotda holatlar tibbiyoti",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s5-f8",
-            "nom": "5 semestr (davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, farmatsevtik sanoati korxonalarida operator yordamchisi, fitobarmen yordamchisi)",
-            "tartib": 8,
+            "id": "hamsh25s-s5-f8",
+            "nom": "5-semestr (davolash profilaktika muassasalari hamshirasi yordamchisi)",
             "soat": 60,
+            "tartib": 8,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "hamsh25s-s5-f9",
+            "nom": "Shoshilinch tibbiy yordam",
+            "soat": 60,
+            "tartib": 9,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 5
       },
       "6": {
-        "semestr": 6,
         "fanlar": [
           {
-            "id": "farm-s6-f1",
-            "nom": "Kasbiy faoliyatning huquqiy asoslari va bioetika",
+            "id": "hamsh25s-s6-f1",
+            "nom": "Pediatriya va neonatologiya",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s6-f2",
-            "nom": "Tibbiyot va farmasevtika tovarshunosligi",
+            "id": "hamsh25s-s6-f2",
+            "nom": "Xirurgiya",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s6-f3",
-            "nom": "Farmasevtika ishini tashkil qilish va boshqarish",
+            "id": "hamsh25s-s6-f3",
+            "nom": "Gematologiya va transfuziologiya asoslari",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s6-f4",
-            "nom": "Klinik farmatsiya",
+            "id": "hamsh25s-s6-f4",
+            "nom": "Nefrologik kasalliklar va gemodializda hamshiralik parvarishi",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s6-f5",
-            "nom": "Favqulotda holatlar tibbiyoti",
+            "id": "hamsh25s-s6-f5",
+            "nom": "Oftalmologiya",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "farm-s6-f6",
-            "nom": "6 semestr.(davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, farmatsevtik sanoati korxonalarida operator yordamchisi,fitobarmen yordamchisi, dorixona xodimining yordamchisi)",
-            "tartib": 6,
+            "id": "hamsh25s-s6-f6",
+            "nom": "Reanimatsiya va anesteziologiya asoslari",
             "soat": 60,
+            "tartib": 6,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "hamsh25s-s6-f7",
+            "nom": "6-semestr (ixtisoslashgan bo'lim hamshirasi yordamchisi)",
+            "soat": 60,
+            "tartib": 7,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 6
       }
     },
-    "createdAt": "2026-09-01T00:00:00.000Z",
-    "updatedAt": "2026-11-02T22:00:00.000Z"
+    "createdAt": "2026-11-02T17:18:19.738827+00:00",
+    "updatedAt": "2026-11-02T17:18:19.436+00:00"
   },
   {
     "id": "plan-2026-hamshira-3y",
@@ -441,895 +465,873 @@
     ],
     "semestrlar": {
       "1": {
-        "semestr": 1,
         "fanlar": [
           {
             "id": "hamsh26-s1-f1",
             "nom": "Xorijiy til",
-            "tartib": 1,
             "soat": 60,
+            "tartib": 1,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f2",
             "nom": "Lotin tili va tibbiy terminologiya",
-            "tartib": 2,
             "soat": 60,
+            "tartib": 2,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f3",
             "nom": "Tibbiy psixologiya va shaxslararo muloqot",
-            "tartib": 3,
             "soat": 60,
+            "tartib": 3,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f4",
             "nom": "Tibbiyotda axborot texnologiyalari",
-            "tartib": 4,
             "soat": 60,
+            "tartib": 4,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f5",
             "nom": "O'zbekistonni eng yangi tarixi",
-            "tartib": 5,
             "soat": 60,
+            "tartib": 5,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f6",
             "nom": "Anatomiya, fiziologiya va patologiya",
-            "tartib": 6,
             "soat": 60,
+            "tartib": 6,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f7",
             "nom": "Gistologiya, sitologiya, embriologiya",
-            "tartib": 7,
             "soat": 60,
+            "tartib": 7,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f8",
             "nom": "Tiibbiy biologiya. Umumiy genetika",
-            "tartib": 8,
             "soat": 60,
+            "tartib": 8,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f9",
             "nom": "Tibbiy va biologik fizika",
-            "tartib": 9,
             "soat": 60,
+            "tartib": 9,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f10",
             "nom": "Tibbiy kimyo. Biologik kimyo",
-            "tartib": 10,
             "soat": 60,
+            "tartib": 10,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s1-f11",
             "nom": "Xalq tabobati",
-            "tartib": 11,
             "soat": 60,
+            "tartib": 11,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 1
       },
       "2": {
-        "semestr": 2,
         "fanlar": [
           {
             "id": "hamsh26-s2-f1",
             "nom": "O'zbek (rus) tili",
-            "tartib": 1,
             "soat": 60,
+            "tartib": 1,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f2",
             "nom": "Xorijiy til",
-            "tartib": 2,
             "soat": 60,
+            "tartib": 2,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f3",
             "nom": "Anatomiya, fiziologiya va patologiya",
-            "tartib": 3,
             "soat": 60,
+            "tartib": 3,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f4",
             "nom": "Gistologiya, sitologiya, embriologiya",
-            "tartib": 4,
             "soat": 60,
+            "tartib": 4,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f5",
             "nom": "Farmakologiya va retseptura asoslari",
-            "tartib": 5,
             "soat": 60,
+            "tartib": 5,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f6",
             "nom": "Valeologiya",
-            "tartib": 6,
             "soat": 60,
+            "tartib": 6,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f7",
             "nom": "Hamshiralik ishi.",
-            "tartib": 7,
             "soat": 60,
+            "tartib": 7,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f8",
             "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
-            "tartib": 8,
             "soat": 60,
+            "tartib": 8,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f9",
             "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
-            "tartib": 9,
             "soat": 60,
+            "tartib": 9,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f10",
             "nom": "Nutritsiologiya diyetologiya asoslari bilan",
-            "tartib": 10,
             "soat": 60,
+            "tartib": 10,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s2-f11",
             "nom": "2-semestr (mutaxassislikka kirish amaliyoti, parvarish hamshirasi, patronaj hamshirasi)",
-            "tartib": 11,
             "soat": 60,
+            "tartib": 11,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 2
       },
       "3": {
-        "semestr": 3,
         "fanlar": [
           {
             "id": "hamsh26-s3-f1",
             "nom": "Xorijiy til",
-            "tartib": 1,
             "soat": 60,
+            "tartib": 1,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f2",
             "nom": "Jamiyat sog'liqni saqlash va tibbiy statistikasi",
-            "tartib": 2,
             "soat": 60,
+            "tartib": 2,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f3",
             "nom": "Mikrobiologiya, virusologiya,",
-            "tartib": 3,
             "soat": 60,
+            "tartib": 3,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f4",
             "nom": "Hamshiralik ishi.",
-            "tartib": 4,
             "soat": 60,
+            "tartib": 4,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f5",
             "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
-            "tartib": 5,
             "soat": 60,
+            "tartib": 5,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f6",
             "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
-            "tartib": 6,
             "soat": 60,
+            "tartib": 6,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f7",
             "nom": "Terapiya va gerontologiya",
-            "tartib": 7,
             "soat": 60,
+            "tartib": 7,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f8",
             "nom": "Asab -ruhiy kasalliklar va narkologiya",
-            "tartib": 8,
             "soat": 60,
+            "tartib": 8,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f9",
             "nom": "Teri-tanosil kasalliklari va kosmetologiya",
-            "tartib": 9,
             "soat": 60,
+            "tartib": 9,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s3-f10",
             "nom": "3-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 10,
             "soat": 60,
+            "tartib": 10,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 3
       },
       "4": {
-        "semestr": 4,
         "fanlar": [
           {
             "id": "hamsh26-s4-f1",
             "nom": "Umumiy gigiyena va ekologiya",
-            "tartib": 1,
             "soat": 60,
+            "tartib": 1,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f2",
             "nom": "Hamshiralik ishi.",
-            "tartib": 2,
             "soat": 60,
+            "tartib": 2,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f3",
             "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
-            "tartib": 3,
             "soat": 60,
+            "tartib": 3,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f4",
             "nom": "Terapiya va gerontologiya",
-            "tartib": 4,
             "soat": 60,
+            "tartib": 4,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f5",
             "nom": "Yuqumli kasalliklar",
-            "tartib": 5,
             "soat": 60,
+            "tartib": 5,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f6",
             "nom": "Xavfsiz immunizatsiya",
-            "tartib": 6,
             "soat": 60,
+            "tartib": 6,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f7",
             "nom": "Xirurgiya",
-            "tartib": 7,
             "soat": 60,
+            "tartib": 7,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f8",
             "nom": "Akusherlik va ginekologiya",
-            "tartib": 8,
             "soat": 60,
+            "tartib": 8,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s4-f9",
             "nom": "4-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 9,
             "soat": 60,
+            "tartib": 9,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 4
       },
       "5": {
-        "semestr": 5,
         "fanlar": [
           {
             "id": "hamsh26-s5-f1",
             "nom": "Biznes asoslari",
-            "tartib": 1,
             "soat": 60,
+            "tartib": 1,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f2",
             "nom": "Kasbiy faoliyatning huquqiy asoslari va bioetika",
-            "tartib": 2,
             "soat": 60,
+            "tartib": 2,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f3",
             "nom": "Pediatriya va neonatologiya",
-            "tartib": 3,
             "soat": 60,
+            "tartib": 3,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f4",
             "nom": "Xirurgiya",
-            "tartib": 4,
             "soat": 60,
+            "tartib": 4,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f5",
             "nom": "Akusherlik va ginekologiya",
-            "tartib": 5,
             "soat": 60,
+            "tartib": 5,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f6",
             "nom": "Otorinolaringologiya",
-            "tartib": 6,
             "soat": 60,
+            "tartib": 6,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f7",
             "nom": "Favqulotda holatlar tibbiyoti",
-            "tartib": 7,
             "soat": 60,
+            "tartib": 7,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f8",
             "nom": "5-semestr (davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 8,
             "soat": 60,
+            "tartib": 8,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s5-f9",
             "nom": "Shoshilinch tibbiy yordam",
-            "tartib": 9,
             "soat": 60,
+            "tartib": 9,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 5
       },
       "6": {
-        "semestr": 6,
         "fanlar": [
           {
             "id": "hamsh26-s6-f1",
             "nom": "Pediatriya va neonatologiya",
-            "tartib": 1,
             "soat": 60,
+            "tartib": 1,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s6-f2",
             "nom": "Xirurgiya",
-            "tartib": 2,
             "soat": 60,
+            "tartib": 2,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s6-f3",
             "nom": "Gematologiya va transfuziologiya asoslari",
-            "tartib": 3,
             "soat": 60,
+            "tartib": 3,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s6-f4",
             "nom": "Nefrologik kasalliklar va gemodializda hamshiralik parvarishi",
-            "tartib": 4,
             "soat": 60,
+            "tartib": 4,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s6-f5",
             "nom": "Oftalmologiya",
-            "tartib": 5,
             "soat": 60,
+            "tartib": 5,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s6-f6",
             "nom": "Reanimatsiya va anesteziologiya asoslari",
-            "tartib": 6,
             "soat": 60,
+            "tartib": 6,
             "nazorat": "Sinov"
           },
           {
             "id": "hamsh26-s6-f7",
             "nom": "6-semestr (ixtisoslashgan bo'lim hamshirasi yordamchisi)",
-            "tartib": 7,
             "soat": 60,
+            "tartib": 7,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 6
       }
     },
-    "createdAt": "2026-09-01T00:00:00.000Z",
-    "updatedAt": "2026-11-02T22:00:00.000Z"
+    "createdAt": "2026-11-02T17:18:19.372359+00:00",
+    "updatedAt": "2026-11-02T17:18:18.937+00:00"
   },
   {
-    "id": "plan-2025-hamshira-3y-selected",
-    "oquvYili": "2025/2026",
-    "yonalish": "Hamshiralik ishi",
+    "id": "plan-2026-farmatsiya-3y",
+    "oquvYili": "2026/2027",
+    "yonalish": "Farmatsiya ishi",
     "muddati": "3 yillik",
-    "kod": "50910203",
+    "kod": "50910401",
     "daraja": "O'rta maxsus professional",
-    "tavsif": "2025/2026 qabul Hamshiralik ishi (25-16, 25-17, 25-18, 25-23 guruhlar — 2026/2027 bilan bir xil o'quv reja)",
+    "tavsif": "2026/2027 o'quv yili Farmatsiya ishi mutaxassisligi (26-01 guruhi)",
     "groups": [
-      "25-16",
-      "25-17",
-      "25-18",
-      "25-23"
+      "26-01"
     ],
     "semestrlar": {
       "1": {
-        "semestr": 1,
         "fanlar": [
           {
-            "id": "hamsh25s-s1-f1",
-            "nom": "Xorijiy til",
+            "id": "farm-s1-f1",
+            "nom": "Kasbiy faoliyatda o'zbek/rus tili",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s1-f2",
-            "nom": "Lotin tili va tibbiy terminologiya",
+            "id": "farm-s1-f2",
+            "nom": "Tibbiyotda xorijiy til",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s1-f3",
-            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
+            "id": "farm-s1-f3",
+            "nom": "Lotin tili va farmatsevtik terminologiya",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s1-f4",
-            "nom": "Tibbiyotda axborot texnologiyalari",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s1-f5",
-            "nom": "O'zbekistonni eng yangi tarixi",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s1-f6",
+            "id": "farm-s1-f4",
             "nom": "Anatomiya, fiziologiya va patologiya",
-            "tartib": 6,
             "soat": 60,
+            "tartib": 4,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s1-f7",
-            "nom": "Gistologiya, sitologiya, embriologiya",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s1-f8",
+            "id": "farm-s1-f5",
             "nom": "Tiibbiy biologiya. Umumiy genetika",
+            "soat": 60,
+            "tartib": 5,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "farm-s1-f6",
+            "nom": "Umumiy gigiyena va ekologiya",
+            "soat": 60,
+            "tartib": 6,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "farm-s1-f7",
+            "nom": "Noorganik kimyo",
+            "soat": 60,
+            "tartib": 7,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "farm-s1-f8",
+            "nom": "Organik kimyo",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s1-f9",
-            "nom": "Tibbiy va biologik fizika",
+            "id": "farm-s1-f9",
+            "nom": "Mutaxassislikka kirish",
+            "soat": 60,
             "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s1-f10",
-            "nom": "Tibbiy kimyo. Biologik kimyo",
+            "id": "farm-s1-f10",
+            "nom": "Jismoniy tarbiya va sport",
+            "soat": 60,
             "tartib": 10,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s1-f11",
-            "nom": "Xalq tabobati",
-            "tartib": 11,
-            "soat": 60,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 1
       },
       "2": {
-        "semestr": 2,
         "fanlar": [
           {
-            "id": "hamsh25s-s2-f1",
-            "nom": "O'zbek (rus) tili",
+            "id": "farm-s2-f1",
+            "nom": "Kasbiy faoliyatda o'zbek/rus tili",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f2",
-            "nom": "Xorijiy til",
+            "id": "farm-s2-f2",
+            "nom": "Tibbiyotda xorijiy til",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f3",
-            "nom": "Anatomiya, fiziologiya va patologiya",
+            "id": "farm-s2-f3",
+            "nom": "Farmatsevtikada axborot texnologiyalari",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f4",
-            "nom": "Gistologiya, sitologiya, embriologiya",
+            "id": "farm-s2-f4",
+            "nom": "Anatomiya, fiziologiya va patologiya",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f5",
-            "nom": "Farmakologiya va retseptura asoslari",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s2-f6",
+            "id": "farm-s2-f5",
             "nom": "Valeologiya",
+            "soat": 60,
+            "tartib": 5,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "farm-s2-f6",
+            "nom": "Noorganik kimyo",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f7",
-            "nom": "Hamshiralik ishi.",
+            "id": "farm-s2-f7",
+            "nom": "Analitik kimyo",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f8",
-            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
+            "id": "farm-s2-f8",
+            "nom": "Mutaxassislikka kirish",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f9",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "id": "farm-s2-f9",
+            "nom": "Farmakologiya asoslari",
+            "soat": 60,
             "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f10",
-            "nom": "Nutritsiologiya diyetologiya asoslari bilan",
+            "id": "farm-s2-f10",
+            "nom": "2 semestr (mutaxassislikka kirish amaliyoti)",
+            "soat": 60,
             "tartib": 10,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s2-f11",
-            "nom": "2-semestr (mutaxassislikka kirish amaliyoti, parvarish hamshirasi, patronaj hamshirasi)",
-            "tartib": 11,
+            "id": "farm-s2-f11",
+            "nom": "Jismoniy tarbiya va sport",
             "soat": 60,
+            "tartib": 11,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "farm-s2-f12",
+            "nom": "Farmatsevtik yordam asoslari",
+            "soat": 60,
+            "tartib": 12,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 2
       },
       "3": {
-        "semestr": 3,
         "fanlar": [
           {
-            "id": "hamsh25s-s3-f1",
-            "nom": "Xorijiy til",
+            "id": "farm-s3-f1",
+            "nom": "Tibbiyotda xorijiy til",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f2",
-            "nom": "Jamiyat sog'liqni saqlash va tibbiy statistikasi",
+            "id": "farm-s3-f2",
+            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f3",
-            "nom": "Mikrobiologiya, virusologiya,",
+            "id": "farm-s3-f3",
+            "nom": "Mikrobiologiya, virusologiya, immunologiya",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f4",
-            "nom": "Hamshiralik ishi.",
+            "id": "farm-s3-f4",
+            "nom": "Jamiyat sog'liqni saqlash va tibbiy statistikasi",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f5",
-            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
+            "id": "farm-s3-f5",
+            "nom": "Farmasevtik kimyo",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f6",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "id": "farm-s3-f6",
+            "nom": "Farmakologiya asoslari",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f7",
-            "nom": "Terapiya va gerontologiya",
+            "id": "farm-s3-f7",
+            "nom": "Dori turlari texnologiyasi",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f8",
-            "nom": "Asab -ruhiy kasalliklar va narkologiya",
+            "id": "farm-s3-f8",
+            "nom": "Farmakognoziya va botanika asoslari",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f9",
-            "nom": "Teri-tanosil kasalliklari va kosmetologiya",
+            "id": "farm-s3-f9",
+            "nom": "Hamshiralik ishi texnikasi",
+            "soat": 60,
             "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s3-f10",
-            "nom": "3-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 10,
+            "id": "farm-s3-f10",
+            "nom": "3 semestr (davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, fitobarmen yordamchisi)",
             "soat": 60,
+            "tartib": 10,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 3
       },
       "4": {
-        "semestr": 4,
         "fanlar": [
           {
-            "id": "hamsh25s-s4-f1",
-            "nom": "Umumiy gigiyena va ekologiya",
+            "id": "farm-s4-f1",
+            "nom": "O'zbekistonni eng yangi tarixi",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s4-f2",
-            "nom": "Hamshiralik ishi.",
+            "id": "farm-s4-f2",
+            "nom": "Farmasevtik kimyo",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s4-f3",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "id": "farm-s4-f3",
+            "nom": "Farmakologiya asoslari",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s4-f4",
-            "nom": "Terapiya va gerontologiya",
+            "id": "farm-s4-f4",
+            "nom": "Dori turlari texnologiyasi",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s4-f5",
-            "nom": "Yuqumli kasalliklar",
+            "id": "farm-s4-f5",
+            "nom": "Tibbiyot va farmasevtika tovarshunosligi",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s4-f6",
-            "nom": "Xavfsiz immunizatsiya",
+            "id": "farm-s4-f6",
+            "nom": "Farmakognoziya va botanika asoslari",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s4-f7",
-            "nom": "Xirurgiya",
+            "id": "farm-s4-f7",
+            "nom": "Hamshiralik ishi texnikasi",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s4-f8",
-            "nom": "Akusherlik va ginekologiya",
+            "id": "farm-s4-f8",
+            "nom": "4 semestr. (davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, farmatsevtik sanoati korxonalarida operator yordamchisi)",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s4-f9",
-            "nom": "4-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 4
       },
       "5": {
-        "semestr": 5,
         "fanlar": [
           {
-            "id": "hamsh25s-s5-f1",
-            "nom": "Biznes asoslari",
+            "id": "farm-s5-f1",
+            "nom": "Tibbiyotda biznes asoslari",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s5-f2",
-            "nom": "Kasbiy faoliyatning huquqiy asoslari va bioetika",
+            "id": "farm-s5-f2",
+            "nom": "Dori turlari texnologiyasi",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s5-f3",
-            "nom": "Pediatriya va neonatologiya",
+            "id": "farm-s5-f3",
+            "nom": "Farmasevtik biotexnologiya asoslari",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s5-f4",
-            "nom": "Xirurgiya",
+            "id": "farm-s5-f4",
+            "nom": "Tibbiyot va farmasevtika tovarshunosligi",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s5-f5",
-            "nom": "Akusherlik va ginekologiya",
+            "id": "farm-s5-f5",
+            "nom": "Fitoterapiya",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s5-f6",
-            "nom": "Otorinolaringologiya",
+            "id": "farm-s5-f6",
+            "nom": "Klinik patologiya va birinchi tibbiy yordam",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s5-f7",
-            "nom": "Favqulotda holatlar tibbiyoti",
+            "id": "farm-s5-f7",
+            "nom": "Yuqumli kasalliklar",
+            "soat": 60,
             "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s5-f8",
-            "nom": "5-semestr (davolash profilaktika muassasalari hamshirasi yordamchisi)",
+            "id": "farm-s5-f8",
+            "nom": "5 semestr (davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, farmatsevtik sanoati korxonalarida operator yordamchisi, fitobarmen yordamchisi)",
+            "soat": 60,
             "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s5-f9",
-            "nom": "Shoshilinch tibbiy yordam",
-            "tartib": 9,
-            "soat": 60,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 5
       },
       "6": {
-        "semestr": 6,
         "fanlar": [
           {
-            "id": "hamsh25s-s6-f1",
-            "nom": "Pediatriya va neonatologiya",
+            "id": "farm-s6-f1",
+            "nom": "Kasbiy faoliyatning huquqiy asoslari va bioetika",
+            "soat": 60,
             "tartib": 1,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s6-f2",
-            "nom": "Xirurgiya",
+            "id": "farm-s6-f2",
+            "nom": "Tibbiyot va farmasevtika tovarshunosligi",
+            "soat": 60,
             "tartib": 2,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s6-f3",
-            "nom": "Gematologiya va transfuziologiya asoslari",
+            "id": "farm-s6-f3",
+            "nom": "Farmasevtika ishini tashkil qilish va boshqarish",
+            "soat": 60,
             "tartib": 3,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s6-f4",
-            "nom": "Nefrologik kasalliklar va gemodializda hamshiralik parvarishi",
+            "id": "farm-s6-f4",
+            "nom": "Klinik farmatsiya",
+            "soat": 60,
             "tartib": 4,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s6-f5",
-            "nom": "Oftalmologiya",
+            "id": "farm-s6-f5",
+            "nom": "Favqulotda holatlar tibbiyoti",
+            "soat": 60,
             "tartib": 5,
-            "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25s-s6-f6",
-            "nom": "Reanimatsiya va anesteziologiya asoslari",
+            "id": "farm-s6-f6",
+            "nom": "6 semestr.(davolash-profilaktika muassasalari dorixonasi mutaxassislarining yordamchisi, farmatsevtik sanoati korxonalarida operator yordamchisi,fitobarmen yordamchisi, dorixona xodimining yordamchisi)",
+            "soat": 60,
             "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25s-s6-f7",
-            "nom": "6-semestr (ixtisoslashgan bo'lim hamshirasi yordamchisi)",
-            "tartib": 7,
-            "soat": 60,
             "nazorat": "Sinov"
           }
-        ]
+        ],
+        "semestr": 6
       }
     },
-    "createdAt": "2025-09-01T00:00:00.000Z",
-    "updatedAt": "2026-11-02T22:00:00.000Z"
+    "createdAt": "2026-11-02T17:18:18.820048+00:00",
+    "updatedAt": "2026-11-02T17:18:17.554+00:00"
   },
   {
-    "id": "plan-2025-hamshira-3y-other",
+    "id": "plan-hamshira-2y",
     "oquvYili": "2025/2026",
-    "yonalish": "Hamshiralik ishi (eski)",
-    "muddati": "3 yillik",
-    "kod": "50910203",
+    "yonalish": "Hamshiralik ishi",
+    "muddati": "2 yillik",
+    "kod": "40910203",
     "daraja": "O'rta maxsus professional",
-    "tavsif": "2025/2026 qabul qolgan guruhlar (25-19, 25-20, 25-21, 25-22)",
+    "tavsif": "Hamshiralik ishi — 2 yillik ishchi o'quv reja (25-19, 25-20, 25-21, 25-22, 24-15, 24-16 guruhlar). Yozgi amaliyot 2-semestrda, yakuniy amaliyotlar va davlat attestatsiyasi 4-semestrda.",
     "groups": [
+      "24-15",
+      "24-16",
       "25-19",
       "25-20",
       "25-21",
@@ -1340,79 +1342,121 @@
         "semestr": 1,
         "fanlar": [
           {
-            "id": "hamsh25o-s1-f1",
-            "nom": "Xorijiy til",
+            "id": "h2y-s1-f1",
+            "nom": "Kasbiy faoliyatda rus (o'zbek) tili",
             "tartib": 1,
-            "soat": 60,
+            "soat": 36,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f2",
-            "nom": "Lotin tili va tibbiy terminologiya",
+            "id": "h2y-s1-f2",
+            "nom": "Kasbiy faoliyatda xorijiy til",
             "tartib": 2,
-            "soat": 60,
+            "soat": 30,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f3",
-            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
+            "id": "h2y-s1-f3",
+            "nom": "Kasbiy faoliyatda axborot texnologiyalari",
             "tartib": 3,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f4",
-            "nom": "Tibbiyotda axborot texnologiyalari",
+            "id": "h2y-s1-f4",
+            "nom": "Jismoniy tarbiya va sport",
             "tartib": 4,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f5",
-            "nom": "O'zbekistonni eng yangi tarixi",
+            "id": "h2y-s1-f5",
+            "nom": "Tibbiy terminologiya va lotin tili",
             "tartib": 5,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f6",
-            "nom": "Anatomiya, fiziologiya va patologiya",
+            "id": "h2y-s1-f6",
+            "nom": "Farmakologiya va retseptura",
             "tartib": 6,
-            "soat": 60,
+            "soat": 50,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f7",
-            "nom": "Gistologiya, sitologiya, embriologiya",
+            "id": "h2y-s1-f7",
+            "nom": "Anatomiya, fiziologiya va patologiya",
             "tartib": 7,
             "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f8",
-            "nom": "Tiibbiy biologiya. Umumiy genetika",
+            "id": "h2y-s1-f8",
+            "nom": "Umumiy gigiyena va ekologiya",
             "tartib": 8,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f9",
-            "nom": "Tibbiy va biologik fizika",
+            "id": "h2y-s1-f9",
+            "nom": "Tibbiyot biologiyasi va odam genetikasi",
             "tartib": 9,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f10",
-            "nom": "Tibbiy kimyo. Biologik kimyo",
+            "id": "h2y-s1-f10",
+            "nom": "Mikrobiologiya va epidemiologiya asoslari",
             "tartib": 10,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s1-f11",
-            "nom": "Xalq tabobati",
+            "id": "h2y-s1-f11",
+            "nom": "Valeologiya",
             "tartib": 11,
+            "soat": 40,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s1-f12",
+            "nom": "Jamiyat sog'liqni saqlash va tibbiy statistika",
+            "tartib": 12,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s1-f13",
+            "nom": "Hamshiralik ishi",
+            "tartib": 13,
+            "soat": 80,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s1-f14",
+            "nom": "Terapiyada hamshiralik ishi",
+            "tartib": 14,
+            "soat": 40,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s1-f15",
+            "nom": "Xirurgiya va reanimatsiyada hamshiralik ishi",
+            "tartib": 15,
+            "soat": 32,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s1-f16",
+            "nom": "Akusherlik va ginekologiyada hamshiralik ishi",
+            "tartib": 16,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s1-f17",
+            "nom": "Pediatriyada hamshiralik ishi",
+            "tartib": 17,
             "soat": 60,
             "nazorat": "Sinov"
           }
@@ -1422,80 +1466,157 @@
         "semestr": 2,
         "fanlar": [
           {
-            "id": "hamsh25o-s2-f1",
-            "nom": "O'zbek (rus) tili",
+            "id": "h2y-s2-f1",
+            "nom": "Kasbiy faoliyatda rus (o'zbek) tili",
             "tartib": 1,
-            "soat": 60,
+            "soat": 36,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f2",
-            "nom": "Xorijiy til",
+            "id": "h2y-s2-f2",
+            "nom": "Kasbiy faoliyatda xorijiy til",
             "tartib": 2,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f3",
-            "nom": "Anatomiya, fiziologiya va patologiya",
+            "id": "h2y-s2-f3",
+            "nom": "Kasbiy faoliyatda axborot texnologiyalari",
             "tartib": 3,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f4",
-            "nom": "Gistologiya, sitologiya, embriologiya",
+            "id": "h2y-s2-f4",
+            "nom": "Jismoniy tarbiya va sport",
             "tartib": 4,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f5",
-            "nom": "Farmakologiya va retseptura asoslari",
+            "id": "h2y-s2-f5",
+            "nom": "Farmakologiya va retseptura",
             "tartib": 5,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f6",
-            "nom": "Valeologiya",
+            "id": "h2y-s2-f6",
+            "nom": "Anatomiya, fiziologiya va patologiya",
             "tartib": 6,
-            "soat": 60,
+            "soat": 30,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f7",
-            "nom": "Hamshiralik ishi.",
+            "id": "h2y-s2-f7",
+            "nom": "Umumiy gigiyena va ekologiya",
             "tartib": 7,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f8",
-            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
+            "id": "h2y-s2-f8",
+            "nom": "Tibbiyot psixologiyasi",
             "tartib": 8,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f9",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "id": "h2y-s2-f9",
+            "nom": "Jamiyat sog'liqni saqlash va tibbiy statistika",
             "tartib": 9,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f10",
-            "nom": "Nutritsiologiya diyetologiya asoslari bilan",
+            "id": "h2y-s2-f10",
+            "nom": "Hamshiralik ishi",
             "tartib": 10,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s2-f11",
-            "nom": "2-semestr (mutaxassislikka kirish amaliyoti, parvarish hamshirasi, patronaj hamshirasi)",
+            "id": "h2y-s2-f11",
+            "nom": "Terapiyada hamshiralik ishi",
             "tartib": 11,
-            "soat": 60,
+            "soat": 40,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f12",
+            "nom": "Xirurgiya va reanimatsiyada hamshiralik ishi",
+            "tartib": 12,
+            "soat": 26,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f13",
+            "nom": "Akusherlik va ginekologiyada hamshiralik ishi",
+            "tartib": 13,
+            "soat": 28,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f14",
+            "nom": "Asab-ruhiy va narkologik kasalliklarda hamshiralik ishi",
+            "tartib": 14,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f15",
+            "nom": "Geriatriyada hamshiralik ishi",
+            "tartib": 15,
+            "soat": 54,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f16",
+            "nom": "Yuqumli kasalliklar",
+            "tartib": 16,
+            "soat": 26,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f17",
+            "nom": "Pediatriyada hamshiralik ishi",
+            "tartib": 17,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f18",
+            "nom": "Reabilitatsiya asoslari",
+            "tartib": 18,
+            "soat": 50,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f19",
+            "nom": "Fizioterapiya va massaj",
+            "tartib": 19,
+            "soat": 42,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f20",
+            "nom": "Malakaviy amaliyot (Tibbiyot hamshirasi)",
+            "tartib": 20,
+            "soat": 90,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f21",
+            "nom": "Malakaviy amaliyot (Maktab hamshirasi)",
+            "tartib": 21,
+            "soat": 36,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s2-f22",
+            "nom": "Malakaviy amaliyot (Fizioterapiya xonasi hamshirasi)",
+            "tartib": 22,
+            "soat": 54,
             "nazorat": "Sinov"
           }
         ]
@@ -1504,73 +1625,122 @@
         "semestr": 3,
         "fanlar": [
           {
-            "id": "hamsh25o-s3-f1",
-            "nom": "Xorijiy til",
+            "id": "h2y-s3-f1",
+            "nom": "Kasbiy faoliyatda xorijiy til",
             "tartib": 1,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f2",
-            "nom": "Jamiyat sog'liqni saqlash va tibbiy statistikasi",
+            "id": "h2y-s3-f2",
+            "nom": "Favqulodda holatlar tibbiyoti",
             "tartib": 2,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f3",
-            "nom": "Mikrobiologiya, virusologiya,",
+            "id": "h2y-s3-f3",
+            "nom": "Diyetologiya",
             "tartib": 3,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f4",
-            "nom": "Hamshiralik ishi.",
+            "id": "h2y-s3-f4",
+            "nom": "Hamshiralik ishi",
             "tartib": 4,
             "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f5",
-            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
+            "id": "h2y-s3-f5",
+            "nom": "Terapiyada hamshiralik ishi",
             "tartib": 5,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f6",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "id": "h2y-s3-f6",
+            "nom": "Xirurgiya va reanimatsiyada hamshiralik ishi",
             "tartib": 6,
-            "soat": 60,
+            "soat": 30,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f7",
-            "nom": "Terapiya va gerontologiya",
+            "id": "h2y-s3-f7",
+            "nom": "Akusherlik va ginekologiyada hamshiralik ishi",
             "tartib": 7,
-            "soat": 60,
+            "soat": 42,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f8",
-            "nom": "Asab -ruhiy kasalliklar va narkologiya",
+            "id": "h2y-s3-f8",
+            "nom": "Asab-ruhiy va narkologik kasalliklarda hamshiralik ishi",
             "tartib": 8,
-            "soat": 60,
+            "soat": 16,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f9",
-            "nom": "Teri-tanosil kasalliklari va kosmetologiya",
+            "id": "h2y-s3-f9",
+            "nom": "Teri va tanosil kasalliklarda hamshiralik ishi",
             "tartib": 9,
-            "soat": 60,
+            "soat": 34,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s3-f10",
-            "nom": "3-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
+            "id": "h2y-s3-f10",
+            "nom": "Oftalmologiyada hamshiralik ishi",
             "tartib": 10,
-            "soat": 60,
+            "soat": 34,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s3-f11",
+            "nom": "Otorinolaringologiyada hamshiralik ishi",
+            "tartib": 11,
+            "soat": 34,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s3-f12",
+            "nom": "Yuqumli kasalliklar",
+            "tartib": 12,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s3-f13",
+            "nom": "Jamoada hamshiralik ishi",
+            "tartib": 13,
+            "soat": 30,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s3-f14",
+            "nom": "Pediatriyada hamshiralik ishi",
+            "tartib": 14,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s3-f15",
+            "nom": "Bolalar yuqumli kasalliklari. Profilaktik emlash",
+            "tartib": 15,
+            "soat": 40,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s3-f16",
+            "nom": "Reabilitatsiya asoslari",
+            "tartib": 16,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s3-f17",
+            "nom": "Fizioterapiya va massaj",
+            "tartib": 17,
+            "soat": 20,
             "nazorat": "Sinov"
           }
         ]
@@ -1579,643 +1749,156 @@
         "semestr": 4,
         "fanlar": [
           {
-            "id": "hamsh25o-s4-f1",
-            "nom": "Umumiy gigiyena va ekologiya",
+            "id": "h2y-s4-f1",
+            "nom": "Kasbiy faoliyatning huquqiy asoslari",
             "tartib": 1,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f2",
-            "nom": "Hamshiralik ishi.",
+            "id": "h2y-s4-f2",
+            "nom": "Favqulodda holatlar tibbiyoti",
             "tartib": 2,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f3",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
+            "id": "h2y-s4-f3",
+            "nom": "Diyetologiya",
             "tartib": 3,
-            "soat": 60,
+            "soat": 20,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f4",
-            "nom": "Terapiya va gerontologiya",
+            "id": "h2y-s4-f4",
+            "nom": "Biznesni tashkil etish va yuritish",
             "tartib": 4,
-            "soat": 60,
+            "soat": 40,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f5",
+            "id": "h2y-s4-f5",
+            "nom": "Xirurgiya va reanimatsiyada hamshiralik ishi",
+            "tartib": 5,
+            "soat": 32,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f6",
+            "nom": "Asab-ruhiy va narkologik kasalliklarda hamshiralik ishi",
+            "tartib": 6,
+            "soat": 36,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f7",
+            "nom": "Teri va tanosil kasalliklarda hamshiralik ishi",
+            "tartib": 7,
+            "soat": 18,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f8",
+            "nom": "Oftalmologiyada hamshiralik ishi",
+            "tartib": 8,
+            "soat": 18,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f9",
+            "nom": "Otorinolaringologiyada hamshiralik ishi",
+            "tartib": 9,
+            "soat": 18,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f10",
             "nom": "Yuqumli kasalliklar",
-            "tartib": 5,
+            "tartib": 10,
+            "soat": 30,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f11",
+            "nom": "Jamoada hamshiralik ishi",
+            "tartib": 11,
             "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f6",
-            "nom": "Xavfsiz immunizatsiya",
-            "tartib": 6,
+            "id": "h2y-s4-f12",
+            "nom": "Pediatriyada hamshiralik ishi",
+            "tartib": 12,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f13",
+            "nom": "Reabilitatsiya asoslari",
+            "tartib": 13,
+            "soat": 20,
+            "nazorat": "Sinov"
+          },
+          {
+            "id": "h2y-s4-f14",
+            "nom": "Fizioterapiya va massaj",
+            "tartib": 14,
             "soat": 60,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f7",
-            "nom": "Xirurgiya",
-            "tartib": 7,
-            "soat": 60,
+            "id": "h2y-s4-f15",
+            "nom": "Malakaviy amaliyot (Tibbiyot hamshirasi)",
+            "tartib": 15,
+            "soat": 54,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f8",
-            "nom": "Akusherlik va ginekologiya",
-            "tartib": 8,
-            "soat": 60,
+            "id": "h2y-s4-f16",
+            "nom": "Bitiruv oldi amaliyoti (Tibbiyot hamshirasi)",
+            "tartib": 16,
+            "soat": 108,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s4-f9",
-            "nom": "4-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 9,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      },
-      "5": {
-        "semestr": 5,
-        "fanlar": [
-          {
-            "id": "hamsh25o-s5-f1",
-            "nom": "Biznes asoslari",
-            "tartib": 1,
-            "soat": 60,
+            "id": "h2y-s4-f17",
+            "nom": "Malakaviy amaliyot (Maktab hamshirasi)",
+            "tartib": 17,
+            "soat": 36,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s5-f2",
-            "nom": "Kasbiy faoliyatning huquqiy asoslari va bioetika",
-            "tartib": 2,
-            "soat": 60,
+            "id": "h2y-s4-f18",
+            "nom": "Bitiruv oldi amaliyoti (Maktab hamshirasi)",
+            "tartib": 18,
+            "soat": 72,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s5-f3",
-            "nom": "Pediatriya va neonatologiya",
-            "tartib": 3,
-            "soat": 60,
+            "id": "h2y-s4-f19",
+            "nom": "Malakaviy amaliyot (Fizioterapiya xonasi hamshirasi)",
+            "tartib": 19,
+            "soat": 54,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s5-f4",
-            "nom": "Xirurgiya",
-            "tartib": 4,
-            "soat": 60,
+            "id": "h2y-s4-f20",
+            "nom": "Bitiruv oldi amaliyoti (Fizioterapiya xonasi hamshirasi)",
+            "tartib": 20,
+            "soat": 72,
             "nazorat": "Sinov"
           },
           {
-            "id": "hamsh25o-s5-f5",
-            "nom": "Akusherlik va ginekologiya",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s5-f6",
-            "nom": "Otorinolaringologiya",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s5-f7",
-            "nom": "Favqulotda holatlar tibbiyoti",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s5-f8",
-            "nom": "5-semestr (davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s5-f9",
-            "nom": "Shoshilinch tibbiy yordam",
-            "tartib": 9,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      },
-      "6": {
-        "semestr": 6,
-        "fanlar": [
-          {
-            "id": "hamsh25o-s6-f1",
-            "nom": "Pediatriya va neonatologiya",
-            "tartib": 1,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s6-f2",
-            "nom": "Xirurgiya",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s6-f3",
-            "nom": "Gematologiya va transfuziologiya asoslari",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s6-f4",
-            "nom": "Nefrologik kasalliklar va gemodializda hamshiralik parvarishi",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s6-f5",
-            "nom": "Oftalmologiya",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s6-f6",
-            "nom": "Reanimatsiya va anesteziologiya asoslari",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh25o-s6-f7",
-            "nom": "6-semestr (ixtisoslashgan bo'lim hamshirasi yordamchisi)",
-            "tartib": 7,
-            "soat": 60,
+            "id": "h2y-s4-f21",
+            "nom": "Davlat attestatsiyasi",
+            "tartib": 21,
+            "soat": 72,
             "nazorat": "Sinov"
           }
         ]
       }
     },
-    "createdAt": "2025-09-01T00:00:00.000Z",
-    "updatedAt": "2026-11-02T22:00:00.000Z"
-  },
-  {
-    "id": "plan-2024-hamshira-3y",
-    "oquvYili": "2024/2025",
-    "yonalish": "Hamshiralik ishi",
-    "muddati": "3 yillik",
-    "kod": "50910203",
-    "daraja": "O'rta maxsus professional",
-    "tavsif": "2024/2025 qabul 3-kurs talabalari uchun reja",
-    "groups": [
-      "24-11",
-      "24-12",
-      "24-13",
-      "24-15",
-      "24-16"
-    ],
-    "semestrlar": {
-      "1": {
-        "semestr": 1,
-        "fanlar": [
-          {
-            "id": "hamsh24-s1-f1",
-            "nom": "Xorijiy til",
-            "tartib": 1,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f2",
-            "nom": "Lotin tili va tibbiy terminologiya",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f3",
-            "nom": "Tibbiy psixologiya va shaxslararo muloqot",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f4",
-            "nom": "Tibbiyotda axborot texnologiyalari",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f5",
-            "nom": "O'zbekistonni eng yangi tarixi",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f6",
-            "nom": "Anatomiya, fiziologiya va patologiya",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f7",
-            "nom": "Gistologiya, sitologiya, embriologiya",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f8",
-            "nom": "Tiibbiy biologiya. Umumiy genetika",
-            "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f9",
-            "nom": "Tibbiy va biologik fizika",
-            "tartib": 9,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f10",
-            "nom": "Tibbiy kimyo. Biologik kimyo",
-            "tartib": 10,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s1-f11",
-            "nom": "Xalq tabobati",
-            "tartib": 11,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      },
-      "2": {
-        "semestr": 2,
-        "fanlar": [
-          {
-            "id": "hamsh24-s2-f1",
-            "nom": "O'zbek (rus) tili",
-            "tartib": 1,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f2",
-            "nom": "Xorijiy til",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f3",
-            "nom": "Anatomiya, fiziologiya va patologiya",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f4",
-            "nom": "Gistologiya, sitologiya, embriologiya",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f5",
-            "nom": "Farmakologiya va retseptura asoslari",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f6",
-            "nom": "Valeologiya",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f7",
-            "nom": "Hamshiralik ishi.",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f8",
-            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
-            "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f9",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
-            "tartib": 9,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f10",
-            "nom": "Nutritsiologiya diyetologiya asoslari bilan",
-            "tartib": 10,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s2-f11",
-            "nom": "2-semestr (mutaxassislikka kirish amaliyoti, parvarish hamshirasi, patronaj hamshirasi)",
-            "tartib": 11,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      },
-      "3": {
-        "semestr": 3,
-        "fanlar": [
-          {
-            "id": "hamsh24-s3-f1",
-            "nom": "Xorijiy til",
-            "tartib": 1,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f2",
-            "nom": "Jamiyat sog'liqni saqlash va tibbiy statistikasi",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f3",
-            "nom": "Mikrobiologiya, virusologiya,",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f4",
-            "nom": "Hamshiralik ishi.",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f5",
-            "nom": "Jamoada hamshiralik ishi (Hamshiraning universal progressiv modeli)",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f6",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f7",
-            "nom": "Terapiya va gerontologiya",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f8",
-            "nom": "Asab -ruhiy kasalliklar va narkologiya",
-            "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f9",
-            "nom": "Teri-tanosil kasalliklari va kosmetologiya",
-            "tartib": 9,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s3-f10",
-            "nom": "3-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 10,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      },
-      "4": {
-        "semestr": 4,
-        "fanlar": [
-          {
-            "id": "hamsh24-s4-f1",
-            "nom": "Umumiy gigiyena va ekologiya",
-            "tartib": 1,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f2",
-            "nom": "Hamshiralik ishi.",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f3",
-            "nom": "Reabilitatsiya asoslari, fizioterapiya va massaj",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f4",
-            "nom": "Terapiya va gerontologiya",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f5",
-            "nom": "Yuqumli kasalliklar",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f6",
-            "nom": "Xavfsiz immunizatsiya",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f7",
-            "nom": "Xirurgiya",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f8",
-            "nom": "Akusherlik va ginekologiya",
-            "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s4-f9",
-            "nom": "4-semestr (birlamchi ambulator-poliklinik bo'g'in, davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 9,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      },
-      "5": {
-        "semestr": 5,
-        "fanlar": [
-          {
-            "id": "hamsh24-s5-f1",
-            "nom": "Biznes asoslari",
-            "tartib": 1,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f2",
-            "nom": "Kasbiy faoliyatning huquqiy asoslari va bioetika",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f3",
-            "nom": "Pediatriya va neonatologiya",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f4",
-            "nom": "Xirurgiya",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f5",
-            "nom": "Akusherlik va ginekologiya",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f6",
-            "nom": "Otorinolaringologiya",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f7",
-            "nom": "Favqulotda holatlar tibbiyoti",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f8",
-            "nom": "5-semestr (davolash profilaktika muassasalari hamshirasi yordamchisi)",
-            "tartib": 8,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s5-f9",
-            "nom": "Shoshilinch tibbiy yordam",
-            "tartib": 9,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      },
-      "6": {
-        "semestr": 6,
-        "fanlar": [
-          {
-            "id": "hamsh24-s6-f1",
-            "nom": "Pediatriya va neonatologiya",
-            "tartib": 1,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s6-f2",
-            "nom": "Xirurgiya",
-            "tartib": 2,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s6-f3",
-            "nom": "Gematologiya va transfuziologiya asoslari",
-            "tartib": 3,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s6-f4",
-            "nom": "Nefrologik kasalliklar va gemodializda hamshiralik parvarishi",
-            "tartib": 4,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s6-f5",
-            "nom": "Oftalmologiya",
-            "tartib": 5,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s6-f6",
-            "nom": "Reanimatsiya va anesteziologiya asoslari",
-            "tartib": 6,
-            "soat": 60,
-            "nazorat": "Sinov"
-          },
-          {
-            "id": "hamsh24-s6-f7",
-            "nom": "6-semestr (ixtisoslashgan bo'lim hamshirasi yordamchisi)",
-            "tartib": 7,
-            "soat": 60,
-            "nazorat": "Sinov"
-          }
-        ]
-      }
-    },
-    "createdAt": "2024-09-01T00:00:00.000Z",
-    "updatedAt": "2026-11-02T22:00:00.000Z"
+    "createdAt": "2026-11-03T14:50:13.330Z",
+    "updatedAt": "2026-11-03T14:50:13.330Z"
   }
 ]
