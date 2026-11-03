@@ -228,7 +228,7 @@ export function useSortable({
       const s = st.current
       const sc = scrollRef?.current ?? containerRef.current
       if (!s || !sc) return
-      const box = sc.getBoundingClientRect()
+      const box = sc === document.scrollingElement ? { top: 0, bottom: window.innerHeight, height: window.innerHeight } : sc.getBoundingClientRect()
       const edge = Math.min(56, box.height / 4)
       let v = 0
       if (s.y < box.top + edge) v = -Math.ceil(((box.top + edge - s.y) / edge) * 14)

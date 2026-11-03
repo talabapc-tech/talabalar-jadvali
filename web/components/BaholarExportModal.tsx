@@ -21,8 +21,10 @@ const TURLAR: { key: ExportTuri; icon: typeof Database; title: string; text: str
 ]
 
 /** Eksportdan oldin so'raladi: qaysi semestr, qanday fayl, qaydnoma bo'lsa — qaysi fanlar */
-export default function BaholarExportModal({ guruh, semestr, plan, joriyFanlar, onClose, onExport }: {
+export default function BaholarExportModal({ guruh, semestr, plan, joriyFanlar, faqat5, onClose, onExport }: {
   guruh: string
+  /** 2 yillik guruh — faqat 5 ballik */
+  faqat5?: boolean
   semestr: number
   plan: OquvReja | null
   /** Ochiq turgan semestr fanlari (o'quv reja bo'lmasa shu ishlatiladi) */
@@ -110,7 +112,9 @@ export default function BaholarExportModal({ guruh, semestr, plan, joriyFanlar, 
           <div>
             <div className="label mb-1.5">Fayl turi</div>
             <div className="grid gap-2">
-              {TURLAR.map(({ key, icon: Icon, title, text }) => (
+              {TURLAR.map(({ key, icon: Icon, title, text: t }) => {
+                const text = faqat5 && key === 'baza' ? '1) 5 ballik · 2) Malakaviy amaliyot — har bir talaba bilan (2 yillik: 100 ballik yo‘q)' : t
+                return (
                 <button key={key} type="button" onClick={() => setTuri(key)} aria-pressed={turi === key}
                   className={cx('flex items-start gap-3 rounded-xl border p-3 text-left transition-colors',
                     turi === key ? 'border-sky/60 bg-sky/10 ring-1 ring-sky/30' : 'border-line hover:border-line-strong hover:bg-ink-850')}>
@@ -120,7 +124,8 @@ export default function BaholarExportModal({ guruh, semestr, plan, joriyFanlar, 
                     <span className="block text-[12px] text-fg-muted">{text}</span>
                   </span>
                 </button>
-              ))}
+                )
+              })}
             </div>
           </div>
 

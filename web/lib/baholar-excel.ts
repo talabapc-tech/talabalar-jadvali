@@ -32,6 +32,8 @@ export interface BaholarExportData {
   fanlar: string[]
   grade: (i: number, fan: string) => ExportGrade
   amaliyot: ExportAmaliyot[]
+  /** 2 yillik guruh: faqat 5 ballik — 100 ballik reyting varaq/ustunlari chiqmaydi */
+  faqat5?: boolean
 }
 
 /* ------------------------------------------------------------------ yordamchilar */
@@ -50,8 +52,8 @@ function davr(guruh: string, semestr: number) {
   return { yil: `${boshi}-${boshi + 1}`, kurs }
 }
 
-export function baholarFileName(d: Pick<BaholarExportData, 'guruh' | 'semestr' | 'davomiylik'>) {
-  return `${d.guruh}. ${d.semestr}-s BAHOLAR${d.davomiylik ? ` ${d.davomiylik.replace(/\s+/g, '')}` : ''} (REYTING).xlsx`
+export function baholarFileName(d: Pick<BaholarExportData, 'guruh' | 'semestr' | 'davomiylik' | 'faqat5'>) {
+  return `${d.guruh}. ${d.semestr}-s BAHOLAR${d.davomiylik ? ` ${d.davomiylik.replace(/\s+/g, '')}` : ''}${d.faqat5 ? '' : ' (REYTING)'}.xlsx`
 }
 
 export type ExportTuri = 'baza' | 'qaydnoma' | 'hisobot'
@@ -378,9 +380,10 @@ function fanHisobot(d: BaholarExportData, fan: string): Sheet {
   const head = st({ bold: true, color: 'FFFFFF', fill: '1E3A8A', wrap: true })
   sh.merge(2, 0, 3, 0, '№', head)
   sh.merge(2, 1, 3, 1, 'Talabaning F.I.SH', head)
+  const rey = !d.faqat5
   sh.merge(2, 2, 2, 5, '5 ballik baholar', st({ bold: true, color: 'FFFFFF', fill: '0F766E' }))
-  sh.merge(2, 6, 2, 9, 'Reyting (100 ball)', st({ bold: true, color: 'FFFFFF', fill: '7C3AED' }))
-  ;[0, 1].forEach((blk) => BAHO_TURLARI.forEach((t, ti) => {
+  if (rey) sh.merge(2, 6, 2, 9, 'Reyting (100 ball)', st({ bold: true, color: 'FFFFFF', fill: '7C3AED' }))
+  ;(rey ? [0, 1] : [0]).forEach((blk) => BAHO_TURLARI.forEach((t, ti) => {
     const isR = t.key === 'r_semestr'
     sh.put(3, 2 + blk * 4 + ti, t.nazorat, st({ bold: true, sz: 9, wrap: true, fill: isR ? 'FDE68A' : 'DBEAFE', color: isR ? '713F12' : '1E3A8A' }))
   }))
@@ -393,7 +396,7 @@ function fanHisobot(d: BaholarExportData, fan: string): Sheet {
     sh.put(r, 0, i + 1, st())
     sh.put(r, 1, s.name, st({ h: 'left' }))
     k5.forEach((k, ti) => sh.put(r, 2 + ti, g[k], st({ bold: ti === 3, fill: g[k] ? FILL5[g[k]!] : undefined })))
-    k100.forEach((k, ti) => sh.put(r, 6 + ti, g[k], st({ bold: ti === 3, fill: g[k] ? FILL5[bahoOf(g[k]!)] : undefined }), g[k] !== null ? { z: ti === 3 ? '0.00' : '0' } : {}))
+    if (rey) k100.forEach((k, ti) => sh.put(r, 6 + ti, g[k], st({ bold: ti === 3, fill: g[k] ? FILL5[bahoOf(g[k]!)] : undefined }), g[k] !== null ? { z: ti === 3 ? '0.00' : '0' } : {}))
   })
   // Xulosa
   const s = stat(d, fan)
@@ -408,7 +411,7 @@ function fanHisobot(d: BaholarExportData, fan: string): Sheet {
   const extra: [string, number | string, string?][] = [
     ['O‘zlashtirish %', s.oz, PCT], ['Sifatli o‘zlashtirish %', s.sifat, PCT],
     ['O‘rtacha baho (R-semestr)', mean(d.talabalar.map((_, i) => d.grade(i, fan).r)) ?? '', '0.00'],
-    ['O‘rtacha reyting (R-semestr)', mean(d.talabalar.map((_, i) => d.grade(i, fan).r100)) ?? '', '0.00'],
+    ...(rey ? [['O‘rtacha reyting (R-semestr)', mean(d.talabalar.map((_, i) => d.grade(i, fan).r100)) ?? '', '0.00'] as [string, number | string, string]] : []),
   ]
   extra.forEach(([t, v, z], i) => {
     const r = fr + 5 + i
@@ -417,7 +420,7 @@ function fanHisobot(d: BaholarExportData, fan: string): Sheet {
     sh.put(r, 6, '', st())
   })
   imzo(sh, fr + 11, d, 9)
-  sh.cols = [{ wch: 5 }, { wch: 38 }, ...Array(8).fill({ wch: 10 })]
+  sh.cols = [{ wch: 5 }, { wch: 38 }, ...Array(rey ? 8 : 4).fill({ wch: 10 })]
   return sh
 }
 
@@ -429,7 +432,9 @@ function amaliyotSheet(d: BaholarExportData): Sheet {
   sh.merge(0, 0, 0, 8, `Malakaviy amaliyot — ${d.guruh} guruh, ${yil} o‘quv yili, ${d.semestr}-semestr`, st({ bold: true, sz: 14, color: '1E3A8A', border: false }))
   sh.height(0, 30)
   const head = st({ bold: true, color: 'FFFFFF', fill: '1E3A8A', wrap: true })
-  ;['№', 'Talabaning F.I.SH', 'Amaliyot', 'Amaliyot joyi', 'Boshlanish', 'Tugash', 'Baho (5 ballik)', 'Reyting (100 ball)', 'Izoh'].forEach((t, c) => sh.put(2, c, t, head))
+  const rey = !d.faqat5
+  const ustunlar = ['№', 'Talabaning F.I.SH', 'Amaliyot', 'Amaliyot joyi', 'Boshlanish', 'Tugash', 'Baho (5 ballik)', ...(rey ? ['Reyting (100 ball)'] : []), 'Izoh']
+  ustunlar.forEach((t, c) => sh.put(2, c, t, head))
   sh.height(2, 32)
   d.amaliyot.forEach((a, i) => {
     const r = 3 + i
@@ -441,11 +446,11 @@ function amaliyotSheet(d: BaholarExportData): Sheet {
     sh.put(r, 4, sanaUz(a.boshlanish), st({ fill: z }))
     sh.put(r, 5, sanaUz(a.tugash), st({ fill: z }))
     sh.put(r, 6, a.ball, st({ bold: true, fill: a.ball ? FILL5[a.ball] : z }))
-    sh.put(r, 7, a.ball100, st({ bold: true, fill: a.ball100 ? FILL5[bahoOf(a.ball100)] : z }), a.ball100 !== null ? { z: '0' } : {})
-    sh.put(r, 8, a.izoh, st({ h: 'left', fill: z, wrap: true }))
+    if (rey) sh.put(r, 7, a.ball100, st({ bold: true, fill: a.ball100 ? FILL5[bahoOf(a.ball100)] : z }), a.ball100 !== null ? { z: '0' } : {})
+    sh.put(r, rey ? 8 : 7, a.izoh, st({ h: 'left', fill: z, wrap: true }))
     sh.height(r, 20)
   })
-  sh.cols = [{ wch: 5 }, { wch: 38 }, { wch: 24 }, { wch: 36 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 30 }]
+  sh.cols = [{ wch: 5 }, { wch: 38 }, { wch: 24 }, { wch: 36 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, ...(rey ? [{ wch: 16 }] : []), { wch: 30 }]
   return sh
 }
 
@@ -510,6 +515,11 @@ const fileStem = (d: BaholarExportData) => `${d.guruh}. ${d.semestr}-s`
 /** Baza uchun: 1) reyting (100 ball), 2) 5 ballik, 3) malakaviy amaliyot */
 export function exportBaza(d: BaholarExportData) {
   return yozish(d, baholarFileName(d), (add) => {
+    if (d.faqat5) {
+      add(jadval(d, false), '#', '0F766E')
+      add(amaliyotSheet(d), 'Malakaviy amaliyot', 'BE123C')
+      return [[1, 3, 6], [2, 2, 3]]
+    }
     add(jadval(d, true), '# (Reyting)', '7C3AED')
     add(jadval(d, false), '#', '0F766E')
     add(amaliyotSheet(d), 'Malakaviy amaliyot', 'BE123C')

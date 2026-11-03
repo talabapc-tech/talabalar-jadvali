@@ -3,8 +3,9 @@
 /*
   O'qituvchi baho qo'yadigan sahifa (/baholar/ulashilgan?token=...).
   Havola bitta fan uchun yoki guruhning shu semestrdagi BARCHA fanlari uchun bo'lishi mumkin.
-  Barcha fanlarda: yuqorida fanlar tablari (har birida baholangan talabalar soni), o'qituvchi fanlarni
-  almashtirib baho qo'yadi, "Saqlash" esa barcha fanlardagi o'zgarishlarni birdaniga saqlaydi.
+  Barcha fanlarda: fan dropdown orqali tanlanadi (har birida baholangan talabalar soni) yoki
+  "Butun jadval" — barcha fanlar yonma-yon, asosiy portaldagi kabi. "Saqlash" barcha fanlardagi
+  o'zgarishlarni birdaniga saqlaydi. Ustun sarlavhasi bosilsa — baholarni boshqa ustunga ko'chirish.
 */
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -16,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   GraduationCap,
+  LayoutGrid,
   Layers,
   Loader2,
   Redo2,
@@ -25,6 +27,8 @@ import {
 } from 'lucide-react'
 import { parseBaho } from '@/lib/baholar'
 import { parseClipboardGrid, useEditHistory } from '@/lib/use-edit-history'
+import XScroll from '@/components/XScroll'
+import CopyColMenu from '@/components/CopyColMenu'
 
 interface StudentItem {
   tartib: number
@@ -56,6 +60,8 @@ type Col = (typeof COLS)[number]
 const COL_LABEL: Record<Col, string> = { yakuniy: 'Yakuniy', joriy: 'Joriy', oraliq: 'Oraliq', r_semestr: 'R-semestr' }
 /** Telefonda tor ustun sarlavhalari */
 const COL_SHORT: Record<Col, string> = { yakuniy: 'Yak.', joriy: 'Jor.', oraliq: 'Ora.', r_semestr: 'R-sem' }
+const COL_LIST = COLS.map((key) => ({ key, label: COL_LABEL[key] }))
+const BUTUN = '__butun__'
 
 /** Tahrir kaliti: pinfl|fan|ustun (fan nomida "|" bo'lsa ham pinfl boshida, ustun oxirida) */
 const editKey = (pinfl: string, fan: string, col: Col) => `${pinfl}|${fan}|${col}`
@@ -74,6 +80,9 @@ function TeacherGradesContent() {
   const [students, setStudents] = useState<StudentItem[]>([])
   const [fanlar, setFanlar] = useState<string[]>([])
   const [activeFan, setActiveFan] = useState('')
+  /** Barcha fanlar yonma-yon (butun jadval) — keng ekranda boshlang'ich ko'rinish */
+  const [butun, setButun] = useState(false)
+  const butunInit = useRef(false)
   const [gradesMap, setGradesMap] = useState<Record<string, GradeRow>>({}) // key: pinfl|fan
 
   // Tahrirlar (key: pinfl|fan|ustun) — Undo / Redo tarixi bilan
@@ -85,7 +94,6 @@ function TeacherGradesContent() {
   const [savedSuccess, setSavedSuccess] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'info' | 'success'; text: string } | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
-  const tabsRef = useRef<HTMLDivElement>(null)
 
   const loadData = useCallback(
     async (keepFan?: string) => {
@@ -114,6 +122,10 @@ function TeacherGradesContent() {
 
         const sh = data.share as ShareData
         const list: string[] = Array.isArray(data.fanlar) && data.fanlar.length ? data.fanlar : sh.allFanlar ? [] : [sh.fan]
+        if (!butunInit.current) {
+          butunInit.current = true
+          setButun(list.length > 1 && window.innerWidth >= 1024)
+        }
         setShare(sh)
         setStudents(data.students || [])
         setFanlar(list)
@@ -166,18 +178,43 @@ function TeacherGradesContent() {
     [edits, origVal],
   )
 
-  const setCells = (cells: { pinfl: string; col: Col; value: string }[], fan = activeFan) => {
+  const setCells = (cells: { pinfl: string; col: Col; value: string; fan?: string }[], fan = activeFan) => {
     setSavedSuccess(false)
     setMessage(null)
     applyEdits((prev) => {
       const next = { ...prev }
       for (const c of cells) {
-        const key = editKey(c.pinfl, fan, c.col)
+        const f = c.fan ?? fan
+        const key = editKey(c.pinfl, f, c.col)
         const v = c.value.trim()
-        if (v === origVal(c.pinfl, fan, c.col)) delete next[key]
+        if (v === origVal(c.pinfl, f, c.col)) delete next[key]
         else next[key] = v
       }
       return next
+    })
+  }
+
+  /** Fandagi bir ustun baholarini (masalan Yakuniy) boshqa ustun(lar)ga ko'chirish — bitta Undo qadami */
+  const copyCol = (fan: string, from: Col, to: Col[], onlyEmpty: boolean) => {
+    const cells: { pinfl: string; col: Col; value: string; fan: string }[] = []
+    for (const s of students) {
+      const v = getShownVal(s.pinfl, fan, from).trim()
+      if (!v || parseBaho(v) === undefined) continue
+      for (const col of to) {
+        const cur = getShownVal(s.pinfl, fan, col).trim()
+        if (cur === v || (onlyEmpty && cur)) continue
+        cells.push({ pinfl: s.pinfl, col, value: v, fan })
+      }
+    }
+    const nomlar = to.map((c) => COL_LABEL[c]).join(', ')
+    if (!cells.length) {
+      setMessage({ type: 'info', text: `Ko'chiriladigan baho yo'q — ${COL_LABEL[from]} bo'sh yoki ${nomlar} allaqachon bir xil.` })
+      return
+    }
+    setCells(cells)
+    setMessage({
+      type: 'success',
+      text: `«${fan}»: ${COL_LABEL[from]} → ${nomlar} — ${cells.length} ta katak to'ldirildi. Saqlashni unutmang (Ctrl+Z — bekor qilish).`,
     })
   }
 
@@ -206,13 +243,8 @@ function TeacherGradesContent() {
     (i: number) => {
       const f = fanlar[i]
       if (!f) return
+      setButun(false)
       setActiveFan(f)
-      // Tanlangan tab ko'rinadigan joyga suriladi
-      requestAnimationFrame(() =>
-        tabsRef.current
-          ?.querySelector<HTMLElement>(`[data-fan-idx="${i}"]`)
-          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }),
-      )
     },
     [fanlar],
   )
@@ -223,7 +255,7 @@ function TeacherGradesContent() {
       setMessage({ type: 'error', text: "Noto'g'ri baho kiritilgan (qizil katak)! Faqat 2, 3, 4 yoki 5 bo'lishi kerak." })
       // Birinchi noto'g'ri katak bor fanga o'tish
       const bad = Object.entries(edits).find(([, v]) => isInvalid(v))
-      if (bad) {
+      if (bad && !butun) {
         const i = fanlar.indexOf(splitKey(bad[0]).fan)
         if (i >= 0) goFan(i)
       }
@@ -281,7 +313,7 @@ function TeacherGradesContent() {
       savingRef.current = false
       setSaving(false)
     }
-  }, [dirtyCount, token, edits, invalidCount, getShownVal, loadData, activeFan, fanlar, goFan])
+  }, [dirtyCount, token, edits, invalidCount, getShownVal, loadData, activeFan, fanlar, goFan, butun])
 
   // Global tezkor klavishlar
   useEffect(() => {
@@ -294,7 +326,7 @@ function TeacherGradesContent() {
         return
       }
       // Alt + ← / →: oldingi / keyingi fan
-      if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && fanlar.length > 1) {
+      if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && fanlar.length > 1 && !butun) {
         e.preventDefault()
         goFan(e.key === 'ArrowRight' ? Math.min(fanIdx + 1, fanlar.length - 1) : Math.max(fanIdx - 1, 0))
         return
@@ -318,13 +350,13 @@ function TeacherGradesContent() {
     }
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [handleUndo, handleRedo, handleSave, dirtyCount, saving, fanlar.length, fanIdx, goFan])
+  }, [handleUndo, handleRedo, handleSave, dirtyCount, saving, fanlar.length, fanIdx, goFan, butun])
 
   const handleKeyNav = (e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, colIndex: number) => {
     if (e.altKey) return // Alt+strelka — fan almashtirish
     let nextRow = rowIndex
     let nextCol = colIndex
-    const last = COLS.length - 1
+    const last = (butun ? fanlar.length * COLS.length : COLS.length) - 1
 
     if (e.key === 'ArrowDown') nextRow = rowIndex + 1
     else if (e.key === 'ArrowUp') nextRow = rowIndex - 1
@@ -378,14 +410,17 @@ function TeacherGradesContent() {
     const grid = parseClipboardGrid(e.clipboardData.getData('text'))
     if (!grid.length) return
     e.preventDefault()
-    const cells: { pinfl: string; col: Col; value: string }[] = []
+    const cells: { pinfl: string; col: Col; value: string; fan: string }[] = []
     let skipped = 0
     grid.forEach((line, rOffset) => {
       const st = students[startR + rOffset]
       if (!st) return
       line.forEach((raw, cOffset) => {
-        const col = COLS[startC + cOffset]
-        if (!col) return
+        const i = startC + cOffset
+        // Butun jadvalda katak raqami: fan × 4 + ustun
+        const col = butun ? COLS[i % COLS.length] : COLS[i]
+        const fan = butun ? fanlar[Math.floor(i / COLS.length)] : activeFan
+        if (!col || !fan) return
         const v = raw.trim()
         if (!v) return
         const p = parseBaho(v)
@@ -393,7 +428,7 @@ function TeacherGradesContent() {
           skipped++
           return
         }
-        cells.push({ pinfl: st.pinfl, col, value: String(p) })
+        cells.push({ pinfl: st.pinfl, col, value: String(p), fan })
       })
     })
     if (cells.length) setCells(cells)
@@ -430,10 +465,53 @@ function TeacherGradesContent() {
   const multi = fanlar.length > 1 || !!share.allFanlar
   const totalDone = [...fanStats.values()].reduce((a, s) => a + s.done, 0)
   const totalCells = fanlar.length * students.length
+  const keng = multi && butun && fanlar.length > 0
+
+  /** Baho katagi (bitta fan ko'rinishi ham, butun jadval ham) */
+  const cell = (s: StudentItem, r: number, fan: string, col: Col, idx: number, className = '') => {
+    const val = getShownVal(s.pinfl, fan, col)
+    const isEdited = editKey(s.pinfl, fan, col) in edits
+    const bad = isInvalid(val)
+    return (
+      <td key={fan + col} className={`py-2 px-0.5 sm:px-2 text-center ${className}`}>
+        <input
+          data-cell={`${r}:${idx}`}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          autoComplete="off"
+          aria-label={`${s.name} — ${fan} — ${COL_LABEL[col]}`}
+          value={val}
+          onChange={(e) => setCells([{ pinfl: s.pinfl, col, value: e.target.value, fan }])}
+          onKeyDown={(e) => handleKeyNav(e, r, idx)}
+          onPaste={(e) => handlePaste(e, r, idx)}
+          onFocus={(e) => e.currentTarget.select()}
+          className={`h-9 w-9 ${keng ? 'sm:w-10' : 'sm:w-12'} rounded-lg border text-center text-[14px] font-bold tabular-nums outline-none transition-all ${
+            bad
+              ? 'border-rose bg-rose/10 text-rose'
+              : isEdited
+                ? 'border-amber/70 bg-amber/15 text-fg'
+                : 'border-line bg-ink-950 text-fg focus:border-sky focus:ring-1 focus:ring-sky/40'
+          } ${col === 'r_semestr' && !bad && !isEdited ? 'border-amber/40 text-amber' : ''}`}
+        />
+      </td>
+    )
+  }
+  const colHead = (fan: string, c: Col, short = false) => (
+    <CopyColMenu from={c} cols={COL_LIST} title={fan} onCopy={(to, onlyEmpty) => copyCol(fan, c, to, onlyEmpty)}
+      className="inline-flex items-center gap-0.5 rounded px-1 uppercase hover:bg-ink-800 hover:text-fg">
+      {short ? COL_SHORT[c] : (
+        <>
+          <span className="sm:hidden">{COL_SHORT[c]}</span>
+          <span className="hidden sm:inline">{COL_LABEL[c]}</span>
+        </>
+      )}
+    </CopyColMenu>
+  )
 
   return (
     <div className="min-h-screen bg-ink-950 text-fg p-3 sm:p-6 pb-20">
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className={`${keng ? 'max-w-[1800px]' : 'max-w-4xl'} mx-auto space-y-4`}>
         {/* Yuqori Panel */}
         <div className="panel p-4 sm:p-5 bg-ink-900 border-line shadow-xl space-y-3.5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -546,47 +624,55 @@ function TeacherGradesContent() {
           </div>
         </div>
 
-        {/* Fanlar tablari (barcha fanlar havolasida) */}
+        {/* Fan tanlash (barcha fanlar havolasida): dropdown + butun jadval */}
         {multi && fanlar.length > 0 && (
-          <div className="panel p-2 bg-ink-900 border-line">
-            <div ref={tabsRef} role="tablist" aria-label="Fanlar" className="flex gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+          <div className="panel flex flex-wrap items-center gap-2 p-2 bg-ink-900 border-line">
+            <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
+              <button
+                type="button"
+                onClick={() => setButun(true)}
+                aria-pressed={butun}
+                className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-bold transition-colors ${butun ? 'bg-sky text-white' : 'text-fg-muted hover:text-fg'}`}
+              >
+                <LayoutGrid size={14} /> Butun jadval
+              </button>
+              <button
+                type="button"
+                onClick={() => goFan(fanIdx)}
+                aria-pressed={!butun}
+                className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-bold transition-colors ${!butun ? 'bg-sky text-white' : 'text-fg-muted hover:text-fg'}`}
+              >
+                <BookOpen size={14} /> Bitta fan
+              </button>
+            </div>
+            <select
+              value={butun ? BUTUN : activeFan}
+              onChange={(e) => (e.target.value === BUTUN ? setButun(true) : goFan(fanlar.indexOf(e.target.value)))}
+              aria-label="Fanni tanlash"
+              className="field h-9 min-w-[14rem] flex-1 cursor-pointer py-0 text-[13px] font-semibold"
+            >
+              <option value={BUTUN}>Barcha fanlar — butun jadval ({fanlar.length} ta fan)</option>
               {fanlar.map((f, i) => {
                 const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
-                const active = f === activeFan
                 const full = students.length > 0 && st.done === students.length
                 return (
-                  <button
-                    key={f}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    data-fan-idx={i}
-                    onClick={() => goFan(i)}
-                    className={`relative shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
-                      active
-                        ? 'border-sky/60 bg-sky/15 text-fg'
-                        : 'border-line bg-ink-950 text-fg-muted hover:text-fg hover:border-line/80'
-                    }`}
-                    title={f}
-                  >
-                    <div className="max-w-[13rem] truncate text-[12.5px] font-bold">
-                      {i + 1}. {f}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[10.5px] font-semibold">
-                      <span className={full ? 'text-emerald-soft' : 'text-fg-subtle'}>
-                        {full ? '✓ ' : ''}
-                        {st.done}/{students.length}
-                      </span>
-                      {st.dirty > 0 && (
-                        <span className={st.bad ? 'text-rose' : 'text-amber'}>
-                          · {st.dirty} {st.bad ? 'xato' : "o'zgarish"}
-                        </span>
-                      )}
-                    </div>
-                  </button>
+                  <option key={f} value={f}>
+                    {i + 1}. {f} — {full ? '✓ ' : ''}{st.done}/{students.length}
+                    {st.dirty > 0 ? ` · ${st.dirty} ${st.bad ? 'xato' : "o'zgarish"}` : ''}
+                  </option>
                 )
               })}
-            </div>
+            </select>
+            {!butun && (
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => goFan(fanIdx - 1)} disabled={fanIdx === 0} className="btn-ghost size-9 p-0 disabled:opacity-30" title="Oldingi fan (Alt + ←)" aria-label="Oldingi fan">
+                  <ChevronLeft size={16} />
+                </button>
+                <button type="button" onClick={() => goFan(fanIdx + 1)} disabled={fanIdx >= fanlar.length - 1} className="btn-ghost size-9 p-0 disabled:opacity-30" title="Keyingi fan (Alt + →)" aria-label="Keyingi fan">
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -625,9 +711,70 @@ function TeacherGradesContent() {
           </div>
         )}
 
+        {/* Butun jadval: barcha fanlar yonma-yon */}
+        {keng && students.length > 0 && (
+          <div className="panel overflow-clip border-line bg-ink-900 shadow-2xl">
+            <XScroll ref={tableRef}>
+              <table className="text-left text-[13px] border-collapse">
+                <thead className="sticky top-0 z-10 bg-ink-950 border-b border-line text-[10.5px] font-bold text-fg-subtle uppercase tracking-wider">
+                  <tr>
+                    <th rowSpan={2} className="sticky left-0 z-20 w-9 sm:w-11 bg-ink-950 py-2 px-1 text-center border-b border-line">№</th>
+                    <th rowSpan={2} className="sticky left-9 sm:left-11 z-20 min-w-[9rem] sm:min-w-[15rem] bg-ink-950 py-2 px-2 sm:px-3 border-b border-r border-line">Talaba F.I.Sh.</th>
+                    {fanlar.map((f, fi) => {
+                      const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
+                      return (
+                        <th key={f} colSpan={COLS.length} className="border-b border-r border-line px-2 py-1.5 text-center normal-case tracking-normal">
+                          <button
+                            type="button"
+                            onClick={() => goFan(fi)}
+                            className="mx-auto block max-w-[15rem] truncate text-[12px] font-extrabold text-fg hover:text-sky-soft"
+                            title={`${f} — faqat shu fanni ochish`}
+                          >
+                            {fi + 1}. {f}
+                          </button>
+                          <span className={`text-[10.5px] font-semibold ${students.length && st.done === students.length ? 'text-emerald-soft' : 'text-fg-subtle'}`}>
+                            {st.done}/{students.length}
+                            {st.dirty > 0 && <span className={st.bad ? 'text-rose' : 'text-amber'}> · {st.dirty} {st.bad ? 'xato' : "o'zgarish"}</span>}
+                          </span>
+                        </th>
+                      )
+                    })}
+                  </tr>
+                  <tr>
+                    {fanlar.map((f) =>
+                      COLS.map((c, ci) => (
+                        <th
+                          key={f + c}
+                          className={`border-b border-line bg-ink-900 px-0.5 py-1 text-center whitespace-nowrap ${c === 'r_semestr' ? 'text-amber' : ''} ${ci === COLS.length - 1 ? 'border-r' : ''}`}
+                        >
+                          {colHead(f, c, true)}
+                        </th>
+                      )),
+                    )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line/40">
+                  {students.map((s, r) => (
+                    <tr key={s.pinfl} className="group">
+                      <td className="sticky left-0 z-[1] bg-ink-900 group-hover:bg-ink-850 py-2 px-1 text-center text-[12px] font-mono text-fg-muted">{s.tartib}</td>
+                      <td className="sticky left-9 sm:left-11 z-[1] bg-ink-900 group-hover:bg-ink-850 py-2 px-2 sm:px-3 border-r border-line text-[12.5px] leading-snug font-semibold text-fg sm:whitespace-nowrap">{s.name}</td>
+                      {fanlar.map((f, fi) =>
+                        COLS.map((col, c) => cell(s, r, f, col, fi * COLS.length + c, c === COLS.length - 1 ? 'border-r border-line' : '')),
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </XScroll>
+            <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle">
+              Baho faqat 2, 3, 4 yoki 5. Ustun nomini bosing — baholarni boshqa ustunga ko‘chirish (masalan Yakuniy → Oraliq). Fan nomini bosing — faqat shu fan ochiladi.
+            </div>
+          </div>
+        )}
+
         {/* Baholar Jadvali (tanlangan fan) */}
-        {activeFan && students.length > 0 && (
-          <div className="panel overflow-hidden border-line bg-ink-900 shadow-2xl">
+        {!keng && activeFan && students.length > 0 && (
+          <div className="panel overflow-clip border-line bg-ink-900 shadow-2xl">
             {multi && (
               <div className="flex items-center gap-2 border-b border-line bg-ink-950/70 px-3 py-2.5">
                 <BookOpen size={16} className="text-sky shrink-0" />
@@ -637,7 +784,7 @@ function TeacherGradesContent() {
                 </span>
               </div>
             )}
-            <div ref={tableRef} className="overflow-x-auto max-h-[70vh]">
+            <XScroll ref={tableRef}>
               <table className="w-full text-left text-[13px] border-collapse">
                 <thead className="sticky top-0 z-10 bg-ink-950/95 backdrop-blur-sm border-b border-line text-[11px] font-bold text-fg-subtle uppercase tracking-wider">
                   <tr>
@@ -647,10 +794,8 @@ function TeacherGradesContent() {
                       <th
                         key={c}
                         className={`py-3 px-0.5 sm:px-2 text-center whitespace-nowrap ${c === 'r_semestr' ? 'sm:w-24 text-amber' : 'sm:w-20'}`}
-                        title={COL_LABEL[c]}
                       >
-                        <span className="sm:hidden">{COL_SHORT[c]}</span>
-                        <span className="hidden sm:inline">{COL_LABEL[c]}</span>
+                        {colHead(activeFan, c)}
                       </th>
                     ))}
                   </tr>
@@ -660,40 +805,12 @@ function TeacherGradesContent() {
                     <tr key={s.pinfl} className="hover:bg-ink-850/60 transition-colors">
                       <td className="py-2.5 px-1 sm:px-3 text-center text-[12px] font-mono text-fg-muted">{s.tartib}</td>
                       <td className="py-2.5 px-1.5 sm:px-4 text-[12.5px] sm:text-[13px] leading-snug font-semibold text-fg">{s.name}</td>
-                      {COLS.map((col, c) => {
-                        const val = getShownVal(s.pinfl, activeFan, col)
-                        const isEdited = editKey(s.pinfl, activeFan, col) in edits
-                        const bad = isInvalid(val)
-                        return (
-                          <td key={col} className="py-2 px-0.5 sm:px-2 text-center">
-                            <input
-                              data-cell={`${r}:${c}`}
-                              type="text"
-                              inputMode="numeric"
-                              maxLength={1}
-                              autoComplete="off"
-                              aria-label={`${s.name} — ${activeFan} — ${COL_LABEL[col]}`}
-                              value={val}
-                              onChange={(e) => setCells([{ pinfl: s.pinfl, col, value: e.target.value }])}
-                              onKeyDown={(e) => handleKeyNav(e, r, c)}
-                              onPaste={(e) => handlePaste(e, r, c)}
-                              onFocus={(e) => e.currentTarget.select()}
-                              className={`h-9 w-9 sm:w-12 rounded-lg border text-center text-[14px] font-bold tabular-nums outline-none transition-all ${
-                                bad
-                                  ? 'border-rose bg-rose/10 text-rose'
-                                  : isEdited
-                                    ? 'border-amber/70 bg-amber/15 text-fg'
-                                    : 'border-line bg-ink-950 text-fg focus:border-sky focus:ring-1 focus:ring-sky/40'
-                              }`}
-                            />
-                          </td>
-                        )
-                      })}
+                      {COLS.map((col, c) => cell(s, r, activeFan, col, c))}
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </XScroll>
 
             <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle flex flex-wrap items-center justify-between gap-2">
               {multi ? (

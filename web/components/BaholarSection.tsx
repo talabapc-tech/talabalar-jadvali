@@ -57,6 +57,8 @@ import {
 } from '@/lib/baholar'
 import { exportBaza, exportHisobot, exportQaydnomalar, type BaholarExportData, type ExportAmaliyot, type ExportGrade } from '@/lib/baholar-excel'
 import BaholarExportModal, { type ExportTanlov } from './BaholarExportModal'
+import XScroll from './XScroll'
+import CopyColMenu from './CopyColMenu'
 import { parseClipboardGrid, useEditHistory } from '@/lib/use-edit-history'
 import { useFlip, useSortable } from '@/lib/use-sortable'
 import type { Notify } from './Toast'
@@ -131,7 +133,7 @@ export default function BaholarSection({
   const [guruh, setGuruh] = useState('')
   const [semestr, setSemestr] = useState<number>(1)
   const [view, setView] = useState<SubView>('baholar')
-  const [birlik, setBirlik] = useState<Birlik>('ball5')
+  const [birlikTanlov, setBirlik] = useState<Birlik>('ball5')
   const [data, setData] = useState<BaholarPayload | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<{ text: string; setup: boolean } | null>(null)
@@ -196,11 +198,11 @@ export default function BaholarSection({
   useEffect(() => {
     if (!prefsLoaded) return
     try {
-      localStorage.setItem(PREF_KEY, JSON.stringify({ guruh, semestr, view, birlik }))
+      localStorage.setItem(PREF_KEY, JSON.stringify({ guruh, semestr, view, birlik: birlikTanlov }))
     } catch {
       /* bo'sh */
     }
-  }, [guruh, semestr, view, birlik, prefsLoaded])
+  }, [guruh, semestr, view, birlikTanlov, prefsLoaded])
 
   // Talabalarning maxsus tartibini yuklash: avval brauzer keshidan (tez), keyin serverdan (asosiy manba)
   useEffect(() => {
@@ -263,6 +265,12 @@ export default function BaholarSection({
       return fullName(a).localeCompare(fullName(b))
     })
   }, [baseRows, studentOrder])
+
+  /** 2 yillik guruhlar faqat 5 ballik tizimda baholanadi — 100 ballik reyting ko'rsatilmaydi */
+  const faqat5 = curriculumPlan
+    ? /2\s*yillik/i.test(curriculumPlan.muddati || '')
+    : rows.some((s) => /2\s*yillik/i.test(s.yon || ''))
+  const birlik: Birlik = faqat5 ? 'ball5' : birlikTanlov
 
   /*
     Tartibni serverga yuborish kechiktiriladi (1,5 s): ketma-ket bir nechta ko'chirish bitta saqlash
@@ -351,7 +359,10 @@ export default function BaholarSection({
     captureTable()
     captureModal()
   }
-  const tableSort = useSortable({ containerRef: tableRef, onMove: handleReorder })
+  // Jadval ichki scrollsiz — sudrashda chetga yetganda sahifaning o'zi aylanadi
+  const pageScrollRef = useRef<HTMLElement | null>(null)
+  useEffect(() => { pageScrollRef.current = document.scrollingElement as HTMLElement | null }, [])
+  const tableSort = useSortable({ containerRef: tableRef, scrollRef: pageScrollRef, onMove: handleReorder })
   const modalSort = useSortable({ containerRef: reorderListRef, onMove: handleReorder })
 
   /** Tugma bilan ko'chirish — silliq animatsiya bilan */
@@ -588,6 +599,28 @@ export default function BaholarSection({
   }
   const setCell = (pinfl: string, fan: string, key: Kiritiladigan, value: string) =>
     setCells([{ pinfl, fan, key, value }])
+
+  /** Fandagi bir ustun baholarini (masalan Yakuniy) boshqa ustun(lar)ga ko'chirish — bitta Undo qadami */
+  const copyColumn = (fan: string, from: Kiritiladigan, to: Kiritiladigan[], onlyEmpty: boolean) => {
+    const cells: { pinfl: string; fan: string; key: Kiritiladigan; value: string }[] = []
+    for (const s of rows) {
+      const v = shown(s.pinfl, fan, from).trim()
+      if (!v || parseBaho(v) === undefined) continue
+      for (const k of to) {
+        const cur = shown(s.pinfl, fan, k).trim()
+        if (cur === v || (onlyEmpty && cur)) continue
+        cells.push({ pinfl: s.pinfl, fan, key: k, value: v })
+      }
+    }
+    const nomlar = to.map((k) => BAHO_TURLARI.find((t) => t.key === k)?.label).join(', ')
+    const from_ = BAHO_TURLARI.find((t) => t.key === from)?.label
+    if (!cells.length) {
+      notify(`«${fan}»: ko'chiriladigan baho yo'q — ${from_} bo'sh yoki ${nomlar} allaqachon bir xil`, 'info')
+      return
+    }
+    setCells(cells)
+    notify(`«${fan}»: ${from_} → ${nomlar} — ${cells.length} ta katak to'ldirildi. Saqlashni unutmang (Ctrl+Z — bekor qilish)`, 'success')
+  }
 
   const invalidCount = useMemo(
     () => Object.values(edits).filter((v) => parseBaho(v) === undefined).length,
@@ -1088,6 +1121,7 @@ export default function BaholarSection({
       fanlar: turi === 'qaydnoma' && tanlangan.length ? tanlangan : semFanlar,
       grade: (i, fan) => (talabalar[i].pinfl ? gradeOf(talabalar[i].pinfl, fan) : BOSH),
       amaliyot,
+      faqat5,
     }
     if (turi === 'baza') await exportBaza(d)
     else if (turi === 'qaydnoma') await exportQaydnomalar(d)
@@ -1419,7 +1453,7 @@ export default function BaholarSection({
       )}
 
       {data && view === 'baholar' && (
-        <div className="panel overflow-hidden border-line bg-ink-900/60 shadow-xl">
+        <div className="panel overflow-clip border-line bg-ink-900/60 shadow-xl">
           {/* Sub-Header: Holat, Fanlar yangilash, Fanlar filtri, Reyting/5-ball switch va Fan qo'shish */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line p-3 bg-ink-950/40">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1494,7 +1528,12 @@ export default function BaholarSection({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* 5 ball yoki Reyting (100) tanlagich */}
+              {/* 5 ball yoki Reyting (100) tanlagich; 2 yillik guruhda faqat 5 ballik */}
+              {faqat5 ? (
+                <span className="chip border-emerald/40 bg-emerald/10 text-emerald-soft" title="2 yillik guruhlar faqat 5 ballik tizimda baholanadi">
+                  Faqat 5 ballik · 2 yillik
+                </span>
+              ) : (
               <div
                 className="flex gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5"
                 role="group"
@@ -1519,6 +1558,7 @@ export default function BaholarSection({
                   </button>
                 ))}
               </div>
+              )}
 
               {/* Yangi fan qo'shish */}
               <form
@@ -1578,7 +1618,7 @@ export default function BaholarSection({
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>
           ) : (
             /* ASOSIY JADVAL */
-            <div ref={tableRef} className="max-h-[62vh] sm:max-h-[72vh] overflow-auto">
+            <XScroll ref={tableRef}>
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
                 <thead className="sticky top-0 z-20">
                   <tr>
@@ -1666,7 +1706,18 @@ export default function BaholarSection({
                             ti === BAHO_TURLARI.length - 1 && 'border-r',
                           )}
                         >
-                          {t.label}
+                          {birlik === 'reyting' ? (
+                            t.label
+                          ) : (
+                            <CopyColMenu
+                              from={t.key as Kiritiladigan}
+                              cols={BAHO_TURLARI}
+                              title={f.nom}
+                              onCopy={(to, onlyEmpty) => copyColumn(f.nom, t.key, to, onlyEmpty)}
+                            >
+                              {t.label}
+                            </CopyColMenu>
+                          )}
                         </th>
                       )),
                     )}
@@ -1792,7 +1843,7 @@ export default function BaholarSection({
                   })}
                 </tbody>
               </table>
-            </div>
+            </XScroll>
           )}
 
           {/* Pastki eslatma */}
@@ -1914,7 +1965,7 @@ export default function BaholarSection({
           {rows.length === 0 ? (
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>
           ) : (
-            <div ref={tableRef} className="max-h-[60vh] sm:max-h-[68vh] overflow-auto">
+            <XScroll ref={tableRef}>
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
                 <thead className="sticky top-0 z-20">
                   <tr className="text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
@@ -1930,9 +1981,11 @@ export default function BaholarSection({
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Boshlanish</th>
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Tugash</th>
                     <th className="border-b border-line bg-ink-900 px-2 py-2">Baho</th>
-                    <th className="border-b border-line bg-ink-900 px-2 py-2" title="Avtomatik hosil qilinadi">
-                      Reyting
-                    </th>
+                    {!faqat5 && (
+                      <th className="border-b border-line bg-ink-900 px-2 py-2" title="Avtomatik hosil qilinadi">
+                        Reyting
+                      </th>
+                    )}
                     <th className="min-w-[12rem] border-b border-line bg-ink-900 px-2 py-2 text-left">
                       Izoh
                     </th>
@@ -1993,14 +2046,16 @@ export default function BaholarSection({
                             onFocus={(e) => e.currentTarget.select()}
                           />
                         </td>
-                        <td
-                          className={cx(
-                            'border-b border-line px-2 py-1 text-center font-semibold tabular-nums',
-                            rey === null ? 'text-fg-subtle' : BAHO_RANG[bahoOf(rey)],
-                          )}
-                        >
-                          {rey ?? '—'}
-                        </td>
+                        {!faqat5 && (
+                          <td
+                            className={cx(
+                              'border-b border-line px-2 py-1 text-center font-semibold tabular-nums',
+                              rey === null ? 'text-fg-subtle' : BAHO_RANG[bahoOf(rey)],
+                            )}
+                          >
+                            {rey ?? '—'}
+                          </td>
+                        )}
                         <td className="border-b border-line px-1 py-1">
                           <input
                             className={txt('izoh')}
@@ -2014,7 +2069,7 @@ export default function BaholarSection({
                   })}
                 </tbody>
               </table>
-            </div>
+            </XScroll>
           )}
         </div>
       )}
@@ -2204,10 +2259,18 @@ export default function BaholarSection({
                   <tr>
                     <th className="py-2.5 px-3 w-12 text-center">№</th>
                     <th className="py-2.5 px-4 min-w-[200px]">Talaba F.I.Sh.</th>
-                    <th className="py-2.5 px-2 w-20 text-center">Yakuniy</th>
-                    <th className="py-2.5 px-2 w-20 text-center">Joriy</th>
-                    <th className="py-2.5 px-2 w-20 text-center">Oraliq</th>
-                    <th className="py-2.5 px-2 w-24 text-center text-amber">R-semestr</th>
+                    {BAHO_TURLARI.map((t) => (
+                      <th key={t.key} className={cx('py-2.5 px-2 text-center', t.key === 'r_semestr' ? 'w-24 text-amber' : 'w-20')}>
+                        <CopyColMenu
+                          from={t.key as Kiritiladigan}
+                          cols={BAHO_TURLARI}
+                          title={focusedFan}
+                          onCopy={(to, onlyEmpty) => copyColumn(focusedFan, t.key, to, onlyEmpty)}
+                        >
+                          {t.label}
+                        </CopyColMenu>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/40">
@@ -2277,6 +2340,7 @@ export default function BaholarSection({
           semestr={semestr}
           plan={curriculumPlan}
           joriyFanlar={joriyFanNomlari}
+          faqat5={faqat5}
           onClose={() => setExportOpen(false)}
           onExport={onExport}
         />
