@@ -10,22 +10,25 @@ import {
 import { loadStudents } from '@/lib/server/source'
 import { fullName } from '@/lib/student'
 import { getServiceSupabase } from '@/lib/supabase'
-import {
-  BALL_ORALIQ,
-  hisoblaReyting,
-  parseBaho,
-  reytingSeed,
-} from '@/lib/baholar'
+import { hisoblaReyting, isPinfl, parseBaho, reytingSeed } from '@/lib/baholar'
 
-function ballFor(seed: string, baho: number): number {
-  const [lo, hi] = BALL_ORALIQ[baho] || [60, 70]
-  let h = 0x811c9dc5
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i)
-    h = Math.imul(h, 0x01000193)
-  }
-  const factor = ((h >>> 0) % 1000) / 1000
-  return lo + Math.floor(factor * (hi - lo + 1))
+const fail = (error: string, status = 400) => Response.json({ ok: false, error }, { status })
+
+/** Havoladagi guruhning o'qituvchiga ko'rinadigan talabalari (maxsus tartib bilan) */
+async function shareStudents(share: { guruh: string; hiddenPinfls?: string[] }) {
+  const [allStudents, orders] = await Promise.all([loadStudents(), loadStudentOrders()])
+  const g = share.guruh.trim().toLowerCase()
+  const hiddenSet = new Set(share.hiddenPinfls || [])
+  const visible = allStudents.filter((s) => s.group.trim().toLowerCase() === g && s.pinfl && !hiddenSet.has(s.pinfl))
+  const groupOrder = orders[share.guruh] || []
+  const orderMap = new Map(groupOrder.map((pinfl, idx) => [pinfl, idx]))
+  visible.sort((a, b) => {
+    const ai = orderMap.get(a.pinfl) ?? 9999
+    const bi = orderMap.get(b.pinfl) ?? 9999
+    if (ai !== bi) return ai - bi
+    return fullName(a).localeCompare(fullName(b))
+  })
+  return visible
 }
 
 export async function GET(req: NextRequest) {
@@ -46,27 +49,7 @@ export async function GET(req: NextRequest) {
         )
       }
 
-      // Talabalarni yuklash
-      const allStudents = await loadStudents()
-      const groupStudents = allStudents.filter(
-        (s) => s.group.trim().toLowerCase() === share.guruh.toLowerCase() && s.pinfl,
-      )
-
-      // Yashirilgan talabalarni chiqarib tashlash
-      const hiddenSet = new Set(share.hiddenPinfls || [])
-      const visible = groupStudents.filter((s) => !hiddenSet.has(s.pinfl))
-
-      // Maxsus tartibni qo'llash
-      const orders = await loadStudentOrders()
-      const groupOrder = orders[share.guruh] || []
-      const orderMap = new Map(groupOrder.map((pinfl, idx) => [pinfl, idx]))
-
-      visible.sort((a, b) => {
-        const ai = orderMap.has(a.pinfl) ? orderMap.get(a.pinfl)! : 9999
-        const bi = orderMap.has(b.pinfl) ? orderMap.get(b.pinfl)! : 9999
-        if (ai !== bi) return ai - bi
-        return fullName(a).localeCompare(fullName(b))
-      })
+      const visible = await shareStudents(share)
 
       // Ushbu fan va semestr bo'yicha mavjud baholarni olish
       const db = getServiceSupabase()
@@ -77,6 +60,7 @@ export async function GET(req: NextRequest) {
         .eq('semestr', share.semestr)
         .eq('fan', share.fan)
 
+      if (gradesRes.error) return fail(gradesRes.error.message, 500)
       const grades = gradesRes.data || []
 
       return Response.json(
@@ -150,70 +134,57 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      const hiddenSet = new Set(share.hiddenPinfls || [])
+      if (items.length > 2000) return fail("Bir so'rovda 2000 tadan ortiq qator yuborib bo'lmaydi")
+
+      // O'qituvchi faqat havoladagi guruhning o'ziga ko'rinadigan talabalariga baho qo'ya oladi
+      const allowed = new Set((await shareStudents(share)).map((s) => s.pinfl))
       const db = getServiceSupabase()
       const now = new Date().toISOString()
       const upsertRows: Record<string, unknown>[] = []
       const deletePinfls: string[] = []
 
       for (const it of items) {
-        if (!it.pinfl || hiddenSet.has(it.pinfl)) continue // Yashirilgan talabani o'qituvchi o'zgartira olmaydi
-
-        const y = parseBaho(it.yakuniy)
-        const j = parseBaho(it.joriy)
-        const o = parseBaho(it.oraliq)
-        const r = parseBaho(it.r_semestr)
-
-        const isAllEmpty = y === null && j === null && o === null && r === null
-        if (isAllEmpty) {
+        if (!it || !isPinfl(it.pinfl) || !allowed.has(it.pinfl)) continue
+        const g = { yakuniy: parseBaho(it.yakuniy), joriy: parseBaho(it.joriy), oraliq: parseBaho(it.oraliq), r_semestr: parseBaho(it.r_semestr) }
+        for (const [k, v] of Object.entries(g)) {
+          if (v === undefined) return fail(`Baho noto'g'ri (faqat 2, 3, 4 yoki 5): ${k} = "${String(it[k as keyof typeof it])}"`)
+        }
+        const clean = g as Record<keyof typeof g, number | null>
+        if (Object.values(clean).every((v) => v === null)) {
           deletePinfls.push(it.pinfl)
           continue
         }
-
-        const seed = reytingSeed(it.pinfl, share.semestr, share.fan)
-        const calcReyting = hisoblaReyting(seed, {
-          yakuniy: y ?? null,
-          joriy: j ?? null,
-          oraliq: o ?? null,
-        })
-
-        const r100 = r !== null && r !== undefined ? ballFor(`${seed}|r_semestr`, r) : calcReyting.r100
-
+        // Reyting admin sahifasidagi bilan aynan bir xil qoida bo'yicha (lib/baholar.ts)
+        const rey = hisoblaReyting(reytingSeed(it.pinfl, share.semestr, share.fan), clean)
         upsertRows.push({
           pinfl: it.pinfl,
           guruh: share.guruh,
           semestr: share.semestr,
           fan: share.fan,
-          yakuniy: y ?? null,
-          joriy: j ?? null,
-          oraliq: o ?? null,
-          r_semestr: r ?? null,
-          yakuniy100: calcReyting.yakuniy100,
-          joriy100: calcReyting.joriy100,
-          oraliq100: calcReyting.oraliq100,
-          r100,
+          yakuniy: clean.yakuniy,
+          joriy: clean.joriy,
+          oraliq: clean.oraliq,
+          r_semestr: clean.r_semestr,
+          yakuniy100: rey.yakuniy100,
+          joriy100: rey.joriy100,
+          oraliq100: rey.oraliq100,
+          r100: rey.r100,
           updated_at: now,
         })
       }
 
       if (upsertRows.length) {
-        const { error: upsertErr } = await db
-          .from('baholar')
-          .upsert(upsertRows, { onConflict: 'pinfl,semestr,fan' })
-        if (upsertErr) {
-          return Response.json({ ok: false, error: upsertErr.message }, { status: 500 })
-        }
+        const { error } = await db.from('baholar').upsert(upsertRows, { onConflict: 'pinfl,semestr,fan' })
+        if (error) return fail(error.message, 500)
       }
-
       if (deletePinfls.length) {
-        for (const p of deletePinfls) {
-          await db
-            .from('baholar')
-            .delete()
-            .eq('pinfl', p)
-            .eq('semestr', share.semestr)
-            .eq('fan', share.fan)
-        }
+        const { error } = await db
+          .from('baholar')
+          .delete()
+          .in('pinfl', deletePinfls)
+          .eq('semestr', share.semestr)
+          .eq('fan', share.fan)
+        if (error) return fail(error.message, 500)
       }
 
       return Response.json({ ok: true, saved: upsertRows.length, deleted: deletePinfls.length })
@@ -229,9 +200,9 @@ export async function POST(req: NextRequest) {
       const share = await createShare({
         guruh: String(guruh),
         semestr: Number(semestr),
-        fan: String(fan),
-        teacherName: teacherName ? String(teacherName) : undefined,
-        hiddenPinfls: Array.isArray(hiddenPinfls) ? hiddenPinfls : [],
+        fan: String(fan).slice(0, 120),
+        teacherName: teacherName ? String(teacherName).slice(0, 120) : undefined,
+        hiddenPinfls: Array.isArray(hiddenPinfls) ? hiddenPinfls.filter(isPinfl) : [],
       })
 
       return Response.json({ ok: true, share })
@@ -242,13 +213,14 @@ export async function POST(req: NextRequest) {
       const { id, teacherName, hiddenPinfls, active, fan } = body
       if (!id) return Response.json({ ok: false, error: "ID kiritilmagan" }, { status: 400 })
 
-      const updated = await updateShare(String(id), {
-        teacherName,
-        hiddenPinfls,
-        active,
-        fan,
-      })
+      const updates: Parameters<typeof updateShare>[1] = {}
+      if (typeof teacherName === 'string') updates.teacherName = teacherName.trim().slice(0, 120)
+      if (Array.isArray(hiddenPinfls)) updates.hiddenPinfls = hiddenPinfls.filter(isPinfl)
+      if (typeof active === 'boolean') updates.active = active
+      if (typeof fan === 'string' && fan.trim()) updates.fan = fan.trim().slice(0, 120)
 
+      const updated = await updateShare(String(id), updates)
+      if (!updated) return fail('Havola topilmadi', 404)
       return Response.json({ ok: true, share: updated })
     }
 
@@ -258,7 +230,7 @@ export async function POST(req: NextRequest) {
       if (!id) return Response.json({ ok: false, error: "ID kiritilmagan" }, { status: 400 })
 
       const ok = await deleteShare(String(id))
-      return Response.json({ ok })
+      return ok ? Response.json({ ok: true }) : fail('Havola topilmadi', 404)
     }
 
     return Response.json({ ok: false, error: "Noma'lum amal" }, { status: 400 })

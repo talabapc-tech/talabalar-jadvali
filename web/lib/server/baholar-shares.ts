@@ -109,6 +109,11 @@ export async function loadStudentOrders(): Promise<Record<string, string[]>> {
 export async function saveStudentOrder(guruh: string, order: string[]): Promise<void> {
   if (!guruh || !Array.isArray(order)) return
   const current = await loadStudentOrders()
-  current[guruh.trim()] = order
+  const key = guruh.trim()
+  const prev = current[key] || []
+  // O'zgarish bo'lmasa GitHub'ga keraksiz commit qilinmaydi
+  if (prev.length === order.length && prev.every((p, i) => p === order[i])) return
+  if (order.length) current[key] = order
+  else delete current[key]
   await saveRepoJsonFile(ORDERS_PATH, current, `${guruh} guruhi talabalar tartibi yangilandi`)
 }

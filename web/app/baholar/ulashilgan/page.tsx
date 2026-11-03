@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react'
 import { parseBaho } from '@/lib/baholar'
+import { parseClipboardGrid, useEditHistory } from '@/lib/use-edit-history'
 
 interface StudentItem {
   tartib: number
@@ -48,14 +49,14 @@ function TeacherGradesContent() {
   const [share, setShare] = useState<ShareData | null>(null)
   const [students, setStudents] = useState<StudentItem[]>([])
   const [gradesMap, setGradesMap] = useState<Record<string, GradeRow>>({})
-  const [edits, setEdits] = useState<Record<string, string>>({}) // key: pinfl|col
-
-  // Undo / Redo
-  const [undoStack, setUndoStack] = useState<Record<string, string>[]>([])
-  const [redoStack, setRedoStack] = useState<Record<string, string>[]>([])
+  // key: pinfl|col — Undo / Redo tarixi bilan
+  const history = useEditHistory()
+  const { edits, apply: applyEdits, reset: resetEdits, undo: handleUndo, redo: handleRedo } = history
 
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
   const [savedSuccess, setSavedSuccess] = useState(false)
+  const [message, setMessage] = useState<{ type: 'error' | 'info'; text: string } | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
 
   const loadData = useCallback(async () => {
@@ -71,7 +72,16 @@ function TeacherGradesContent() {
       const res = await fetch(`/api/baholar/share?token=${encodeURIComponent(token)}`, {
         cache: 'no-store',
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!data) {
+        // Login sahifasiga yo'naltirilgan yoki server JSON qaytarmagan
+        setError(
+          res.status === 401 || res.redirected
+            ? "Sayt bu havolani loginsiz ochishga ruxsat bermadi. Ma'muriyatga murojaat qiling."
+            : `Server javobi noto'g'ri (${res.status})`,
+        )
+        return
+      }
       if (!res.ok || !data.ok) {
         setError(data.error || 'Havola yaroqsiz yoki muddati tugagan')
         return
@@ -85,90 +95,79 @@ function TeacherGradesContent() {
         map[g.pinfl] = g
       }
       setGradesMap(map)
-      setEdits({})
-      setUndoStack([])
-      setRedoStack([])
+      resetEdits({})
     } catch (err) {
       setError(`Server bilan aloqa xatosi: ${(err as Error).message}`)
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [token, resetEdits])
 
   useEffect(() => {
     void loadData()
   }, [loadData])
 
+  const dirtyCount = Object.keys(edits).length
+
+  // Saqlanmagan baholar bilan sahifa yopilsa ogohlantirish
+  useEffect(() => {
+    if (!dirtyCount) return
+    const h = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', h)
+    return () => window.removeEventListener('beforeunload', h)
+  }, [dirtyCount])
+
   const cols = useMemo(() => ['yakuniy', 'joriy', 'oraliq', 'r_semestr'] as const, [])
 
-  const getShownVal = (pinfl: string, col: (typeof cols)[number]) => {
-    const editKey = `${pinfl}|${col}`
-    if (editKey in edits) return edits[editKey]
-    const val = gradesMap[pinfl]?.[col]
-    return val !== null && val !== undefined ? String(val) : ''
-  }
+  const origVal = useCallback(
+    (pinfl: string, col: (typeof cols)[number]) => {
+      const val = gradesMap[pinfl]?.[col]
+      return val !== null && val !== undefined ? String(val) : ''
+    },
+    [gradesMap],
+  )
 
-  const handleCellChange = (pinfl: string, col: (typeof cols)[number], val: string) => {
+  const getShownVal = useCallback(
+    (pinfl: string, col: (typeof cols)[number]) => edits[`${pinfl}|${col}`] ?? origVal(pinfl, col),
+    [edits, origVal],
+  )
+
+  const setCells = (cells: { pinfl: string; col: (typeof cols)[number]; value: string }[]) => {
     setSavedSuccess(false)
-    const key = `${pinfl}|${col}`
-    const original = gradesMap[pinfl]?.[col]
-    const origStr = original !== null && original !== undefined ? String(original) : ''
-    if ((edits[key] ?? origStr) === val.trim()) return
-
-    // Undo stack
-    setUndoStack((u) => [...u.slice(-50), edits])
-    setRedoStack([])
-
-    setEdits((prev) => {
+    setMessage(null)
+    applyEdits((prev) => {
       const next = { ...prev }
-      if (val.trim() === origStr) {
-        delete next[key]
-      } else {
-        next[key] = val
+      for (const c of cells) {
+        const key = `${c.pinfl}|${c.col}`
+        const v = c.value.trim()
+        if (v === origVal(c.pinfl, c.col)) delete next[key]
+        else next[key] = v
       }
       return next
     })
   }
 
-  const handleUndo = useCallback(() => {
-    setUndoStack((u) => {
-      if (!u.length) return u
-      const prev = u[u.length - 1]
-      const nextU = u.slice(0, -1)
-      setEdits((cur) => {
-        setRedoStack((r) => [...r.slice(-50), cur])
-        return prev
-      })
-      return nextU
-    })
-  }, [])
+  const handleCellChange = (pinfl: string, col: (typeof cols)[number], val: string) =>
+    setCells([{ pinfl, col, value: val }])
 
-  const handleRedo = useCallback(() => {
-    setRedoStack((r) => {
-      if (!r.length) return r
-      const next = r[r.length - 1]
-      const nextR = r.slice(0, -1)
-      setEdits((cur) => {
-        setUndoStack((u) => [...u.slice(-50), cur])
-        return next
-      })
-      return nextR
-    })
-  }, [])
-
-  const dirtyCount = Object.keys(edits).length
+  const invalidCount = useMemo(
+    () => Object.values(edits).filter((v) => v.trim() !== '' && parseBaho(v) === undefined).length,
+    [edits],
+  )
 
   const handleSave = useCallback(async () => {
-    if (!dirtyCount || !token) return
-
-    for (const [k, v] of Object.entries(edits)) {
-      if (v.trim() !== '' && parseBaho(v) === undefined) {
-        alert("Noto'g'ri baho kiritilgan! Faqat 2, 3, 4 yoki 5 bo'lishi kerak.")
-        return
-      }
+    if (!dirtyCount || !token || savingRef.current) return
+    if (invalidCount) {
+      setMessage({ type: 'error', text: "Noto'g'ri baho kiritilgan (qizil katak)! Faqat 2, 3, 4 yoki 5 bo'lishi kerak." })
+      return
     }
 
+    savingRef.current = true
     setSaving(true)
+    setMessage(null)
     try {
       const touchedPinfls = new Set(Object.keys(edits).map((k) => k.split('|')[0]))
       const items = Array.from(touchedPinfls).map((pinfl) => ({
@@ -189,19 +188,26 @@ function TeacherGradesContent() {
         }),
       })
 
-      const data = await res.json()
-      if (data.ok) {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.ok) {
         setSavedSuccess(true)
         await loadData()
       } else {
-        alert(data.error || 'Saqlashda xatolik yuz berdi')
+        setMessage({
+          type: 'error',
+          text: `Saqlanmadi: ${data.error || `server ${res.status} qaytardi`}. Baholaringiz jadvalda qoldi, qayta urinib ko'ring.`,
+        })
       }
     } catch (err) {
-      alert(`Xatolik: ${(err as Error).message}`)
+      setMessage({
+        type: 'error',
+        text: `Internet bilan aloqa yo'q: ${(err as Error).message}. Baholaringiz jadvalda qoldi, qayta urinib ko'ring.`,
+      })
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
-  }, [dirtyCount, token, edits, loadData])
+  }, [dirtyCount, token, edits, invalidCount, getShownVal, loadData])
 
   // Global tezkor klavishlar
   useEffect(() => {
@@ -213,8 +219,12 @@ function TeacherGradesContent() {
         return
       }
 
+      const el = document.activeElement as HTMLElement | null
+      const otherInput = (el?.tagName === 'INPUT' || el?.tagName === 'TEXTAREA') && !el.hasAttribute('data-cell')
+
       // Ctrl + Z: Undo
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (otherInput) return
         e.preventDefault()
         if (e.shiftKey) handleRedo()
         else handleUndo()
@@ -223,6 +233,7 @@ function TeacherGradesContent() {
 
       // Ctrl + Y: Redo
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        if (otherInput) return
         e.preventDefault()
         handleRedo()
         return
@@ -305,39 +316,32 @@ function TeacherGradesContent() {
     }
   }
 
-  // Excel paste
-  const handlePaste = (
-    e: React.ClipboardEvent<HTMLInputElement>,
-    startR: number,
-    startC: number,
-  ) => {
-    const clip = e.clipboardData.getData('text')
-    if (!clip) return
-
-    const lines = clip.split(/\r?\n/).filter((l) => l.trim() !== '')
-    if (lines.length > 1 || lines[0].includes('\t')) {
-      e.preventDefault()
-      const newEdits: Record<string, string> = {}
-      lines.forEach((line, rOffset) => {
-        const targetR = startR + rOffset
-        if (targetR >= students.length) return
-        const values = line.split('\t')
-        values.forEach((v, cOffset) => {
-          const targetC = startC + cOffset
-          if (targetC >= cols.length) return
-          const clean = v.trim()
-          const p = parseBaho(clean)
-          if (p !== undefined && p !== null) {
-            newEdits[`${students[targetR].pinfl}|${cols[targetC]}`] = String(p)
-          }
-        })
+  // Excel paste: bir nechta katak bitta qadamda (Ctrl+Z bilan bittada bekor qilinadi)
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>, startR: number, startC: number) => {
+    const grid = parseClipboardGrid(e.clipboardData.getData('text'))
+    if (!grid.length) return
+    e.preventDefault()
+    const cells: { pinfl: string; col: (typeof cols)[number]; value: string }[] = []
+    let skipped = 0
+    grid.forEach((line, rOffset) => {
+      const st = students[startR + rOffset]
+      if (!st) return
+      line.forEach((raw, cOffset) => {
+        const col = cols[startC + cOffset]
+        if (!col) return
+        const v = raw.trim()
+        if (!v) return
+        const p = parseBaho(v)
+        if (p === undefined || p === null) {
+          skipped++
+          return
+        }
+        cells.push({ pinfl: st.pinfl, col, value: String(p) })
       })
-
-      if (Object.keys(newEdits).length > 0) {
-        setUndoStack((u) => [...u.slice(-50), edits])
-        setRedoStack([])
-        setEdits((prev) => ({ ...prev, ...newEdits }))
-      }
+    })
+    if (cells.length) setCells(cells)
+    if (skipped) {
+      setMessage({ type: 'info', text: `${skipped} ta noto'g'ri qiymat o'tkazib yuborildi (faqat 2, 3, 4 yoki 5).` })
     }
   }
 
@@ -395,13 +399,13 @@ function TeacherGradesContent() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
               {/* Undo / Redo */}
               <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
                 <button
                   type="button"
                   onClick={handleUndo}
-                  disabled={undoStack.length === 0}
+                  disabled={!history.canUndo}
                   className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
                   title="Bekor qilish (Ctrl + Z)"
                 >
@@ -410,7 +414,7 @@ function TeacherGradesContent() {
                 <button
                   type="button"
                   onClick={handleRedo}
-                  disabled={redoStack.length === 0}
+                  disabled={!history.canRedo}
                   className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
                   title="Qaytarish (Ctrl + Y)"
                 >
@@ -432,7 +436,7 @@ function TeacherGradesContent() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving || !dirtyCount}
+                disabled={saving || !dirtyCount || invalidCount > 0}
                 className="btn-success h-10 px-5 text-[13.5px] font-bold shadow-lg flex items-center gap-1.5"
                 title="Saqlash (Ctrl + S)"
               >
@@ -453,6 +457,27 @@ function TeacherGradesContent() {
           </div>
         </div>
 
+        {message && (
+          <div
+            role={message.type === 'error' ? 'alert' : 'status'}
+            className={`panel flex items-start gap-2 p-3 text-[13px] ${
+              message.type === 'error' ? 'border-rose/40 bg-rose/10 text-rose' : 'border-amber/40 bg-amber/10 text-amber'
+            }`}
+          >
+            <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+            <span className="flex-1">{message.text}</span>
+            <button type="button" onClick={() => setMessage(null)} className="text-[12px] font-bold opacity-80 hover:opacity-100">
+              Yopish
+            </button>
+          </div>
+        )}
+
+        {students.length === 0 && (
+          <div className="panel p-6 text-center text-[13px] text-fg-muted">
+            Bu havolada baho qo'yiladigan talaba yo'q. Ma'muriyatga murojaat qiling.
+          </div>
+        )}
+
         {/* Baholar Jadvali */}
         <div className="panel overflow-hidden border-line bg-ink-900 shadow-2xl">
           <div ref={tableRef} className="overflow-x-auto max-h-[75vh]">
@@ -460,7 +485,7 @@ function TeacherGradesContent() {
               <thead className="sticky top-0 z-10 bg-ink-950/95 backdrop-blur-sm border-b border-line text-[11px] font-bold text-fg-subtle uppercase tracking-wider">
                 <tr>
                   <th className="py-3 px-3 w-12 text-center">№</th>
-                  <th className="py-3 px-4 min-w-[200px]">Talaba F.I.Sh.</th>
+                  <th className="py-3 px-2 sm:px-4 min-w-[150px] sm:min-w-[200px]">Talaba F.I.Sh.</th>
                   <th className="py-3 px-2 w-20 text-center">Yakuniy</th>
                   <th className="py-3 px-2 w-20 text-center">Joriy</th>
                   <th className="py-3 px-2 w-20 text-center">Oraliq</th>
@@ -473,7 +498,7 @@ function TeacherGradesContent() {
                     <td className="py-2.5 px-3 text-center text-[12px] font-mono text-fg-muted">
                       {s.tartib}
                     </td>
-                    <td className="py-2.5 px-4 font-semibold text-fg">
+                    <td className="py-2.5 px-2 sm:px-4 font-semibold text-fg">
                       {s.name}
                     </td>
                     {cols.map((col, c) => {
@@ -488,12 +513,14 @@ function TeacherGradesContent() {
                             type="text"
                             inputMode="numeric"
                             maxLength={1}
+                            autoComplete="off"
+                            aria-label={`${s.name} — ${col === 'r_semestr' ? 'R-semestr' : col}`}
                             value={val}
                             onChange={(e) => handleCellChange(s.pinfl, col, e.target.value)}
                             onKeyDown={(e) => handleKeyNav(e, r, c)}
                             onPaste={(e) => handlePaste(e, r, c)}
                             onFocus={(e) => e.currentTarget.select()}
-                            className={`h-9 w-12 rounded-lg border text-center text-[14px] font-bold tabular-nums outline-none transition-all ${
+                            className={`h-9 w-10 sm:w-12 rounded-lg border text-center text-[14px] font-bold tabular-nums outline-none transition-all ${
                               isInvalid
                                 ? 'border-rose bg-rose/10 text-rose'
                                 : isEdited
@@ -510,7 +537,7 @@ function TeacherGradesContent() {
             </table>
           </div>
 
-          <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle flex items-center justify-between">
+          <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle flex flex-wrap items-center justify-between gap-2">
             <span>Baho faqat 2, 3, 4 yoki 5 kiritiladi. Bo'sh qoldirilsa baho belgilanmagan hisoblanadi.</span>
             <span className="font-semibold text-sky-soft">Shahrisabz Abu Ali ibn Sino nomidagi JTSM</span>
           </div>

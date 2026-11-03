@@ -69,36 +69,47 @@ async function getPlans(): Promise<OquvReja[]> {
   return local
 }
 
-/** Saqlash: ham Supabase ga, ham lokal faylga */
-async function savePlanToStore(plan: OquvReja, allPlans: OquvReja[]): Promise<void> {
-  // 1. Lokal faylga yozish
+const toRow = (plan: OquvReja) => ({
+  id: plan.id,
+  oquv_yili: plan.oquvYili,
+  yonalish: plan.yonalish,
+  muddati: plan.muddati || '3 yillik',
+  kod: plan.kod || '',
+  daraja: plan.daraja || "O'rta maxsus professional",
+  tavsif: plan.tavsif || '',
+  groups: plan.groups || [],
+  semestrlar: plan.semestrlar || {},
+  updated_at: new Date().toISOString(),
+})
+
+/**
+ * Saqlash: Supabase'ga (asosiy) va lokal faylga (kompyuterda zaxira).
+ * Internetdagi saytda fayl tizimi faqat o'qish uchun — u holda Supabase'ga yozilmasa xato qaytariladi,
+ * "saqlandi" deb aldamaydi. changed — o'zgargan barcha rejalar (boshqa rejadan olingan guruhlar ham).
+ */
+async function savePlansToStore(changed: OquvReja[], allPlans: OquvReja[]): Promise<void> {
+  let fileOk = false
   try {
     await writeLocalPlans(allPlans)
+    fileOk = true
   } catch {
-    // fayl tizimi read-only bo'lishi mumkin (Vercel)
+    // fayl tizimi read-only bo'lishi mumkin (Netlify/Vercel)
   }
 
-  // 2. Supabase ga yozish
-  try {
-    const db = getServiceSupabase()
-    await db.from('oquv_rejalari').upsert(
-      {
-        id: plan.id,
-        oquv_yili: plan.oquvYili,
-        yonalish: plan.yonalish,
-        muddati: plan.muddati,
-        kod: plan.kod || '',
-        daraja: plan.daraja || "O'rta maxsus professional",
-        tavsif: plan.tavsif || '',
-        groups: plan.groups || [],
-        semestrlar: plan.semestrlar || {},
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
-    )
-  } catch {
-    // Supabase xatosi bo'lsa ham lokal fayl yetarli
+  let dbError = ''
+  if (changed.length) {
+    try {
+      const db = getServiceSupabase()
+      const { error } = await db.from('oquv_rejalari').upsert(changed.map(toRow), { onConflict: 'id' })
+      if (error) dbError = error.message
+    } catch (e) {
+      dbError = (e as Error).message
+    }
   }
+  // Supabase'da jadval bo'lsa u asosiy manba (GET avval undan o'qiydi) — unga yozilmasa o'zgarish
+  // ko'rinmaydi. Faqat jadval umuman yo'q bo'lsa lokal fayl yetarli.
+  const noTable = /does not exist|42P01|schema cache/i.test(dbError)
+  if (dbError && !(fileOk && noTable)) throw new Error(`O'quv reja saqlanmadi: ${dbError}`)
 }
 
 export async function GET(req: NextRequest) {
@@ -150,10 +161,13 @@ export async function POST(req: NextRequest) {
         updatedAt: now,
       }
 
-      // Boshqa rejalardan shu guruhlarni olib tashlash
+      // Boshqa rejalardan shu guruhlarni olib tashlash (ular ham bazada yangilanadi)
+      const changed: OquvReja[] = [updatedPlan]
       for (const p of plans) {
         if (p.id !== plan.id && p.groups && p.groups.some((g) => assignedGroups.has(g))) {
           p.groups = p.groups.filter((g) => !assignedGroups.has(g))
+          p.updatedAt = now
+          changed.push(p)
         }
       }
 
@@ -164,7 +178,7 @@ export async function POST(req: NextRequest) {
         plans.push(updatedPlan)
       }
 
-      await savePlanToStore(updatedPlan, plans)
+      await savePlansToStore(changed, plans)
       return Response.json({ ok: true, plan: updatedPlan, plans })
     }
 
@@ -173,14 +187,20 @@ export async function POST(req: NextRequest) {
       if (!id) return Response.json({ ok: false, error: 'Reja ID si berilmagan' }, { status: 400 })
       const nextPlans = plans.filter((p) => p.id !== id)
 
+      let fileOk = false
       try {
         await writeLocalPlans(nextPlans)
+        fileOk = true
       } catch { /* bo'sh */ }
 
+      let dbErr = ''
       try {
-        const db = getServiceSupabase()
-        await db.from('oquv_rejalari').delete().eq('id', id)
-      } catch { /* bo'sh */ }
+        const { error } = await getServiceSupabase().from('oquv_rejalari').delete().eq('id', id)
+        if (error) dbErr = error.message
+      } catch (e) { dbErr = (e as Error).message }
+      if (dbErr && !(fileOk && /does not exist|42P01|schema cache/i.test(dbErr))) {
+        return Response.json({ ok: false, error: `O'chirilmadi: ${dbErr}` }, { status: 500 })
+      }
 
       return Response.json({ ok: true, plans: nextPlans })
     }
@@ -191,26 +211,26 @@ export async function POST(req: NextRequest) {
         return Response.json({ ok: false, error: 'Reja va guruhlar kiritilishi shart' }, { status: 400 })
       }
 
-      const assigned = new Set(groups)
-      let targetPlan: OquvReja | undefined
+      const clean = [...new Set(groups.filter((g) => typeof g === 'string' && g.trim()).map((g) => g.trim()))]
+      const assigned = new Set(clean)
+      const now = new Date().toISOString()
+      const changed: OquvReja[] = []
       for (const p of plans) {
         if (p.id === planId) {
-          p.groups = groups
-          p.updatedAt = new Date().toISOString()
-          targetPlan = p
-        } else if (p.groups) {
+          p.groups = clean
+          p.updatedAt = now
+          changed.push(p)
+        } else if (p.groups && p.groups.some((g) => assigned.has(g))) {
           p.groups = p.groups.filter((g) => !assigned.has(g))
+          p.updatedAt = now
+          changed.push(p)
         }
       }
-
-      try {
-        await writeLocalPlans(plans)
-      } catch { /* bo'sh */ }
-
-      if (targetPlan) {
-        await savePlanToStore(targetPlan, plans)
+      if (!changed.some((p) => p.id === planId)) {
+        return Response.json({ ok: false, error: 'Reja topilmadi' }, { status: 404 })
       }
 
+      await savePlansToStore(changed, plans)
       return Response.json({ ok: true, plans })
     }
 
@@ -225,16 +245,26 @@ export async function POST(req: NextRequest) {
       }
 
       const db = getServiceSupabase()
-      const rows = fanlar.map((f, i) => ({
-        guruh: guruh.trim(),
-        semestr,
-        nom: f.nom.trim(),
-        tartib: f.tartib ?? i + 1,
-      }))
+      const sem = Number(semestr)
+      if (!Number.isInteger(sem) || sem < 1 || sem > 8) {
+        return Response.json({ ok: false, error: 'Semestr 1-8 oralig\'ida bo\'lishi kerak' }, { status: 400 })
+      }
+      // Takroriy nomlar bitta upsert'da bo'lsa Postgres xato beradi — olib tashlaymiz
+      const seen = new Set<string>()
+      const rows = fanlar
+        .map((f, i) => ({
+          guruh: guruh.trim(),
+          semestr: sem,
+          nom: String(f?.nom ?? '').trim().slice(0, 120),
+          tartib: Number.isFinite(Number(f?.tartib)) ? Number(f.tartib) : i + 1,
+        }))
+        .filter((r) => r.nom && !seen.has(r.nom) && (seen.add(r.nom), true))
 
+      // Mavjud fanlarning faqat tartibi yangilanadi, yangilari qo'shiladi. Baholar va qo'lda
+      // qo'shilgan fanlar o'chirilmaydi.
       const { error } = await db
         .from('fanlar')
-        .upsert(rows, { onConflict: 'guruh,semestr,nom', ignoreDuplicates: true })
+        .upsert(rows, { onConflict: 'guruh,semestr,nom' })
 
       if (error) {
         // Agar fanlar jadvali bo'lmasa, tushunarli xabar

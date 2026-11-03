@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import {
-  AM_FIELDS,
+  amaliyotReyting,
   isIsoDate,
   isPinfl,
   isSemestr,
@@ -25,6 +25,20 @@ function dbError(e: { message: string; code?: string }) {
   return Response.json({ ok: false, error: e.message, setup }, { status: 500 })
 }
 
+type Page = PromiseLike<{ data: Record<string, any>[] | null; error: { message: string; code?: string } | null }> // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** Supabase bir so'rovda ko'pi bilan 1000 qator qaytaradi — katta guruhlar uchun sahifalab o'qiymiz */
+async function selectAll(page: (from: number, to: number) => Page) {
+  const STEP = 1000
+  const data: Record<string, any>[] = [] // eslint-disable-line @typescript-eslint/no-explicit-any
+  for (let from = 0; ; from += STEP) {
+    const r = await page(from, from + STEP - 1)
+    if (r.error) return { data: null, error: r.error }
+    data.push(...(r.data ?? []))
+    if (!r.data || r.data.length < STEP) return { data, error: null }
+  }
+}
+
 export async function GET(req: NextRequest) {
   const guruh = guruhOf(req.nextUrl.searchParams.get('guruh'))
   const semestr = Number(req.nextUrl.searchParams.get('semestr'))
@@ -32,9 +46,10 @@ export async function GET(req: NextRequest) {
   const db = getServiceSupabase()
 
   const [f, b, a] = await Promise.all([
-    db.from('fanlar').select('nom, tartib').eq('guruh', guruh).eq('semestr', semestr).order('tartib', { ascending: true }),
-    db.from('baholar').select('*').eq('guruh', guruh).eq('semestr', semestr),
-    db.from('malakaviy_amaliyot').select('*').eq('guruh', guruh).eq('semestr', semestr),
+    db.from('fanlar').select('nom, tartib').eq('guruh', guruh).eq('semestr', semestr)
+      .order('tartib', { ascending: true }).order('id', { ascending: true }),
+    selectAll((from, to) => db.from('baholar').select('*').eq('guruh', guruh).eq('semestr', semestr).order('id').range(from, to)),
+    selectAll((from, to) => db.from('malakaviy_amaliyot').select('*').eq('guruh', guruh).eq('semestr', semestr).order('id').range(from, to)),
   ])
   if (f.error) return dbError(f.error)
   if (b.error) return dbError(b.error)
@@ -90,6 +105,7 @@ export async function POST(req: NextRequest) {
     if (items.length > 5000) return fail("Bir so'rovda 5000 tadan ortiq qator yuborib bo'lmaydi")
     const save: Record<string, unknown>[] = []
     const remove: { pinfl: string; fan: string }[] = []
+    const seen = new Set<string>()
     for (const raw of items) {
       const it = (raw ?? {}) as Record<string, unknown>
       const fan = text(it.fan, 120)
@@ -123,6 +139,9 @@ export async function POST(req: NextRequest) {
         r100: rey.r100,
         updated_at: new Date().toISOString(),
       }
+      const dup = `${it.pinfl}|${fan}`
+      if (seen.has(dup)) continue
+      seen.add(dup)
       if (empty) remove.push({ pinfl: it.pinfl, fan })
       else save.push(row)
     }
@@ -130,9 +149,11 @@ export async function POST(req: NextRequest) {
       const { error } = await db.from('baholar').upsert(save, { onConflict: 'pinfl,semestr,fan' })
       if (error) return dbError(error)
     }
-    // Barcha baholari o'chirilgan qator bazada qolmasin
-    for (const r of remove) {
-      const { error } = await db.from('baholar').delete().eq('pinfl', r.pinfl).eq('semestr', semestr).eq('fan', r.fan)
+    // Barcha baholari o'chirilgan qator bazada qolmasin (har bir fan bo'yicha bitta so'rov)
+    const byFan = new Map<string, string[]>()
+    for (const r of remove) byFan.set(r.fan, [...(byFan.get(r.fan) ?? []), r.pinfl])
+    for (const [fan, pinfls] of byFan) {
+      const { error } = await db.from('baholar').delete().in('pinfl', pinfls).eq('semestr', semestr).eq('fan', fan)
       if (error) return dbError(error)
     }
     return Response.json({ ok: true, saved: save.length, removed: remove.length })
@@ -146,9 +167,12 @@ export async function POST(req: NextRequest) {
     if (items.length > 5000) return fail("Bir so'rovda 5000 tadan ortiq qator yuborib bo'lmaydi")
     const save: Record<string, unknown>[] = []
     const remove: { pinfl: string }[] = []
+    const seenAm = new Set<string>()
     for (const raw of items) {
       const it = (raw ?? {}) as Record<string, unknown>
       if (!isPinfl(it.pinfl)) return fail("Noto'g'ri JSHSHIR")
+      if (seenAm.has(it.pinfl)) continue
+      seenAm.add(it.pinfl)
       const joy = text(it.joy, 200)
       const boshlanish = it.boshlanish ? text(it.boshlanish, 10) : ''
       const tugash = it.tugash ? text(it.tugash, 10) : ''
@@ -159,7 +183,8 @@ export async function POST(req: NextRequest) {
       const izoh = text(it.izoh, 500)
       const empty = !joy && !boshlanish && !tugash && ball === null && !izoh
       if (empty) { remove.push({ pinfl: it.pinfl }); continue }
-      const ball100 = ball === null ? null : (ball >= 5 ? 90 : ball === 4 ? 78 : ball === 3 ? 68 : 50)
+      // Brauzerda ko'rsatilgan reyting bilan bir xil (lib/baholar.ts → amaliyotReyting)
+      const ball100 = amaliyotReyting(`${it.pinfl}|${semestr}|${nom}`, ball)
       save.push({
         pinfl: it.pinfl, guruh, semestr, nom, joy,
         boshlanish: boshlanish || null, tugash: tugash || null,
@@ -170,8 +195,8 @@ export async function POST(req: NextRequest) {
       const { error } = await db.from('malakaviy_amaliyot').upsert(save, { onConflict: 'pinfl,semestr,nom' })
       if (error) return dbError(error)
     }
-    for (const r of remove) {
-      const { error } = await db.from('malakaviy_amaliyot').delete().eq('pinfl', r.pinfl).eq('semestr', semestr).eq('nom', nom)
+    if (remove.length) {
+      const { error } = await db.from('malakaviy_amaliyot').delete().in('pinfl', remove.map((r) => r.pinfl)).eq('semestr', semestr).eq('nom', nom)
       if (error) return dbError(error)
     }
     return Response.json({ ok: true, saved: save.length, removed: remove.length })

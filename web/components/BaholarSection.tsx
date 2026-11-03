@@ -56,6 +56,7 @@ import {
   type Reyting,
 } from '@/lib/baholar'
 import { exportBaholar, type ExportGrade } from '@/lib/baholar-excel'
+import { parseClipboardGrid, useEditHistory } from '@/lib/use-edit-history'
 import type { Notify } from './Toast'
 import { cx } from './ui'
 
@@ -129,13 +130,10 @@ export default function BaholarSection({
   const [error, setError] = useState<{ text: string; setup: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
 
-  // Baholar tahrirlari
-  const [edits, setEdits] = useState<Record<string, string>>({}) // key: pinfl|fan|key
+  // Baholar tahrirlari (key: pinfl|fan|key) — Bekor qilish (Undo) va Qaytarish (Redo) tarixi bilan
+  const history = useEditHistory()
+  const { edits, apply: applyEdits, reset: resetEdits, undo: handleUndo, redo: handleRedo } = history
   const [amEdits, setAmEdits] = useState<Record<string, string>>({}) // amaliyot: pinfl|field
-
-  // Bekor qilish (Undo) va Qaytarish (Redo) tarixi
-  const [undoStack, setUndoStack] = useState<Record<string, string>[]>([])
-  const [redoStack, setRedoStack] = useState<Record<string, string>[]>([])
 
   const [newFan, setNewFan] = useState('')
   const [amNom, setAmNom] = useState(DEFAULT_AMALIYOT)
@@ -172,6 +170,7 @@ export default function BaholarSection({
   const [newShareHiddenPinfls, setNewShareHiddenPinfls] = useState<string[]>([])
   const [editingShare, setEditingShare] = useState<ShareLinkItem | null>(null)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
+  const [shareBusy, setShareBusy] = useState(false)
 
   /* ---------------------------- Tanlov (guruh, semestr) ---------------------------- */
 
@@ -198,24 +197,37 @@ export default function BaholarSection({
     }
   }, [guruh, semestr, view, birlik, prefsLoaded])
 
-  // Talabalar ro'yxati va maxsus tartibni yuklash
+  // Talabalarning maxsus tartibini yuklash: avval brauzer keshidan (tez), keyin serverdan (asosiy manba)
   useEffect(() => {
     if (!guruh) return
+    let cancelled = false
+    let local: string[] = []
     try {
-      const local = localStorage.getItem(`baholar_order_${guruh}`)
-      if (local) setStudentOrder(JSON.parse(local))
+      const raw = JSON.parse(localStorage.getItem(`baholar_order_${guruh}`) || '[]')
+      if (Array.isArray(raw)) local = raw.filter((x): x is string => typeof x === 'string')
     } catch {
       /* bo'sh */
     }
-    // Serverdan tartibni olish
-    fetch(`/api/baholar/order?guruh=${encodeURIComponent(guruh)}`)
+    // Boshqa guruhning tartibi ko'rinib qolmasin
+    setStudentOrder(local)
+    fetch(`/api/baholar/order?guruh=${encodeURIComponent(guruh)}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok && Array.isArray(d.order) && d.order.length) {
-          setStudentOrder(d.order)
+        if (cancelled || !d.ok || !Array.isArray(d.order)) return
+        // Saqlanishi kutilayotgan o'zgarish bo'lsa serverdagi eski tartib uni bosib ketmasin
+        if (orderSaveRef.current.timer && orderSaveRef.current.guruh === guruh) return
+        setStudentOrder(d.order)
+        try {
+          if (d.order.length) localStorage.setItem(`baholar_order_${guruh}`, JSON.stringify(d.order))
+          else localStorage.removeItem(`baholar_order_${guruh}`)
+        } catch {
+          /* bo'sh */
         }
       })
       .catch(() => {})
+    return () => {
+      cancelled = true
+    }
   }, [guruh])
 
   // Yashirilgan fanlar keshini yuklash
@@ -246,39 +258,107 @@ export default function BaholarSection({
     })
   }, [baseRows, studentOrder])
 
+  /*
+    Tartibni serverga yuborish kechiktiriladi (1,5 s): ketma-ket bir nechta ko'chirish bitta saqlash
+    (GitHub'da bitta commit) bo'ladi. Guruh almashsa yoki sahifa yopilsa — darhol yuboriladi.
+  */
+  const orderSaveRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; guruh: string; order: string[] }>({
+    timer: null,
+    guruh: '',
+    order: [],
+  })
+
+  const flushOrder = useCallback(async () => {
+    const pending = orderSaveRef.current
+    if (!pending.timer) return
+    clearTimeout(pending.timer)
+    pending.timer = null
+    try {
+      const res = await fetch('/api/baholar/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guruh: pending.guruh, order: pending.order }),
+        keepalive: true,
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.ok) throw new Error(d.error || `Server ${res.status} qaytardi`)
+    } catch (e) {
+      notify(`Tartib serverga saqlanmadi (faqat shu brauzerda saqlandi): ${(e as Error).message}`, 'warning')
+    }
+  }, [notify])
+
+  const queueOrderSave = useCallback(
+    (g: string, order: string[]) => {
+      const pending = orderSaveRef.current
+      if (pending.timer && pending.guruh !== g) void flushOrder()
+      if (pending.timer) clearTimeout(pending.timer)
+      pending.guruh = g
+      pending.order = order
+      pending.timer = setTimeout(() => void flushOrder(), 1500)
+    },
+    [flushOrder],
+  )
+
+  // Guruh almashganda yoki bo'limdan chiqilganda kutilayotgan tartibni yuborish
+  useEffect(() => () => void flushOrder(), [guruh, flushOrder])
+  useEffect(() => {
+    const h = () => void flushOrder()
+    window.addEventListener('pagehide', h)
+    return () => window.removeEventListener('pagehide', h)
+  }, [flushOrder])
+
+  const saveOrderLocal = (g: string, order: string[]) => {
+    try {
+      if (order.length) localStorage.setItem(`baholar_order_${g}`, JSON.stringify(order))
+      else localStorage.removeItem(`baholar_order_${g}`)
+    } catch {
+      /* bo'sh */
+    }
+  }
+
   // Talaba tartibini o'zgartirish (animatsiyali)
-  const handleReorder = async (fromIdx: number, toIdx: number) => {
+  const handleReorder = (fromIdx: number, toIdx: number) => {
     if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= rows.length || toIdx >= rows.length) return
     const copy = [...rows]
     const [moved] = copy.splice(fromIdx, 1)
     copy.splice(toIdx, 0, moved)
     const newOrder = copy.map((s) => s.pinfl)
     setStudentOrder(newOrder)
-    try {
-      localStorage.setItem(`baholar_order_${guruh}`, JSON.stringify(newOrder))
-    } catch {
-      /* bo'sh */
-    }
-    await fetch('/api/baholar/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ guruh, order: newOrder }),
-    }).catch(() => null)
+    saveOrderLocal(guruh, newOrder)
+    queueOrderSave(guruh, newOrder)
+    setJustMovedPinfl(moved.pinfl)
+    if (justMovedTimer.current) clearTimeout(justMovedTimer.current)
+    justMovedTimer.current = setTimeout(() => setJustMovedPinfl(null), 1200)
+  }
+  const justMovedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleResetOrder = () => {
+    if (!studentOrder.length) return
+    setStudentOrder([])
+    saveOrderLocal(guruh, [])
+    queueOrderSave(guruh, [])
+    notify("Talabalar tartibi alifbo bo'yicha qayta tiklandi", 'info')
   }
 
-  const handleResetOrder = async () => {
-    setStudentOrder([])
-    try {
-      localStorage.removeItem(`baholar_order_${guruh}`)
-    } catch {
-      /* bo'sh */
-    }
-    await fetch('/api/baholar/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ guruh, order: [] }),
-    }).catch(() => null)
-    notify("Talabalar tartibi alifbo bo'yicha qayta tiklandi", 'info')
+  /** Sudrab tashlashda yangi o'rinni hisoblash (qator ustiga yoki ostiga) */
+  const dropTo = (r: number) => {
+    if (draggedIdx === null) return
+    let toIdx = r
+    if (dropTargetPos === 'bottom' && draggedIdx > r) toIdx = r + 1
+    else if (dropTargetPos === 'top' && draggedIdx < r) toIdx = r - 1
+    toIdx = Math.max(0, Math.min(rows.length - 1, toIdx))
+    handleReorder(draggedIdx, toIdx)
+    setDraggedIdx(null)
+    setDropTargetIdx(null)
+  }
+  const onRowDragOver = (e: React.DragEvent<HTMLElement>, r: number) => {
+    if (draggedIdx === null) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    const rect = e.currentTarget.getBoundingClientRect()
+    const pos = e.clientY - rect.top < rect.height / 2 ? 'top' : 'bottom'
+    if (pos !== dropTargetPos) setDropTargetPos(pos)
+    if (r !== dropTargetIdx) setDropTargetIdx(r)
   }
 
   const dirty = Object.keys(edits).length + Object.keys(amEdits).length
@@ -290,6 +370,7 @@ export default function BaholarSection({
     if (!dirty) return
     const h = (e: BeforeUnloadEvent) => {
       e.preventDefault()
+      e.returnValue = ''
     }
     window.addEventListener('beforeunload', h)
     return () => window.removeEventListener('beforeunload', h)
@@ -297,8 +378,11 @@ export default function BaholarSection({
 
   /* ---------------------------- Yuklash ---------------------------- */
 
-  const load = useCallback(async () => {
-    if (!guruh) return
+  // Tez-tez guruh/semestr almashtirilganda eski so'rov javobi yangisini bosib ketmasin
+  const loadSeq = useRef(0)
+  const load = useCallback(async (): Promise<boolean> => {
+    if (!guruh) return false
+    const seq = ++loadSeq.current
     setLoading(true)
     setError(null)
     try {
@@ -306,23 +390,25 @@ export default function BaholarSection({
         cache: 'no-store',
       })
       const body = await res.json().catch(() => ({}))
+      if (seq !== loadSeq.current) return false
       if (!res.ok || !body.ok) {
         setData(null)
         setError({ text: body.error || `Server ${res.status} qaytardi`, setup: !!body.setup })
-        return
+        return false
       }
       setData(body as BaholarPayload)
-      setEdits({})
+      resetEdits({})
       setAmEdits({})
-      setUndoStack([])
-      setRedoStack([])
+      return true
     } catch (e) {
+      if (seq !== loadSeq.current) return false
       setData(null)
-      setError({ text: (e as Error).message, setup: false })
+      setError({ text: `Server bilan aloqa yo'q: ${(e as Error).message}`, setup: false })
+      return false
     } finally {
-      setLoading(false)
+      if (seq === loadSeq.current) setLoading(false)
     }
-  }, [guruh, semestr])
+  }, [guruh, semestr, resetEdits])
 
   useEffect(() => {
     if (prefsLoaded && guruh) void load()
@@ -391,14 +477,11 @@ export default function BaholarSection({
           fanlar: semSubjects.map((s, idx) => ({ nom: s.nom, tartib: s.tartib || idx + 1 })),
         }),
       })
-      const body = await res.json()
-      if (body.ok) {
+      const body = await res.json().catch(() => ({}))
+      if (res.ok && body.ok) {
         notify("Fanlar ro'yxati yangilandi! Baholaringiz to'liq saqlanib qoldi.", 'success')
-        await load()
         // Kiritilgan, saqlanmagan baholarni saqlab qolish
-        if (Object.keys(keepEdits).length > 0) {
-          setEdits(keepEdits)
-        }
+        if ((await load()) && Object.keys(keepEdits).length > 0) resetEdits(keepEdits)
       } else {
         notify(body.error || 'Yangilashda xatolik', 'error')
       }
@@ -418,16 +501,18 @@ export default function BaholarSection({
     return fanlar.filter((f) => !hiddenFanlar.includes(f.nom))
   }, [fanlar, hiddenFanlar])
 
+  const storeHidden = (next: string[]) => {
+    try {
+      if (next.length) localStorage.setItem(`baholar_hidden_fanlar_${guruh}_${semestr}`, JSON.stringify(next))
+      else localStorage.removeItem(`baholar_hidden_fanlar_${guruh}_${semestr}`)
+    } catch {
+      /* bo'sh */
+    }
+  }
   const toggleHideFan = (fanNom: string) => {
-    setHiddenFanlar((prev) => {
-      const next = prev.includes(fanNom) ? prev.filter((n) => n !== fanNom) : [...prev, fanNom]
-      try {
-        localStorage.setItem(`baholar_hidden_fanlar_${guruh}_${semestr}`, JSON.stringify(next))
-      } catch {
-        /* bo'sh */
-      }
-      return next
-    })
+    const next = hiddenFanlar.includes(fanNom) ? hiddenFanlar.filter((n) => n !== fanNom) : [...hiddenFanlar, fanNom]
+    setHiddenFanlar(next)
+    storeHidden(next)
   }
 
   const showAllFanlar = () => {
@@ -480,48 +565,21 @@ export default function BaholarSection({
 
   /* ---------------------------- Undo / Redo Tizimi ---------------------------- */
 
-  const setCell = (pinfl: string, fan: string, key: Kiritiladigan, value: string) => {
-    const k = `${pinfl}|${fan}|${key}`
-    const curVal = edits[k] ?? serverText(pinfl, fan, key)
-    if (curVal === value.trim()) return
-
-    // O'zgarishdan oldingi holatni Undo tarixiga yozish
-    setUndoStack((u) => [...u.slice(-50), edits])
-    setRedoStack([])
-
-    setEdits((e) => {
-      const next = { ...e }
-      if (value.trim() === serverText(pinfl, fan, key)) delete next[k]
-      else next[k] = value
+  /** Bir nechta katakni bitta qadamda o'zgartirish (Undo tarixiga bitta yozuv) */
+  const setCells = (cells: { pinfl: string; fan: string; key: Kiritiladigan; value: string }[]) => {
+    applyEdits((prev) => {
+      const next = { ...prev }
+      for (const c of cells) {
+        const k = `${c.pinfl}|${c.fan}|${c.key}`
+        const v = c.value.trim()
+        if (v === serverText(c.pinfl, c.fan, c.key)) delete next[k]
+        else next[k] = v
+      }
       return next
     })
   }
-
-  const handleUndo = useCallback(() => {
-    setUndoStack((u) => {
-      if (!u.length) return u
-      const prev = u[u.length - 1]
-      const nextU = u.slice(0, -1)
-      setEdits((currentEdits) => {
-        setRedoStack((r) => [...r.slice(-50), currentEdits])
-        return prev
-      })
-      return nextU
-    })
-  }, [])
-
-  const handleRedo = useCallback(() => {
-    setRedoStack((r) => {
-      if (!r.length) return r
-      const next = r[r.length - 1]
-      const nextR = r.slice(0, -1)
-      setEdits((currentEdits) => {
-        setUndoStack((u) => [...u.slice(-50), currentEdits])
-        return next
-      })
-      return nextR
-    })
-  }, [])
+  const setCell = (pinfl: string, fan: string, key: Kiritiladigan, value: string) =>
+    setCells([{ pinfl, fan, key, value }])
 
   const invalidCount = useMemo(
     () => Object.values(edits).filter((v) => parseBaho(v) === undefined).length,
@@ -533,34 +591,46 @@ export default function BaholarSection({
     [amEdits],
   )
 
+  const savingRef = useRef(false)
   const saveBaholar = useCallback(async () => {
+    if (savingRef.current || !Object.keys(edits).length) return
     if (invalidCount) {
       notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
       return
     }
-    const pairs = new Set(Object.keys(edits).map((k) => k.split('|').slice(0, 2).join('|')))
-    const items = [...pairs].map((p) => {
-      const [pinfl, fan] = p.split('|')
+    // Kalit: pinfl|fan|tur — fan nomida "|" bo'lsa ham to'g'ri ajratiladi (pinfl boshida, tur oxirida)
+    const pairs = new Map<string, { pinfl: string; fan: string }>()
+    for (const k of Object.keys(edits)) {
+      const pinfl = k.slice(0, k.indexOf('|'))
+      const fan = k.slice(k.indexOf('|') + 1, k.lastIndexOf('|'))
+      pairs.set(`${pinfl}|${fan}`, { pinfl, fan })
+    }
+    const items = [...pairs.values()].map(({ pinfl, fan }) => {
       const item: Record<string, string> = { pinfl, fan }
       for (const k of KIRITILADIGAN) item[k] = shown(pinfl, fan, k)
       return item
     })
+    savingRef.current = true
     setSaving(true)
     try {
       await post({ action: 'saveBaholar', items })
       notify(`${items.length} ta qator muvaffaqiyatli saqlandi!`, 'success')
-      await load()
+      const keepAm = amEdits
+      const ok = await load()
+      if (ok && Object.keys(keepAm).length) setAmEdits(keepAm)
+      if (!ok) notify("Baholar saqlandi, lekin jadvalni qayta yuklab bo'lmadi — sahifani yangilang", 'warning')
     } catch (e) {
-      notify(`Saqlanmadi: ${(e as Error).message}`, 'error')
+      // Tahrirlar o'chmaydi — xatoni tuzatib qayta saqlash mumkin
+      notify(`Saqlanmadi: ${(e as Error).message}. O'zgarishlaringiz jadvalda qoldi, qayta urinib ko'ring.`, 'error')
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
-  }, [invalidCount, edits, shown, post, notify, load])
+  }, [invalidCount, edits, amEdits, shown, post, notify, load])
 
-  const canSave =
-    view === 'baholar'
-      ? Object.keys(edits).length > 0 && !invalidCount
-      : Object.keys(amEdits).length > 0 && !amInvalid
+  const canSaveBaholar = Object.keys(edits).length > 0 && !invalidCount
+  const canSaveAm = Object.keys(amEdits).length > 0 && !amInvalid
+  const canSave = view === 'baholar' ? canSaveBaholar : canSaveAm
 
   /* ---------------------------- Global Tezkor Klavishlar (MS Office / Excel) ---------------------------- */
 
@@ -570,14 +640,29 @@ export default function BaholarSection({
       const isInput = activeEl?.tagName === 'INPUT' || activeEl?.tagName === 'TEXTAREA'
       const isCellInput = activeEl?.hasAttribute('data-cell')
 
-      // 1. Ctrl + S: Tezkor saqlash
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault()
-        if (canSave && !saving) {
-          if (view === 'baholar') void saveBaholar()
-        }
+      // Ochiq oynalarni Escape bilan yopish
+      if (e.key === 'Escape' && !isCellInput) {
+        if (shareModalOpen) setShareModalOpen(false)
+        else if (fanVisibilityModalOpen) setFanVisibilityModalOpen(false)
+        else if (reorderModalOpen) setReorderModalOpen(false)
+        else if (focusedFan) setFocusedFan(null)
         return
       }
+
+      // 1. Ctrl + S: Tezkor saqlash (baholar ham, amaliyot ham)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (saving) return
+        if (focusedFan || view === 'baholar') {
+          if (canSaveBaholar) void saveBaholar()
+          else if (invalidCount) notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
+        } else if (canSaveAm) void saveAmaliyotRef.current()
+        else if (amInvalid) notify("Noto'g'ri baho bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
+        return
+      }
+
+      // Undo/Redo faqat baholar jadvali uchun (amaliyotda brauzerning o'zi ishlaydi)
+      if (view !== 'baholar' && !focusedFan) return
 
       // 2. Ctrl + Z: Bekor qilish (Undo)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -602,7 +687,22 @@ export default function BaholarSection({
 
     window.addEventListener('keydown', handleGlobalKeyDown)
     return () => window.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [handleUndo, handleRedo, canSave, saving, view, saveBaholar])
+  }, [
+    handleUndo,
+    handleRedo,
+    canSaveBaholar,
+    canSaveAm,
+    invalidCount,
+    amInvalid,
+    saving,
+    view,
+    saveBaholar,
+    notify,
+    shareModalOpen,
+    fanVisibilityModalOpen,
+    reorderModalOpen,
+    focusedFan,
+  ])
 
   /* ---------------------------- Kataklararo Harakatlanish va Excel Paste ---------------------------- */
 
@@ -700,35 +800,33 @@ export default function BaholarSection({
     startC: number,
     colsList: { fan: string; key: Kiritiladigan }[],
   ) => {
-    const clip = e.clipboardData.getData('text')
-    if (!clip) return
-
-    const lines = clip.split(/\r?\n/).filter((l) => l.trim() !== '')
-    if (lines.length > 1 || lines[0].includes('\t')) {
-      e.preventDefault()
-      const newItems: Record<string, string> = {}
-      lines.forEach((line, rOffset) => {
-        const targetR = startR + rOffset
-        if (targetR >= rows.length) return
-        const values = line.split('\t')
-        values.forEach((v, cOffset) => {
-          const targetC = startC + cOffset
-          if (targetC >= colsList.length) return
-          const clean = v.trim()
-          const p = parseBaho(clean)
-          if (p !== undefined && p !== null) {
-            const colInfo = colsList[targetC]
-            newItems[`${rows[targetR].pinfl}|${colInfo.fan}|${colInfo.key}`] = String(p)
-          }
-        })
+    const grid = parseClipboardGrid(e.clipboardData.getData('text'))
+    if (!grid.length) return
+    e.preventDefault()
+    const cells: { pinfl: string; fan: string; key: Kiritiladigan; value: string }[] = []
+    let skipped = 0
+    grid.forEach((line, rOffset) => {
+      const row = rows[startR + rOffset]
+      if (!row) return
+      line.forEach((raw, cOffset) => {
+        const col = colsList[startC + cOffset]
+        if (!col) return
+        const v = raw.trim()
+        if (!v) return // bo'sh katak — mavjud bahoga tegilmaydi
+        const p = parseBaho(v)
+        if (p === undefined || p === null) {
+          skipped++
+          return
+        }
+        cells.push({ pinfl: row.pinfl, fan: col.fan, key: col.key, value: String(p) })
       })
-
-      if (Object.keys(newItems).length > 0) {
-        setUndoStack((u) => [...u.slice(-50), edits])
-        setRedoStack([])
-        setEdits((prev) => ({ ...prev, ...newItems }))
-        notify(`${Object.keys(newItems).length} ta baho Excel'dan jadvalga joylandi!`, 'success')
-      }
+    })
+    if (cells.length) setCells(cells)
+    if (cells.length > 1 || skipped) {
+      notify(
+        `${cells.length} ta baho joylandi${skipped ? `, ${skipped} ta noto'g'ri qiymat o'tkazib yuborildi (faqat 2–5)` : ''}`,
+        skipped ? 'warning' : 'success',
+      )
     }
   }
 
@@ -743,8 +841,7 @@ export default function BaholarSection({
       await post({ action: 'addFan', nom })
       setNewFan('')
       const keep = edits
-      await load()
-      setEdits(keep)
+      if (await load()) resetEdits(keep)
       notify(`"${nom}" fani qo'shildi`, 'success')
     } catch (e) {
       notify(`Fan qo'shilmadi: ${(e as Error).message}`, 'error')
@@ -761,9 +858,14 @@ export default function BaholarSection({
       return
     try {
       await post({ action: 'deleteFan', nom })
-      const keep = Object.fromEntries(Object.entries(edits).filter(([k]) => k.split('|')[1] !== nom))
-      await load()
-      setEdits(keep)
+      const keep = Object.fromEntries(Object.entries(edits).filter(([k]) => !k.includes(`|${nom}|`)))
+      if (await load()) resetEdits(keep)
+      if (hiddenFanlar.includes(nom)) {
+        const next = hiddenFanlar.filter((n) => n !== nom)
+        setHiddenFanlar(next)
+        storeHidden(next)
+      }
+      if (focusedFan === nom) setFocusedFan(null)
       notify(`"${nom}" fani o'chirildi`, 'warning')
     } catch (e) {
       notify(`O'chirilmadi: ${(e as Error).message}`, 'error')
@@ -865,6 +967,7 @@ export default function BaholarSection({
   }
 
   const saveAmaliyot = async () => {
+    if (savingRef.current || !Object.keys(amEdits).length) return
     if (amInvalid) {
       notify("Noto'g'ri baho bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
       return
@@ -875,17 +978,23 @@ export default function BaholarSection({
       for (const f of AM_FIELDS) item[f] = amShown(pinfl, f)
       return item
     })
+    savingRef.current = true
     setSaving(true)
     try {
       await post({ action: 'saveAmaliyot', nom: amNom, items })
-      notify(`${items.length} ta qator saqlandi`)
-      await load()
+      notify(`${items.length} ta qator saqlandi`, 'success')
+      // Baholar jadvalidagi saqlanmagan tahrirlar yo'qolmasin
+      const keep = edits
+      if ((await load()) && Object.keys(keep).length) resetEdits(keep)
     } catch (e) {
-      notify(`Saqlanmadi: ${(e as Error).message}`, 'error')
+      notify(`Saqlanmadi: ${(e as Error).message}. O'zgarishlaringiz jadvalda qoldi.`, 'error')
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
+  const saveAmaliyotRef = useRef(saveAmaliyot)
+  saveAmaliyotRef.current = saveAmaliyot
 
   /* ---------------------------- Excel Eksport ---------------------------- */
 
@@ -950,16 +1059,15 @@ export default function BaholarSection({
         `/api/baholar/share?action=list&guruh=${encodeURIComponent(guruh)}&semestr=${semestr}`,
         { cache: 'no-store' },
       )
-      const d = await res.json()
-      if (d.ok && Array.isArray(d.shares)) {
-        setGroupShares(d.shares)
-      }
-    } catch {
-      /* bo'sh */
+      const d = await res.json().catch(() => ({}))
+      if (d.ok && Array.isArray(d.shares)) setGroupShares(d.shares)
+      else notify(`Havolalar ro'yxati yuklanmadi: ${d.error || `Server ${res.status}`}`, 'error')
+    } catch (e) {
+      notify(`Havolalar ro'yxati yuklanmadi: ${(e as Error).message}`, 'error')
     } finally {
       setSharesLoading(false)
     }
-  }, [guruh, semestr])
+  }, [guruh, semestr, notify])
 
   const openShareModal = () => {
     setNewShareFan(fanlar[0]?.nom || '')
@@ -976,8 +1084,8 @@ export default function BaholarSection({
       return
     }
 
+    setShareBusy(true)
     try {
-      const action = editingShare ? 'update' : 'create'
       const payload = editingShare
         ? {
             action: 'update',
@@ -1000,7 +1108,7 @@ export default function BaholarSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({}))
       if (d.ok) {
         notify(
           editingShare ? 'Ulashish sozlamalari yangilandi!' : "O'qituvchi uchun yangi havola yaratildi!",
@@ -1010,11 +1118,14 @@ export default function BaholarSection({
         setNewShareTeacher('')
         setNewShareHiddenPinfls([])
         await loadGroupShares()
+        if (!editingShare && d.share?.token) void copyShareLink(d.share.token)
       } else {
-        notify(d.error || 'Xatolik yuz berdi', 'error')
+        notify(d.error || `Xatolik yuz berdi (server ${res.status})`, 'error')
       }
     } catch (e) {
       notify(`Xatolik: ${(e as Error).message}`, 'error')
+    } finally {
+      setShareBusy(false)
     }
   }
 
@@ -1026,23 +1137,47 @@ export default function BaholarSection({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete', id }),
       })
-      const d = await res.json()
+      const d = await res.json().catch(() => ({}))
       if (d.ok) {
         notify("Havola o'chirildi", 'info')
+        if (editingShare?.id === id) setEditingShare(null)
         await loadGroupShares()
+      } else {
+        notify(d.error || "Havola o'chirilmadi", 'error')
       }
     } catch (e) {
       notify(`Xatolik: ${(e as Error).message}`, 'error')
     }
   }
 
-  const copyShareLink = (token: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const url = `${origin}/baholar/ulashilgan?token=${token}`
-    navigator.clipboard.writeText(url)
-    setCopiedToken(token)
-    notify("O'qituvchi havolasi nusxalandi!", 'success')
-    setTimeout(() => setCopiedToken(null), 3000)
+  const copyShareLink = async (token: string) => {
+    const url = `${window.location.origin}/baholar/ulashilgan?token=${encodeURIComponent(token)}`
+    let ok = false
+    try {
+      await navigator.clipboard.writeText(url)
+      ok = true
+    } catch {
+      // HTTP (localhost emas) yoki ruxsat yo'q — eski usul
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = url
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        ok = document.execCommand('copy')
+        ta.remove()
+      } catch {
+        ok = false
+      }
+    }
+    if (ok) {
+      setCopiedToken(token)
+      notify("O'qituvchi havolasi nusxalandi!", 'success')
+      setTimeout(() => setCopiedToken(null), 3000)
+    } else {
+      window.prompt("Havolani nusxalang (Ctrl+C):", url)
+    }
   }
 
   const groupsByKurs = useMemo(() => {
@@ -1133,7 +1268,7 @@ export default function BaholarSection({
                 <button
                   type="button"
                   onClick={handleUndo}
-                  disabled={undoStack.length === 0}
+                  disabled={!history.canUndo}
                   className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
                   title="Bekor qilish (Ctrl + Z)"
                   aria-label="Bekor qilish"
@@ -1143,7 +1278,7 @@ export default function BaholarSection({
                 <button
                   type="button"
                   onClick={handleRedo}
-                  disabled={redoStack.length === 0}
+                  disabled={!history.canRedo}
                   className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
                   title="Qaytarish (Ctrl + Y yoki Ctrl + Shift + Z)"
                   aria-label="Qaytarish"
@@ -1511,40 +1646,28 @@ export default function BaholarSection({
                       <tr
                         key={s.pinfl}
                         className={cx(
-                          'group transition-all duration-150',
-                          draggedIdx === r && 'opacity-30 scale-[0.99] bg-sky/15',
-                          dropTargetIdx === r && dropTargetPos === 'top' && 'border-t-2 border-t-sky bg-sky/10 shadow-[0_-2px_10px_rgba(56,189,248,0.35)]',
-                          dropTargetIdx === r && dropTargetPos === 'bottom' && 'border-b-2 border-b-sky bg-sky/10 shadow-[0_2px_10px_rgba(56,189,248,0.35)]',
-                          justMovedPinfl === s.pinfl && 'animate-pulse bg-emerald/20',
-                          draggedIdx === null && dropTargetIdx === null && 'hover:bg-ink-850/50',
+                          'group transition-opacity duration-150',
+                          draggedIdx === r && 'opacity-40 [&>td]:bg-sky/15',
+                          // border-separate jadvalda <tr> chegarasi chizilmaydi — ko'rsatkich kataklarga beriladi
+                          dropTargetIdx === r && draggedIdx !== r && dropTargetPos === 'top' && '[&>td]:shadow-[inset_0_2px_0_0_#38bdf8]',
+                          dropTargetIdx === r && draggedIdx !== r && dropTargetPos === 'bottom' && '[&>td]:shadow-[inset_0_-2px_0_0_#38bdf8]',
+                          justMovedPinfl === s.pinfl && '[&>td]:bg-emerald/15',
+                          draggedIdx === null && 'hover:bg-ink-850/50',
                         )}
-                        onDragOver={(e) => {
-                          e.preventDefault()
-                          e.dataTransfer.dropEffect = 'move'
-                          const rect = e.currentTarget.getBoundingClientRect()
-                          const offset = e.clientY - rect.top
-                          setDropTargetPos(offset < rect.height / 2 ? 'top' : 'bottom')
-                          setDropTargetIdx(r)
-                        }}
+                        onDragOver={(e) => onRowDragOver(e, r)}
                         onDrop={(e) => {
                           e.preventDefault()
-                          if (draggedIdx === null) return
-                          let toIdx = r
-                          if (dropTargetPos === 'bottom' && draggedIdx > r) toIdx = r + 1
-                          else if (dropTargetPos === 'top' && draggedIdx < r) toIdx = r - 1
-                          toIdx = Math.max(0, Math.min(rows.length - 1, toIdx))
-                          void handleReorder(draggedIdx, toIdx)
-                          setJustMovedPinfl(rows[draggedIdx]?.pinfl || null)
-                          setTimeout(() => setJustMovedPinfl(null), 1200)
-                          setDraggedIdx(null)
-                          setDropTargetIdx(null)
+                          dropTo(r)
                         }}
                       >
                         {/* 1. Tartib raqami va Sudrab ko'chirish ushlagichi (Telegramdek silliq) */}
                         <td
                           draggable
                           onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = 'move'
                             e.dataTransfer.setData('text/plain', String(r))
+                            const tr = e.currentTarget.parentElement
+                            if (tr) e.dataTransfer.setDragImage(tr, 24, 16)
                             setDraggedIdx(r)
                           }}
                           onDragEnd={() => {
@@ -1891,6 +2014,7 @@ export default function BaholarSection({
                 type="button"
                 onClick={() => setReorderModalOpen(false)}
                 className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+                aria-label="Yopish"
               >
                 <X size={16} />
               </button>
@@ -1903,44 +2027,34 @@ export default function BaholarSection({
                   key={s.pinfl}
                   draggable
                   onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move'
                     e.dataTransfer.setData('text/plain', String(idx))
                     setDraggedIdx(idx)
                   }}
-                  onDragOver={(e) => {
-                    e.preventDefault()
-                    e.dataTransfer.dropEffect = 'move'
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    setDropTargetPos(e.clientY - rect.top < rect.height / 2 ? 'top' : 'bottom')
-                    setDropTargetIdx(idx)
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault()
-                    if (draggedIdx === null) return
-                    let toIdx = idx
-                    if (dropTargetPos === 'bottom' && draggedIdx > idx) toIdx = idx + 1
-                    else if (dropTargetPos === 'top' && draggedIdx < idx) toIdx = idx - 1
-                    toIdx = Math.max(0, Math.min(rows.length - 1, toIdx))
-                    void handleReorder(draggedIdx, toIdx)
-                    setJustMovedPinfl(rows[draggedIdx]?.pinfl || null)
-                    setTimeout(() => setJustMovedPinfl(null), 1200)
+                  onDragEnd={() => {
                     setDraggedIdx(null)
                     setDropTargetIdx(null)
+                  }}
+                  onDragOver={(e) => onRowDragOver(e, idx)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    dropTo(idx)
                   }}
                   className={cx(
                     'flex items-center justify-between gap-3 p-2.5 rounded-xl border transition-all duration-150 select-none',
                     draggedIdx === idx
-                      ? 'opacity-30 scale-[0.98] bg-sky/20 border-sky/40'
-                      : dropTargetIdx === idx
+                      ? 'opacity-40 scale-[0.98] bg-sky/20 border-sky/40'
+                      : dropTargetIdx === idx && draggedIdx !== null
                         ? dropTargetPos === 'top'
-                          ? 'border-t-2 border-t-sky bg-sky/10 shadow-[0_-2px_10px_rgba(56,189,248,0.35)]'
-                          : 'border-b-2 border-b-sky bg-sky/10 shadow-[0_2px_10px_rgba(56,189,248,0.35)]'
+                          ? 'border-line/60 bg-sky/10 shadow-[inset_0_3px_0_0_#38bdf8]'
+                          : 'border-line/60 bg-sky/10 shadow-[inset_0_-3px_0_0_#38bdf8]'
                         : justMovedPinfl === s.pinfl
-                          ? 'animate-pulse bg-emerald/20 border-emerald/50'
+                          ? 'bg-emerald/15 border-emerald/50'
                           : 'border-line/60 bg-ink-950/70 hover:bg-ink-850 hover:border-line',
                   )}
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="size-6 grid place-items-center rounded-md bg-ink-900 border border-line text-[11px] font-mono font-bold text-fg-muted shrink-0">
+                    <span className="h-6 min-w-6 px-1 grid place-items-center rounded-md bg-ink-900 border border-line text-[11px] font-mono font-bold text-fg-muted shrink-0">
                       {idx + 1}
                     </span>
                     <span className="text-[13px] font-semibold text-fg truncate">
@@ -1953,8 +2067,9 @@ export default function BaholarSection({
                       type="button"
                       onClick={() => handleReorder(idx, idx - 1)}
                       disabled={idx === 0}
-                      className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
+                      className="size-8 sm:size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
                       title="Tepaga"
+                      aria-label={`${fullName(s)} — tepaga`}
                     >
                       <ArrowUp size={13} />
                     </button>
@@ -1962,8 +2077,9 @@ export default function BaholarSection({
                       type="button"
                       onClick={() => handleReorder(idx, idx + 1)}
                       disabled={idx === rows.length - 1}
-                      className="size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
+                      className="size-8 sm:size-7 grid place-items-center rounded-lg text-fg-subtle hover:text-fg hover:bg-ink-800 disabled:opacity-20"
                       title="Pastga"
+                      aria-label={`${fullName(s)} — pastga`}
                     >
                       <ArrowDown size={13} />
                     </button>
@@ -2026,7 +2142,7 @@ export default function BaholarSection({
                   <button
                     type="button"
                     onClick={handleUndo}
-                    disabled={undoStack.length === 0}
+                    disabled={!history.canUndo}
                     className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25"
                     title="Bekor qilish (Ctrl + Z)"
                   >
@@ -2035,7 +2151,7 @@ export default function BaholarSection({
                   <button
                     type="button"
                     onClick={handleRedo}
-                    disabled={redoStack.length === 0}
+                    disabled={!history.canRedo}
                     className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25"
                     title="Qaytarish (Ctrl + Y)"
                   >
@@ -2046,7 +2162,7 @@ export default function BaholarSection({
                 <button
                   type="button"
                   onClick={saveBaholar}
-                  disabled={saving || !dirty}
+                  disabled={saving || !canSaveBaholar}
                   className="btn-success h-9 px-4 text-[13px] font-bold flex items-center gap-1.5"
                   title="Saqlash (Ctrl + S)"
                 >
@@ -2057,6 +2173,7 @@ export default function BaholarSection({
                   type="button"
                   onClick={() => setFocusedFan(null)}
                   className="grid size-9 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+                  aria-label="Yopish"
                 >
                   <X size={18} />
                 </button>
@@ -2155,6 +2272,7 @@ export default function BaholarSection({
                 type="button"
                 onClick={() => setFanVisibilityModalOpen(false)}
                 className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+                aria-label="Yopish"
               >
                 <X size={16} />
               </button>
@@ -2225,6 +2343,7 @@ export default function BaholarSection({
                 type="button"
                 onClick={() => setShareModalOpen(false)}
                 className="grid size-8 place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800"
+                aria-label="Yopish"
               >
                 <X size={16} />
               </button>
@@ -2252,8 +2371,9 @@ export default function BaholarSection({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="label">Fanni tanlang</label>
+                    <label className="label" htmlFor="share-fan">Fanni tanlang</label>
                     <select
+                      id="share-fan"
                       value={newShareFan}
                       onChange={(e) => setNewShareFan(e.target.value)}
                       className="field h-9.5 font-bold cursor-pointer"
@@ -2267,8 +2387,10 @@ export default function BaholarSection({
                   </div>
 
                   <div>
-                    <label className="label">O'qituvchi F.I.Sh. yoki izoh (ixtiyoriy)</label>
+                    <label className="label" htmlFor="share-teacher">O'qituvchi F.I.Sh. yoki izoh (ixtiyoriy)</label>
                     <input
+                      id="share-teacher"
+                      maxLength={120}
                       type="text"
                       placeholder="Masalan: Alimova D."
                       value={newShareTeacher}
@@ -2338,8 +2460,10 @@ export default function BaholarSection({
                   <button
                     type="button"
                     onClick={handleCreateOrUpdateShare}
+                    disabled={shareBusy || !newShareFan}
                     className="btn-primary h-9 px-4 text-[13px] font-bold"
                   >
+                    {shareBusy && <Loader2 size={14} className="animate-spin" />}
                     {editingShare ? 'Saqlash' : 'Havolani yaratish'}
                   </button>
                 </div>
