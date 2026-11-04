@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/malumotnoma': ['./assets/malumotnoma/**/*'],
     '/api/telegram_webhook': ['./assets/malumotnoma/**/*'],
+    // Buyruq Word shablonlari (akademik ta'til, safdan chiqarish, guruh almashtirish)
+    '/api/buyruq': ['./assets/buyruqlar/**/*'],
   },
 }
 
