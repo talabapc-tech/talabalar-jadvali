@@ -341,7 +341,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
   const [deleting, setDeleting] = useState(false)
   const [cert, setCert] = useState(false)
   // Buyruq oynasi: guruh o'zgarib saqlanganda o'zi ochiladi (hint — saqlashdan oldingi holat)
-  const [order, setOrder] = useState<{ hint?: BuyruqHint } | null>(null)
+  const [order, setOrder] = useState<{ student: Student; hint?: BuyruqHint } | null>(null)
 
   // Boshqa talabaga o'tilganda tahrirlash rejimidan chiqamiz
   useEffect(() => { setEditing(false); setCert(false); setOrder(null) }, [s.row])
@@ -395,7 +395,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button type="button" className="btn-ghost h-9" onClick={() => setOrder({})} title="Buyruq tayyorlash (akademik ta'til, safdan chiqarish, guruh almashtirish)"><ScrollText size={15} /><span className="hidden sm:inline">Buyruq</span></button>
+            <button type="button" className="btn-ghost h-9" onClick={() => setOrder({ student: s })} title="Buyruq tayyorlash (akademik ta'til, safdan chiqarish, guruh almashtirish)"><ScrollText size={15} /><span className="hidden sm:inline">Buyruq</span></button>
             {isOfficialGroup(s.group) && <button type="button" className="btn-ghost h-9" onClick={() => setCert(true)} title="O'qiyotganligi haqida ma'lumotnoma"><FileText size={15} /><span className="hidden sm:inline">Ma'lumotnoma</span></button>}
             {!editing && <button type="button" className="btn-ghost h-9" onClick={() => setEditing(true)}><Pencil size={15} /><span className="hidden sm:inline">Tahrirlash</span></button>}
             <button type="button" className="btn-danger h-9" onClick={del} disabled={deleting} title="Talabani bazadan o'chirish"><Trash2 size={15} /><span className="hidden md:inline">O'chirish</span></button>
@@ -423,7 +423,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
                 await onSave(s, f)
                 setEditing(false)
                 // Guruh o'zgargan (ta'til, safdan chiqarish, o'tkazish, qaytish) — buyruq tayyor holda ochiladi
-                if (f.group !== undefined && f.group !== before.prevGroup) setOrder({ hint: before })
+                if (f.group !== undefined && f.group !== before.prevGroup) setOrder({ student: { ...s, ...f } as Student, hint: before })
               }} />
               : <ViewInfo s={s} onEdit={() => setEditing(true)} onToggleBaza={onToggleBaza} />}
           </div>
@@ -442,7 +442,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
         </div>
       </div>
       {cert && <MalumotnomaModal student={s} onClose={() => setCert(false)} />}
-      {order && <BuyruqModal key={s.group} student={s} hint={order.hint} onClose={() => setOrder(null)} />}
+      {order && <BuyruqModal student={order.student} hint={order.hint} onMove={(fields) => onSave(s, fields)} onClose={() => setOrder(null)} />}
     </div>
   )
 }
