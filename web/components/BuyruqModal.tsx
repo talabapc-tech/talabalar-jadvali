@@ -1,13 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Download, FileText, Loader2, X } from 'lucide-react'
+import { Check, Download, FileText, Loader2, X } from 'lucide-react'
 import {
-  BUYRUQ_TUR_LIST, BUYRUQ_TURLARI, buyruqBlocker, buyruqFileName, buyruqMatni, buyruqQuery, suggestBuyruq,
+  BUYRUQ_TUR_LIST, BUYRUQ_TURLARI, buyruqBlocker, buyruqFileName, buyruqMatni, buyruqMove, buyruqQuery, suggestBuyruq,
   type BuyruqFields, type BuyruqHint, type BuyruqTur,
 } from '@/lib/buyruq'
 import { fullName } from '@/lib/student'
-import type { Student } from '@/lib/types'
+import type { EditFields, Student } from '@/lib/types'
 import { cx } from './ui'
 
 /** DD.MM.YYYY ↔ YYYY-MM-DD (input type="date") */
@@ -34,27 +34,33 @@ function DateInput({ label, value, onChange }: { label: string; value: string; o
 
 /**
  * Talaba uchun buyruq: turi talaba holatidan avtomatik aniqlanadi (akademik ta'til, safdan chiqarish,
- * guruh almashtirish, ta'tildan qaytish), maydonlar bazadan to'ldiriladi. Word fayl yuklab olinadi.
+ * guruh almashtirish, ta'tildan qaytish), maydonlar bazadan to'ldiriladi. Word fayl yuklab olinadi va
+ * (belgi qo'yilgan bo'lsa) talaba buyruqdagi guruhiga o'zi o'tkaziladi.
  */
-export default function BuyruqModal({ student: s, hint, onClose }: { student: Student; hint?: BuyruqHint; onClose: () => void }) {
+export default function BuyruqModal({ student: s, hint, onMove, onClose }: {
+  student: Student
+  hint?: BuyruqHint
+  /** Talabani yangi guruhga o'tkazish (tahrir sifatida saqlanadi, guruh tarixiga yoziladi) */
+  onMove: (fields: EditFields) => Promise<void>
+  onClose: () => void
+}) {
   const [f, setF] = useState<BuyruqFields>(() => suggestBuyruq(s, hint))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [doMove, setDoMove] = useState(true)
+  const [movedTo, setMovedTo] = useState('')
   const set = <K extends keyof BuyruqFields>(k: K) => (v: BuyruqFields[K]) => setF((x) => ({ ...x, [k]: v }))
 
   const info = BUYRUQ_TURLARI[f.tur]
   const blocker = useMemo(() => buyruqBlocker(f), [f])
+  const move = useMemo(() => (hint || movedTo ? null : buyruqMove(s, f)), [hint, movedTo, s, f])
   const has = (m: (typeof info.maydonlar)[number]) => info.maydonlar.includes(m)
 
-  /** Tur almashganda talabadan taklif qilingan maydonlar saqlanadi, kiritilgan raqam/sana o'zgarmaydi */
+  /** Tur almashganda maydonlar shu tur uchun qayta hisoblanadi; qo'lda kiritilgan raqam/sana saqlanadi */
   const onTur = (tur: BuyruqTur) => {
-    const sug = suggestBuyruq(s, hint)
-    setF((x) => ({
-      ...x, tur,
-      avvalgiGuruh: x.avvalgiGuruh || sug.avvalgiGuruh,
-      yangiGuruh: x.yangiGuruh || sug.yangiGuruh,
-      kurs: x.kurs || sug.kurs,
-    }))
+    const was = suggestBuyruq(s, hint, f.tur)
+    const next = suggestBuyruq(s, hint, tur)
+    setF({ ...next, raqam: f.raqam !== was.raqam ? f.raqam : next.raqam, sana: f.sana !== was.sana ? f.sana : next.sana })
   }
 
   const download = async () => {
@@ -77,9 +83,19 @@ export default function BuyruqModal({ student: s, hint, onClose }: { student: St
       setTimeout(() => URL.revokeObjectURL(url), 10_000)
     } catch (e) {
       setError(`Buyruq yaratilmadi: ${(e as Error).message}`)
-    } finally {
       setBusy(false)
+      return
     }
+    // Buyruq chiqdi — talaba buyruqdagi guruhiga o'tadi (faqat bir marta)
+    if (move && doMove) {
+      try {
+        await onMove(move.fields)
+        setMovedTo(move.group)
+      } catch (e) {
+        setError(`Buyruq yuklandi, lekin talaba o'tkazilmadi: ${(e as Error).message}`)
+      }
+    }
+    setBusy(false)
   }
 
   return (
@@ -131,6 +147,20 @@ export default function BuyruqModal({ student: s, hint, onClose }: { student: St
             <p className="text-[13px] leading-relaxed text-fg">{buyruqMatni(s, f)}</p>
           </div>
 
+          {move && (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-line bg-ink-950/40 p-3 text-[13px] text-fg">
+              <input type="checkbox" className="mt-0.5 size-4 accent-sky-500" checked={doMove} onChange={(e) => setDoMove(e.target.checked)} />
+              <span>
+                Buyruq yuklab olingach talaba <b>{move.label}</b> guruhiga avtomatik o‘tkazilsin
+                <span className="block text-[12px] text-fg-muted">hozirgi guruhi: {s.group || '—'}</span>
+              </span>
+            </label>
+          )}
+          {movedTo && (
+            <div className="flex items-center gap-2 rounded-xl border border-emerald/40 bg-emerald/10 px-3 py-2 text-[12.5px] font-semibold text-emerald-soft">
+              <Check size={15} /> Talaba «{movedTo}» guruhiga o‘tkazildi
+            </div>
+          )}
           {(blocker || error) && (
             <div className={cx('rounded-xl border px-3 py-2 text-[12.5px] font-semibold', error ? 'border-rose/40 bg-rose/10 text-rose' : 'border-amber/40 bg-amber/10 text-amber')}>{error || blocker}</div>
           )}

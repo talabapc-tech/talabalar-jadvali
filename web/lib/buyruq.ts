@@ -1,6 +1,7 @@
+import { ACADEMIC_LEAVE_GROUP, WITHDRAWN_GROUP } from '@/lib/config'
 import { isValidSana, todayTashkent, uzQuotes, yonalishOfGroup } from '@/lib/malumotnoma'
-import { fullName, isAcademicLeave, isLeftGroup, isOfficialGroup, isWithdrawn, kursOf, lastMoveInto } from '@/lib/student'
-import type { Student } from '@/lib/types'
+import { fullName, isAcademicLeave, isLeftGroup, isOfficialGroup, kursOf } from '@/lib/student'
+import type { EditFields, Student } from '@/lib/types'
 
 /*
   Talabalar bo'yicha buyruqlar (Word shablonlaridan: assets/buyruqlar/*.docx).
@@ -67,57 +68,85 @@ export interface BuyruqFields {
   avvalgiSana: string
 }
 
-/** Talaba saqlanishidan oldingi holat — guruh tarixi hali yangilanmagan bo'lsa ham to'g'ri buyruq taklif qilish uchun */
+/**
+ * Guruh o'zgarib saqlangandan keyin buyruq ochilganda: talaba ma'lumoti allaqachon yangi holatda,
+ * saqlashdan oldingi guruh va buyruq shu yerda beriladi (guruh tarixi mijozda hali yangilanmagan bo'ladi).
+ */
 export interface BuyruqHint {
   prevGroup?: string
   prevBuyruq?: string
   prevBuyruqSana?: string
 }
 
-/** Talaba holatidan buyruq turi va maydonlarini taxmin qilish */
-export function suggestBuyruq(s: Student, hint: BuyruqHint = {}): BuyruqFields {
+/** Buyruq turining standart tanlovi (talaba holatidan) */
+export function defaultTur(s: Student, hint?: BuyruqHint): BuyruqTur {
   const g = String(s.group || '').trim()
-  const base: BuyruqFields = {
-    tur: 'guruh_otkazish', raqam: '', sana: todayTashkent(), kurs: '',
+  if (isLeftGroup(g)) return isAcademicLeave(g) ? 'akademik_tatil' : 'safdan_1'
+  return hint?.prevGroup && isAcademicLeave(hint.prevGroup) ? 'qayta_tiklash' : 'guruh_otkazish'
+}
+
+/**
+ * Buyruq maydonlari talaba holatidan:
+ *  - hint yo'q — buyruq talaba o'tkazilishidan OLDIN tayyorlanadi: "guruhi" = hozirgi guruhi;
+ *    ta'til/safdan chiqarilgan talaba uchun — qaysi guruhdan chiqqani (chiqqan_guruh);
+ *  - hint bor — o'tkazish allaqachon saqlangan: "qayerdan" = saqlashdan oldingi guruh.
+ */
+export function suggestBuyruq(s: Student, hint?: BuyruqHint, tur: BuyruqTur = defaultTur(s, hint)): BuyruqFields {
+  const g = String(s.group || '').trim()
+  const left = isLeftGroup(g)
+  const cur = isOfficialGroup(g) ? g : ''
+  const leftFrom = String(s.chiqqan_guruh || '').trim()
+  const prev = String(hint?.prevGroup ?? '').trim()
+  const f: BuyruqFields = {
+    tur, raqam: '', sana: todayTashkent(), kurs: '',
     avvalgiGuruh: '', yangiGuruh: '', avvalgiRaqam: '', avvalgiSana: '',
   }
-  const withKurs = (f: BuyruqFields): BuyruqFields => ({
-    ...f, kurs: f.kurs || String(kursOf(f.avvalgiGuruh) ?? kursOf(f.yangiGuruh) ?? ''),
-  })
 
-  if (isLeftGroup(g)) {
-    // Buyruq raqami/sanasi talaba kartasida (Buyruq №, Buyruq sanasi) saqlanadi
-    return withKurs({
-      ...base,
-      tur: isAcademicLeave(g) ? 'akademik_tatil' : 'safdan_1',
-      raqam: String(s.buyruq || ''),
-      sana: String(s.buyruq_sana || '') || base.sana,
-      avvalgiGuruh: String(s.chiqqan_guruh || ''),
-    })
+  if (tur === 'akademik_tatil' || tur === 'safdan_1' || tur === 'safdan_2') {
+    f.avvalgiGuruh = left ? leftFrom : cur
+    // Talaba shu holatda turgan bo'lsa — buyruq raqami/sanasi kartadan
+    const same = left && (tur === 'akademik_tatil') === isAcademicLeave(g)
+    if (same) { f.raqam = String(s.buyruq || ''); f.sana = String(s.buyruq_sana || '') || f.sana }
+  } else if (tur === 'qayta_tiklash') {
+    if (hint) {
+      const leave = [...(s.guruh_tarixi ?? [])].reverse().find((m) => isAcademicLeave(m.to))
+      f.avvalgiGuruh = leftFrom || String(leave?.from || '')
+      f.yangiGuruh = cur
+      f.avvalgiRaqam = String(hint.prevBuyruq ?? leave?.buyruq ?? '')
+      f.avvalgiSana = String(hint.prevBuyruqSana ?? leave?.buyruq_sana ?? '')
+    } else if (isAcademicLeave(g)) {
+      // Ta'tildagi talaba o'z guruhiga tiklanadi (oynada boshqa guruh tanlash mumkin)
+      f.avvalgiGuruh = leftFrom
+      f.yangiGuruh = isOfficialGroup(leftFrom) ? leftFrom : ''
+      f.avvalgiRaqam = String(s.buyruq || '')
+      f.avvalgiSana = String(s.buyruq_sana || '')
+    } else {
+      f.avvalgiGuruh = left ? leftFrom : cur
+    }
+  } else {
+    // guruh_otkazish
+    f.avvalgiGuruh = hint ? (prev && !isLeftGroup(prev) ? prev : '') : (left ? leftFrom : cur)
+    f.yangiGuruh = hint ? cur : ''
   }
+  f.kurs = String(kursOf(f.avvalgiGuruh) ?? kursOf(f.yangiGuruh) ?? '')
+  return f
+}
 
-  const move = lastMoveInto(s)
-  const from = String(hint.prevGroup ?? move?.from ?? '').trim()
-
-  if (from && isAcademicLeave(from)) {
-    // Ta'tilga chiqarish buyrug'i: avval kartadagi (saqlashdan oldingi), bo'lmasa tarixdagi
-    const leave = [...(s.guruh_tarixi ?? [])].reverse().find((m) => isAcademicLeave(m.to))
-    return withKurs({
-      ...base,
-      tur: 'qayta_tiklash',
-      avvalgiGuruh: String(s.chiqqan_guruh || leave?.from || ''),
-      yangiGuruh: g,
-      avvalgiRaqam: String(hint.prevBuyruq ?? leave?.buyruq ?? ''),
-      avvalgiSana: String(hint.prevBuyruqSana ?? leave?.buyruq_sana ?? ''),
-    })
+/** Buyruq chiqarilgach talaba qaysi guruhga o'tkazilishi: null — o'tkazish kerak emas / mumkin emas */
+export function buyruqMove(s: Pick<Student, 'group'>, f: BuyruqFields): { group: string; fields: EditFields; label: string } | null {
+  const cur = String(s.group || '').trim()
+  let group = ''
+  let fields: EditFields = {}
+  if (f.tur === 'akademik_tatil' || f.tur === 'safdan_1' || f.tur === 'safdan_2') {
+    group = f.tur === 'akademik_tatil' ? ACADEMIC_LEAVE_GROUP : WITHDRAWN_GROUP
+    // Safdan chiqarish / akademik ta'til: buyruq raqami, sanasi va qaysi guruhdan chiqqani talabaga yoziladi
+    fields = { buyruq: f.raqam.trim(), buyruq_sana: f.sana.trim(), chiqqan_guruh: f.avvalgiGuruh.trim() }
+  } else {
+    group = f.yangiGuruh.trim()
+    if (!isOfficialGroup(group)) return null
   }
-
-  return withKurs({
-    ...base,
-    tur: 'guruh_otkazish',
-    avvalgiGuruh: from && !isWithdrawn(from) ? from : '',
-    yangiGuruh: isOfficialGroup(g) ? g : '',
-  })
+  if (!group || group === cur) return null
+  return { group, fields: { ...fields, group }, label: group }
 }
 
 /** Buyruqni chiqarib bo'lmasa — sababi, aks holda null */
