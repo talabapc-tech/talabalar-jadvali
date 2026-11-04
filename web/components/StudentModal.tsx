@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Link2, Pencil, Save, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Link2, Pencil, Save, ScrollText, Trash2, X } from 'lucide-react'
 import { YON_OPTIONS } from '@/lib/config'
 import { decodePinfl, dobFromPinfl, findDuplicates, formatPinfl, fullName, groupOptions, isAcademicLeave, isLeftGroup, isOfficialGroup, isSecretGroup, isWithdrawn, lastMoveInto, NAME_FLAGS, needsOrder, ORDER_DATE_RE } from '@/lib/student'
 import { EDIT_FIELDS, type EditFields, type GroupMove, type Student } from '@/lib/types'
+import type { BuyruqHint } from '@/lib/buyruq'
+import BuyruqModal from './BuyruqModal'
 import DocImages from './DocImages'
 import MalumotnomaModal from './MalumotnomaModal'
 import { BazaButton, cx, GroupBadge, Mono, StatusIcon } from './ui'
@@ -338,9 +340,11 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [cert, setCert] = useState(false)
+  // Buyruq oynasi: guruh o'zgarib saqlanganda o'zi ochiladi (hint — saqlashdan oldingi holat)
+  const [order, setOrder] = useState<{ hint?: BuyruqHint } | null>(null)
 
   // Boshqa talabaga o'tilganda tahrirlash rejimidan chiqamiz
-  useEffect(() => { setEditing(false); setCert(false) }, [s.row])
+  useEffect(() => { setEditing(false); setCert(false); setOrder(null) }, [s.row])
 
   // Sahifa orqada aylanib ketmasin
   useEffect(() => {
@@ -353,14 +357,14 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
-      if (e.key === 'Escape') { if (cert) setCert(false); else if (editing) setEditing(false); else onClose() }
-      else if (cert) return
+      if (e.key === 'Escape') { if (order) setOrder(null); else if (cert) setCert(false); else if (editing) setEditing(false); else onClose() }
+      else if (cert || order) return
       else if (!typing && e.key === 'ArrowLeft' && hasPrev) onNav(-1)
       else if (!typing && e.key === 'ArrowRight' && hasNext) onNav(1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [cert, editing, hasPrev, hasNext, onNav, onClose])
+  }, [cert, order, editing, hasPrev, hasNext, onNav, onClose])
 
   const dups = useMemo(() => findDuplicates(all, s.pv, s.pinfl, s.row), [all, s.pv, s.pinfl, s.row])
 
@@ -391,6 +395,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button type="button" className="btn-ghost h-9" onClick={() => setOrder({})} title="Buyruq tayyorlash (akademik ta'til, safdan chiqarish, guruh almashtirish)"><ScrollText size={15} /><span className="hidden sm:inline">Buyruq</span></button>
             {isOfficialGroup(s.group) && <button type="button" className="btn-ghost h-9" onClick={() => setCert(true)} title="O'qiyotganligi haqida ma'lumotnoma"><FileText size={15} /><span className="hidden sm:inline">Ma'lumotnoma</span></button>}
             {!editing && <button type="button" className="btn-ghost h-9" onClick={() => setEditing(true)}><Pencil size={15} /><span className="hidden sm:inline">Tahrirlash</span></button>}
             <button type="button" className="btn-danger h-9" onClick={del} disabled={deleting} title="Talabani bazadan o'chirish"><Trash2 size={15} /><span className="hidden md:inline">O'chirish</span></button>
@@ -413,7 +418,13 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:overflow-hidden">
           <div className="p-4 sm:p-5 lg:overflow-y-auto">
             {editing
-              ? <EditForm key={s.row} student={s} all={all} onCancel={() => setEditing(false)} onSave={async (f) => { await onSave(s, f); setEditing(false) }} />
+              ? <EditForm key={s.row} student={s} all={all} onCancel={() => setEditing(false)} onSave={async (f) => {
+                const before: BuyruqHint = { prevGroup: s.group, prevBuyruq: s.buyruq, prevBuyruqSana: s.buyruq_sana }
+                await onSave(s, f)
+                setEditing(false)
+                // Guruh o'zgargan (ta'til, safdan chiqarish, o'tkazish, qaytish) — buyruq tayyor holda ochiladi
+                if (f.group !== undefined && f.group !== before.prevGroup) setOrder({ hint: before })
+              }} />
               : <ViewInfo s={s} onEdit={() => setEditing(true)} onToggleBaza={onToggleBaza} />}
           </div>
           <div className="border-t border-line bg-ink-950/40 p-4 sm:p-5 lg:overflow-y-auto lg:border-t-0 lg:border-l">
@@ -431,6 +442,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
         </div>
       </div>
       {cert && <MalumotnomaModal student={s} onClose={() => setCert(false)} />}
+      {order && <BuyruqModal key={s.group} student={s} hint={order.hint} onClose={() => setOrder(null)} />}
     </div>
   )
 }
