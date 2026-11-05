@@ -46,5 +46,21 @@
     },
     "id": "chg_1793851179495_jjiui",
     "created_at": "2026-11-05T03:59:39.495Z"
+  },
+  {
+    "type": "update_student",
+    "data": {
+      "row": 300,
+      "fields": {
+        "group": "Akademik ta'til olganlar",
+        "buyruq": "T-",
+        "buyruq_sana": "26.10.2026"
+      },
+      "shnum": "",
+      "pinfl": "60305065680054",
+      "ism": "Sharifova Sevinch"
+    },
+    "id": "chg_1793851251616_rvmhz",
+    "created_at": "2026-11-05T04:00:51.616Z"
   }
 ]
