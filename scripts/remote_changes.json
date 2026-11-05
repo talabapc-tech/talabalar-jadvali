@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "type": "update_student",
+    "data": {
+      "row": 533,
+      "fields": {
+        "group": "Akademik ta'til olganlar",
+        "buyruq": "T-60",
+        "buyruq_sana": "26.10.2026"
+      },
+      "shnum": "375",
+      "pinfl": "62010035590030",
+      "ism": "Bozorova Aziza"
+    },
+    "id": "chg_1793851129076_osoy3",
+    "created_at": "2026-11-05T03:58:49.076Z"
+  }
+]
