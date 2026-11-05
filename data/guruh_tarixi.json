@@ -181,6 +181,20 @@
       }
     ]
   },
+  "300": {
+    "fish": "Sharifova Sevinch O'tkir qizi",
+    "pinfl": "60305065680054",
+    "moves": [
+      {
+        "from": "24-12",
+        "to": "Akademik ta'til olganlar",
+        "buyruq": "T-",
+        "buyruq_sana": "26.10.2026",
+        "vaqt": "2026-11-05T04:00:49.808Z",
+        "manba": "portal"
+      }
+    ]
+  },
   "360": {
     "fish": "Navro'zova Ro'zigul O'lmas qizi",
     "pinfl": "60310075680053",
@@ -281,6 +295,20 @@
         "buyruq": "T-60",
         "buyruq_sana": "26.10.2026",
         "vaqt": "2026-11-05T03:58:47.246Z",
+        "manba": "portal"
+      }
+    ]
+  },
+  "550": {
+    "fish": "Sanayeva Iroda Kuchkor qizi",
+    "pinfl": "41907955490014",
+    "moves": [
+      {
+        "from": "25-23",
+        "to": "Akademik ta'til olganlar",
+        "buyruq": "T-61",
+        "buyruq_sana": "26.10.2026",
+        "vaqt": "2026-11-05T03:59:34.265Z",
         "manba": "portal"
       }
     ]
