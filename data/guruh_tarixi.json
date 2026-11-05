@@ -285,6 +285,20 @@
       }
     ]
   },
+  "550": {
+    "fish": "Sanayeva Iroda Kuchkor qizi",
+    "pinfl": "41907955490014",
+    "moves": [
+      {
+        "from": "25-23",
+        "to": "Akademik ta'til olganlar",
+        "buyruq": "T-61",
+        "buyruq_sana": "26.10.2026",
+        "vaqt": "2026-11-05T03:59:34.265Z",
+        "manba": "portal"
+      }
+    ]
+  },
   "557": {
     "fish": "Uktamova Sarvinoz Obid qizi",
     "pinfl": "61901005590031",
