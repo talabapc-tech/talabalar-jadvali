@@ -271,6 +271,20 @@
       }
     ]
   },
+  "533": {
+    "fish": "Bozorova Aziza Ravshan qizi",
+    "pinfl": "62010035590030",
+    "moves": [
+      {
+        "from": "25-23",
+        "to": "Akademik ta'til olganlar",
+        "buyruq": "T-60",
+        "buyruq_sana": "26.10.2026",
+        "vaqt": "2026-11-05T03:58:47.246Z",
+        "manba": "portal"
+      }
+    ]
+  },
   "557": {
     "fish": "Uktamova Sarvinoz Obid qizi",
     "pinfl": "61901005590031",
