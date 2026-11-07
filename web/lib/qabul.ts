@@ -1,6 +1,6 @@
 /*
- * "QABUL - 2026.xlsx" — administratorning qabul jadvali: 14 ustun (guruhi ustuni bilan, ruscha ustun yo'q).
- * Ruscha nom (makRu) faqat AI tarjimada oraliq bosqich sifatida hisoblanadi.
+ * "QABUL - 2026.xlsx" — qabul jadvali: 16 ustun (guruhi, tug'ilgan sana, muassasa nomi UZ / EN / RU).
+ * Ruscha nom (makRu) AI tarjimada ham oraliq bosqich.
  *
  * Yagona manba: portal eksporti (lib/excel.ts) ham, scripts/generate_qabul_shablon.py ham
  * (node web/scripts/qabul-rows.mjs orqali) shu fayldagi qoidalardan foydalanadi.
@@ -17,6 +17,7 @@
 
 export interface QabulInput {
   fish?: string
+  dob?: string
   ism?: string
   ota?: string
   pinfl?: string
@@ -47,6 +48,8 @@ export interface QabulIstisno {
 
 export interface QabulRow {
   fio: string
+  /** Tug'ilgan sana — kun.oy.yil (01.02.2006) */
+  dob: string
   pinfl: string
   pv: string
   tel1: string
@@ -68,6 +71,7 @@ export const QABUL_HEADERS = [
   '№',
   'Guruhi',
   'F.I.O',
+  "Tug'ilgan sana (kun.oy.yil)",
   'JSHSHIR',
   'Pasport seriya raqami',
   'Tel raqam(pastdagi shablondagidek kiritilsin)',
@@ -76,13 +80,14 @@ export const QABUL_HEADERS = [
   'UY manzili',
   'Avval o`qigan muassasa nomi(Uzbek tilida)',
   'Avval o`qigan muassasa nomi(Ingliz tilida)',
+  'Avval o`qigan muassasa nomi(Rus tilida)',
   'Maktab, kollej va HK',
   'Avval olgan diplom seriya+raqami',
   'Boshlagan va tugatgan yili',
 ]
-/** Admin shablonidagi ustun kengliklari (Excel birligida) */
-export const QABUL_WIDTHS = [3.14, 10.0, 34.43, 17.29, 13.43, 17.86, 22.57, 21.71, 17.71, 36, 26.29, 13.86, 16.43, 11]
-/** Admin shablonidagi sahifa nomi */
+/** Ustun kengliklari (Excel birligida) */
+export const QABUL_WIDTHS = [5, 9, 34, 15, 17, 14, 17, 17, 26, 26, 38, 34, 38, 14, 19, 13]
+/** Sahifa nomi */
 export const QABUL_SHEET = 'Лист1'
 
 /* ------------------------------------------------------------ hududlar */
@@ -384,6 +389,17 @@ function studyYears(yil: string, type: string): string {
 
 /* ------------------------------------------------------------ qator */
 
+/** Tug'ilgan sanani kun.oy.yil (01.02.2006) ko'rinishiga keltiradi; tanib bo'lmasa — o'zi */
+function normDob(v: unknown): string {
+  const t = String(v ?? '').trim().split(' ')[0]
+  if (!t || t === '—' || t === '-') return ''
+  const dmy = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/.exec(t)
+  if (dmy) return `${dmy[1].padStart(2, '0')}.${dmy[2].padStart(2, '0')}.${dmy[3]}`
+  const ymd = /^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/.exec(t)
+  if (ymd) return `${ymd[3].padStart(2, '0')}.${ymd[2].padStart(2, '0')}.${ymd[1]}`
+  return t
+}
+
 export function qabulRow(s: QabulInput, istisno?: QabulIstisno): QabulRow {
   const pinfl = String(s.pinfl ?? '').replace(/\D/g, '')
   const fio = cleanText(s.fish) || cleanText(`${s.ism ?? ''} ${s.ota ?? ''}`)
@@ -421,6 +437,7 @@ export function qabulRow(s: QabulInput, istisno?: QabulIstisno): QabulRow {
 
   return {
     fio,
+    dob: normDob(s.dob),
     pinfl,
     pv: cleanText(s.pv).replace(/\s+/g, '').toUpperCase(),
     tel1,
@@ -438,17 +455,17 @@ export function qabulRow(s: QabulInput, istisno?: QabulIstisno): QabulRow {
   }
 }
 
-/** Excel qatori (№ bilan) — admin shablonidagi 14 ustun tartibida */
+/** Excel qatori (№ bilan) — QABUL_HEADERS tartibida (16 ustun) */
 export function qabulCells(r: QabulRow, idx: number): (string | number)[] {
   const num9 = (t: string) => (/^\d{9}$/.test(t) ? Number(t) : t)
   return [
-    idx + 1, r.group, r.fio, r.pinfl, r.pv, num9(r.tel1), num9(r.tel2), r.viloyat, r.manzil,
-    r.makUz, r.makEn, r.eduType, r.diplom, r.yillar,
+    idx + 1, r.group, r.fio, r.dob, r.pinfl, r.pv, num9(r.tel1), num9(r.tel2), r.viloyat, r.manzil,
+    r.makUz, r.makEn, r.makRu, r.eduType, r.diplom, r.yillar,
   ]
 }
 
 /** review maydon nomi → 0 dan boshlangan ustun indeksi (sariq — qo'lda tekshirish) */
-export const REVIEW_COL: Record<string, number> = { viloyat: 7, makEn: 10 }
+export const REVIEW_COL: Record<string, number> = { viloyat: 8, makEn: 11, makRu: 12 }
 /** JSHSHIR ustuni (matn sifatida yoziladi) */
-export const QABUL_PINFL_COL = 3
+export const QABUL_PINFL_COL = 4
 export const QABUL_FILE = 'QABUL - 2026'

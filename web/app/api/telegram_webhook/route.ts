@@ -12,6 +12,8 @@ import { siteOrigin, tashkentStamp, TG_ALLOWED_IDS, TG_BOT_TOKEN, TG_CHAT_ID, TG
 import type { Student } from '@/lib/types'
 import { majlisMatni } from '@/lib/majlis'
 import { loadMajlisDb } from '@/lib/server/majlis-store'
+import { ROLE_META, type Role } from '@/lib/excel-build'
+import { buildBotXlsx } from '@/lib/server/qabul-xlsx'
 
 /*
   24/7 Telegram bot webhook va kunlik hisobotlar (eski api/telegram_webhook.js dan ko'chirilgan).
@@ -35,6 +37,9 @@ import { loadMajlisDb } from '@/lib/server/majlis-store'
   Ma'lumot: data/talabalar_bazasi.json, hisobotlar/rollar/*.xlsx, hisobotlar/pdf_jurnallar/
   (Netlify'da GitHub'dan, kompyuterda diskdan).
 */
+
+/** QABUL uchun AI tarjima ham bo'lishi mumkin — Netlify/Vercel funksiyasi 60 soniyagacha ishlasin */
+export const maxDuration = 60
 
 const BOT_TOKEN = TG_BOT_TOKEN
 /** Bot o'qiydigan baza va hisobot fayllari 1 daqiqa keshlanadi (har bosishda GitHub'ga bormaslik uchun) */
@@ -67,11 +72,10 @@ function quote(lines: string[], expandable = lines.length > 12) {
 /** Menyu tugmasi matnidan emoji va bo'shliqlarni olib tashlash: "🎓 Talabalar" → "talabalar" */
 const plainText = (t: string) => t.replace(/^[^\p{L}\d/]+/u, '').trim()
 
-const ROLE_FILES = [
-  { match: ['buxgalter', '1. buxgalter', '/buxgalteriya'], file: '1_Buxgalteriya_Shartnoma_va_Pasport.xlsx', title: '1. Buxgalteriya (Shartnoma № va Pasport)' },
-  { match: ['baza admin', '2. baza', '/admin'], file: '2_Baza_Admin_Pasport_va_Shahodatnoma.xlsx', title: '2. Baza Administratori (Pasport va Shahodatnoma/Diplom)' },
-  { match: ['guruh rahbar', '3. guruh', '/guruh_rahbari'], file: '3_Guruh_Rahbarlari_Talabalar_Malumotlari.xlsx', title: "3. Guruh Rahbarlari (Tug'ilgan sana, Pasport va Shahodatnoma)" },
-  { match: ["to'liq", 'toliq', '4. to', '/toliq'], file: '4_Toliq_Malumotlar_Bazasi.xlsx', title: "4. To'liq Ma'lumotlar (O'zim uchun barcha ustunlar)" },
+/** Botdan olinadigan .xlsx lar — portaldagi "Excel eksport" bilan bir xil ikki bo'lim (jonli bazadan yasaladi) */
+const ROLE_FILES: { role: Role; match: string[] }[] = [
+  { role: 'qabul_shablon', match: ['qabul', '/qabul'] },
+  { role: 'toliq', match: ["to'liq", 'toliq', '/toliq'] },
 ]
 
 /** PDF jurnallar (Python generate_pdfs.py) faqat 1-kurs guruhlari uchun yasaladi */
@@ -424,17 +428,14 @@ function excelReportsView(): View {
     text: [
       '📑 <b>Excel hisobotlar</b>',
       quote([
-        '1️⃣ <b>Buxgalteriya</b> — shartnoma № va pasport',
-        '2️⃣ <b>Baza administratori</b> — pasport va shahodatnoma / diplom',
-        "3️⃣ <b>Guruh rahbarlari</b> — tug'ilgan sana, pasport, shahodatnoma",
-        "4️⃣ <b>To'liq baza</b> — barcha ustunlar (manzil, ota-ona, telefonlar ham)",
+        `1️⃣ <b>${esc(ROLE_META.qabul_shablon.title)}</b> — barcha guruhlar, 16 ustun (tug'ilgan sana bilan), muassasa nomi UZ / EN / RU`,
+        "2️⃣ <b>To'liq ma'lumotlar</b> — barcha ustunlar (manzil, ota-ona, telefonlar ham), har bir guruh alohida sahifada",
       ], false),
-      '<i>Fayl darhol shu chatga yuboriladi.</i>',
+      '<i>Fayl jonli bazadan yasalib, darhol shu chatga yuboriladi.</i>',
     ].join('\n'),
     markup: {
       inline_keyboard: [
-        [{ text: '1️⃣ Buxgalteriya', callback_data: 'doc:bux' }, { text: '2️⃣ Baza admin', callback_data: 'doc:adm' }],
-        [{ text: '3️⃣ Guruh rahbarlari', callback_data: 'doc:grh' }, { text: "4️⃣ To'liq baza", callback_data: 'doc:tol' }],
+        [{ text: `1️⃣ ${ROLE_META.qabul_shablon.title}`, callback_data: 'doc:qab' }, { text: "2️⃣ To'liq ma'lumotlar", callback_data: 'doc:tol' }],
         backTo('m:rep', 'Hisobotlar'),
       ],
     },
@@ -460,13 +461,19 @@ async function sendStaffExcelDocument(chatId: string | number, type: 'teachers' 
   }
 }
 
-async function sendRoleExcelDirect(chatId: string | number, file: string, title: string) {
-  const { stamp } = tashkentStamp()
-  const buf = await readRepoFileIn(REPO_PATHS.rollar, file, BOT_CACHE)
-  if (buf) {
-    await sendDocument(chatId, buf, file, `📊 <b>${esc(title)}</b>\n🕒 Sana: ${stamp}`)
-  } else {
-    await sendMessage(chatId, `❌ Fayl yuklashda xatolik: ${esc(file)}`)
+/** Talabalar .xlsx — jonli bazadan portaldagi eksport bilan bir xil yasaladi va chatga yuboriladi */
+async function sendRoleExcel(chatId: string | number, role: Role) {
+  const meta = ROLE_META[role]
+  await sendMessage(chatId, `⏳ <b>${esc(meta.title)}</b> tayyorlanmoqda…`)
+  try {
+    const students = await loadStudentsDb()
+    const { bytes, count, fileName } = await buildBotXlsx(students, role)
+    const { stamp } = tashkentStamp()
+    const res = await sendDocument(chatId, Buffer.from(bytes), fileName, `📊 <b>${esc(meta.title)}</b>\n${esc(meta.sub)}\n🕒 Sana: ${stamp}\n👥 Jami talabalar: ${count} nafar`)
+    if (!res.ok) await sendMessage(chatId, `❌ Fayl yuborilmadi: ${esc(res.description || 'Telegram xatosi')}`)
+  } catch (err) {
+    console.error('Excel yasash xatosi:', err)
+    await sendMessage(chatId, `❌ Excel yasab bo'lmadi: ${esc((err as Error).message)}`)
   }
 }
 
@@ -920,9 +927,9 @@ export async function GET(request: NextRequest) {
   if (action === 'backup_json') {
     const { stamp } = tashkentStamp()
     const json = await readRepoFile(REPO_PATHS.baza, BOT_CACHE)
-    const excel = await readRepoFileIn(REPO_PATHS.rollar, '4_Toliq_Malumotlar_Bazasi.xlsx', BOT_CACHE)
+    const excel = await buildBotXlsx(await loadStudentsDb(), 'toliq').catch((e: Error) => { console.error('Zahira Excel yasalmadi:', e); return null })
     const rj = json ? await sendDocument(DEFAULT_CHAT_ID, json, 'talabalar_bazasi.json', `📦 <b>Talabalar bazasi (.json) — Kunlik 18:00 avto-zahira</b>\n🕒 Sana: ${stamp}`) : null
-    const rx = excel ? await sendDocument(DEFAULT_CHAT_ID, excel, '4_Toliq_Malumotlar_Bazasi.xlsx', `📊 <b>4. To'liq Ma'lumotlar Bazasi (.xlsx)</b>\n🕒 Sana: ${stamp}`) : null
+    const rx = excel ? await sendDocument(DEFAULT_CHAT_ID, Buffer.from(excel.bytes), excel.fileName, `📊 <b>To'liq ma'lumotlar bazasi (.xlsx)</b>\n🕒 Sana: ${stamp}`) : null
     const ok = !!rj?.ok && !!rx?.ok
     return Response.json({ ok, action, sent: { json: !!rj?.ok, excel: !!rx?.ok }, error: rj && !rj.ok ? explainTgError(rj) : undefined }, { status: ok ? 200 : 502 })
   }
@@ -1006,10 +1013,10 @@ export async function POST(request: NextRequest) {
       else if (data === 'doc:tch') await sendStaffExcelDocument(chatId, 'teachers')
       else if (data === 'doc:stf') await sendStaffExcelDocument(chatId, 'shtat')
       else if (data === 'doc:all_stf') await sendStaffExcelDocument(chatId, 'all')
-      else if (data === 'doc:bux') await sendRoleExcelDirect(chatId, '1_Buxgalteriya_Shartnoma_va_Pasport.xlsx', '1. Buxgalteriya (Shartnoma № va Pasport)')
-      else if (data === 'doc:adm') await sendRoleExcelDirect(chatId, '2_Baza_Admin_Pasport_va_Shahodatnoma.xlsx', '2. Baza Administratori (Pasport va Shahodatnoma/Diplom)')
-      else if (data === 'doc:grh') await sendRoleExcelDirect(chatId, '3_Guruh_Rahbarlari_Talabalar_Malumotlari.xlsx', '3. Guruh Rahbarlari')
-      else if (data === 'doc:tol') await sendRoleExcelDirect(chatId, '4_Toliq_Malumotlar_Bazasi.xlsx', "4. To'liq Ma'lumotlar Bazasi")
+      else if (data === 'doc:qab') await sendRoleExcel(chatId, 'qabul_shablon')
+      else if (data === 'doc:tol') await sendRoleExcel(chatId, 'toliq')
+      // Eski xabarlardagi tugmalar (Buxgalteriya, Baza admin, Guruh rahbarlari) endi yo'q — yangi menyu ochiladi
+      else if (data === 'doc:bux' || data === 'doc:adm' || data === 'doc:grh') await showView(chatId, excelReportsView())
       else if (data.startsWith('sav_st:')) {
         const [, dId, grp] = data.split(':')
         const draft = getPendingDraft(dId)
@@ -1311,13 +1318,7 @@ export async function POST(request: NextRequest) {
     }
     for (const rf of ROLE_FILES) {
       if (rf.match.some((m) => t.includes(m))) {
-        const buf = await readRepoFileIn(REPO_PATHS.rollar, rf.file, BOT_CACHE)
-        if (buf) {
-          const total = (await loadStudentsDb()).length
-          await sendDocument(chatId, buf, rf.file, `📊 <b>${rf.title}</b>\n🕒 Sana: ${stamp}\n👥 Jami talabalar: ${total} nafar`)
-        } else {
-          await sendMessage(chatId, `❌ Fayl yuklashda xatolik: ${rf.file}`)
-        }
+        await sendRoleExcel(chatId, rf.role)
         return Response.json({ ok: true })
       }
     }
