@@ -140,7 +140,7 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
                 <X size={18} />
               </button>
             </div>
-            <MenuTitle>4 bo'lim uchun .xlsx</MenuTitle>
+            <MenuTitle>2 bo'lim uchun .xlsx</MenuTitle>
             {(Object.keys(ROLE_META) as Role[]).map((role, i) => (
               <div key={role} className={rowCls}>
                 <button
