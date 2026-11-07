@@ -1,18 +1,1 @@
-[
-  {
-    "type": "update_student",
-    "data": {
-      "row": 388,
-      "fields": {
-        "group": "Akademik ta'til olganlar",
-        "buyruq": "T-63",
-        "buyruq_sana": "03.11.2026"
-      },
-      "shnum": "40",
-      "pinfl": "62312065720064",
-      "ism": "Shamsiddinova Fotima"
-    },
-    "id": "chg_1794025524085_i45ws",
-    "created_at": "2026-11-07T04:25:24.085Z"
-  }
-]
+[]
