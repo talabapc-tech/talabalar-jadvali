@@ -122,6 +122,34 @@ interface Calc {
   rey: Reyting
 }
 
+/* ---------------------------- Avto-saqlash va zaxira nusxa ---------------------------- */
+
+/** Oxirgi o'zgarishdan keyin shuncha kutib avtomatik saqlanadi */
+const AUTO_DEBOUNCE_MS = 3000
+/** Uzluksiz yozilsa ham ko'pi bilan shuncha vaqtda bir saqlanadi; xato bo'lsa shu oraliqda qayta urinadi */
+const AUTO_MAX_MS = 60_000
+const AUTOSAVE_PREF = 'baholar_autosave'
+
+/** Saqlanmagan tahrirlar brauzerda ham turadi: elektr o'chsa yoki brauzer yopilsa — keyingi ochilishda tiklanadi */
+interface Draft { edits: Record<string, string>; amEdits: Record<string, string>; amNom: string; t: number }
+const draftKey = (g: string, sem: number) => `baholar_draft_${g}_${sem}`
+function readDraft(g: string, sem: number): Draft | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(draftKey(g, sem)) || 'null') as Draft | null
+    if (!d || typeof d !== 'object' || typeof d.edits !== 'object' || typeof d.amEdits !== 'object') return null
+    return Object.keys(d.edits).length || Object.keys(d.amEdits).length ? d : null
+  } catch {
+    return null
+  }
+}
+function dropDraft(g: string, sem: number) {
+  try {
+    localStorage.removeItem(draftKey(g, sem))
+  } catch {
+    /* bo'sh */
+  }
+}
+
 export default function BaholarSection({
   students,
   notify,
@@ -138,14 +166,27 @@ export default function BaholarSection({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<{ text: string; setup: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [autoSave, setAutoSave] = useState(true)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
 
   // Baholar tahrirlari (key: pinfl|fan|key) — Bekor qilish (Undo) va Qaytarish (Redo) tarixi bilan
   const history = useEditHistory()
   const { edits, apply: applyEdits, reset: resetEdits, undo: handleUndo, redo: handleRedo } = history
   const [amEdits, setAmEdits] = useState<Record<string, string>>({}) // amaliyot: pinfl|field
+  // So'rov davomida (await dan keyin) eng so'nggi tahrirlarni o'qish uchun
+  const editsRef = useRef(edits)
+  editsRef.current = edits
+  const amEditsRef = useRef(amEdits)
+  amEditsRef.current = amEdits
+  const autoSaveRef = useRef(autoSave)
+  autoSaveRef.current = autoSave
+  /** Hozirgi tahrirlar qaysi guruh|semestr ma'lumotiga tegishli (guruh almashayotganda boshqasiga yozilmasin) */
+  const loadedForRef = useRef('')
 
   const [newFan, setNewFan] = useState('')
   const [amNom, setAmNom] = useState(DEFAULT_AMALIYOT)
+  const amNomRef = useRef(amNom)
+  amNomRef.current = amNom
   const [newAm, setNewAm] = useState('')
   const [bulk, setBulk] = useState({ joy: '', boshlanish: '', tugash: '' })
   const [prefsLoaded, setPrefsLoaded] = useState(false)
@@ -435,9 +476,39 @@ export default function BaholarSection({
 
   const dirty = Object.keys(edits).length + Object.keys(amEdits).length
   const confirmLeave = useCallback(
-    () => dirty === 0 || window.confirm("Saqlanmagan o'zgarishlar bor. Ular yo'qoladi. Davom etasizmi?"),
+    () => dirty === 0 || window.confirm("Saqlanmagan o'zgarishlar bor. Hozir o'tsangiz ular yo'qoladi. Davom etasizmi?"),
     [dirty],
   )
+
+  // Avto-saqlash sozlamasi (brauzerda eslab qolinadi)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(AUTOSAVE_PREF) === '0') setAutoSave(false)
+    } catch {
+      /* bo'sh */
+    }
+  }, [])
+  const toggleAutoSave = () => {
+    const next = !autoSave
+    setAutoSave(next)
+    try {
+      localStorage.setItem(AUTOSAVE_PREF, next ? '1' : '0')
+    } catch {
+      /* bo'sh */
+    }
+    notify(next ? 'Avto-saqlash yoqildi: baholar kiritilgan zahoti bazaga yoziladi' : "Avto-saqlash o'chirildi: Saqlash tugmasini bosing", 'info')
+  }
+
+  // Har bir o'zgarish brauzerga ham yoziladi (zaxira). Saqlangach — o'chadi.
+  useEffect(() => {
+    if (!guruh || loadedForRef.current !== `${guruh}|${semestr}`) return
+    try {
+      if (dirty) localStorage.setItem(draftKey(guruh, semestr), JSON.stringify({ edits, amEdits, amNom, t: Date.now() } satisfies Draft))
+      else localStorage.removeItem(draftKey(guruh, semestr))
+    } catch {
+      /* bo'sh */
+    }
+  }, [edits, amEdits, amNom, guruh, semestr, dirty])
   useEffect(() => {
     if (!dirty) return
     const h = (e: BeforeUnloadEvent) => {
@@ -452,10 +523,10 @@ export default function BaholarSection({
 
   // Tez-tez guruh/semestr almashtirilganda eski so'rov javobi yangisini bosib ketmasin
   const loadSeq = useRef(0)
-  const load = useCallback(async (): Promise<boolean> => {
+  const load = useCallback(async (opts: { silent?: boolean; restore?: boolean } = {}): Promise<boolean> => {
     if (!guruh) return false
     const seq = ++loadSeq.current
-    setLoading(true)
+    if (!opts.silent) setLoading(true)
     setError(null)
     try {
       const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${semestr}&pinfl=${memberKey}`, {
@@ -469,8 +540,19 @@ export default function BaholarSection({
         return false
       }
       setData(body as BaholarPayload)
-      resetEdits({})
-      setAmEdits({})
+      loadedForRef.current = `${guruh}|${semestr}`
+      // Birinchi ochilishda: brauzerda qolgan saqlanmagan tahrirlar (elektr o'chgan, sahifa yopilgan) tiklanadi
+      const draft = opts.restore ? readDraft(guruh, semestr) : null
+      const draftAm = draft && draft.amNom === amNomRef.current ? draft.amEdits : {}
+      resetEdits(draft?.edits ?? {})
+      setAmEdits(draftAm)
+      const n = Object.keys(draft?.edits ?? {}).length + Object.keys(draftAm).length
+      if (n) {
+        notify(
+          `Oldin saqlanmay qolgan ${n} ta o'zgarish tiklandi${autoSaveRef.current ? ' — hozir avtomatik saqlanadi' : ' — Saqlash tugmasini bosing'}`,
+          'warning',
+        )
+      }
       return true
     } catch (e) {
       if (seq !== loadSeq.current) return false
@@ -480,10 +562,10 @@ export default function BaholarSection({
     } finally {
       if (seq === loadSeq.current) setLoading(false)
     }
-  }, [guruh, semestr, memberKey, resetEdits])
+  }, [guruh, semestr, memberKey, resetEdits, notify])
 
   useEffect(() => {
-    if (prefsLoaded && guruh) void load()
+    if (prefsLoaded && guruh) void load({ restore: true })
   }, [load, prefsLoaded, guruh])
 
   const post = useCallback(
@@ -686,41 +768,96 @@ export default function BaholarSection({
   )
 
   const savingRef = useRef(false)
-  const saveBaholar = useCallback(async () => {
-    if (savingRef.current || !Object.keys(edits).length) return
-    if (invalidCount) {
+  /** Avto-saqlash xatosi bir marta ko'rsatiladi (har daqiqada takrorlanmasin), muvaffaqiyatdan keyin qayta */
+  const autoErrRef = useRef(false)
+  const firstDirtyAtRef = useRef<number | null>(null)
+
+  /** Saqlangandan keyin: bazadan yangilash, lekin saqlash davomida yozilgan tahrirlarni yo'qotmaslik */
+  const afterSave = useCallback(
+    async (sentBaho: Record<string, string>, sentAm: Record<string, string>) => {
+      setLastSavedAt(new Date())
+      autoErrRef.current = false
+      firstDirtyAtRef.current = null
+      const ok = await load({ silent: true })
+      if (!ok) {
+        notify("Saqlandi, lekin jadvalni qayta yuklab bo'lmadi — sahifani yangilang", 'warning')
+        return
+      }
+      const keep = (cur: Record<string, string>, sent: Record<string, string>) =>
+        Object.fromEntries(Object.entries(cur).filter(([k, v]) => sent[k] !== v))
+      resetEdits(keep(editsRef.current, sentBaho))
+      setAmEdits(keep(amEditsRef.current, sentAm))
+    },
+    [load, notify, resetEdits],
+  )
+
+  const saveFailed = useCallback(
+    (mode: 'manual' | 'auto', e: unknown) => {
+      if (mode === 'auto' && autoErrRef.current) return
+      autoErrRef.current = true
+      notify(
+        mode === 'auto'
+          ? `Avto-saqlash bo'lmadi: ${(e as Error).message}. O'zgarishlar brauzerda saqlangan, har daqiqada qayta urinamiz.`
+          : `Saqlanmadi: ${(e as Error).message}. O'zgarishlaringiz jadvalda qoldi, qayta urinib ko'ring.`,
+        'error',
+      )
+    },
+    [notify],
+  )
+
+  /**
+   * manual — Saqlash tugmasi / Ctrl+S: noto'g'ri baho bo'lsa to'xtaydi.
+   * auto — avto-saqlash: faqat to'g'ri qatorlar yuboriladi (qizil katakli qator kutib turadi), xabar chiqmaydi.
+   */
+  const saveBaholar = useCallback(async (mode: 'manual' | 'auto' = 'manual'): Promise<boolean> => {
+    const cur = editsRef.current
+    if (savingRef.current || !Object.keys(cur).length) return false
+    if (loadedForRef.current !== `${guruh}|${semestr}`) return false
+    if (mode === 'manual' && invalidCount) {
       notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
-      return
+      return false
     }
     // Kalit: pinfl|fan|tur — fan nomida "|" bo'lsa ham to'g'ri ajratiladi (pinfl boshida, tur oxirida)
     const pairs = new Map<string, { pinfl: string; fan: string }>()
-    for (const k of Object.keys(edits)) {
+    for (const k of Object.keys(cur)) {
       const pinfl = k.slice(0, k.indexOf('|'))
       const fan = k.slice(k.indexOf('|') + 1, k.lastIndexOf('|'))
       pairs.set(`${pinfl}|${fan}`, { pinfl, fan })
     }
-    const items = [...pairs.values()].map(({ pinfl, fan }) => {
-      const item: Record<string, string> = { pinfl, fan }
-      for (const k of KIRITILADIGAN) item[k] = shown(pinfl, fan, k)
-      return item
-    })
+    const val = (pinfl: string, fan: string, k: Kiritiladigan) => cur[`${pinfl}|${fan}|${k}`] ?? serverText(pinfl, fan, k)
+    const items = [...pairs.values()]
+      .filter(({ pinfl, fan }) => mode === 'manual' || KIRITILADIGAN.every((k) => parseBaho(val(pinfl, fan, k)) !== undefined))
+      .map(({ pinfl, fan }) => {
+        const item: Record<string, string> = { pinfl, fan }
+        for (const k of KIRITILADIGAN) item[k] = val(pinfl, fan, k)
+        return item
+      })
+    if (!items.length) return false
+    const sent: Record<string, string> = {}
+    for (const it of items) {
+      for (const k of KIRITILADIGAN) {
+        const key = `${it.pinfl}|${it.fan}|${k}`
+        if (key in cur) sent[key] = cur[key]
+      }
+    }
     savingRef.current = true
     setSaving(true)
     try {
       await post({ action: 'saveBaholar', items })
-      notify(`${items.length} ta qator muvaffaqiyatli saqlandi!`, 'success')
-      const keepAm = amEdits
-      const ok = await load()
-      if (ok && Object.keys(keepAm).length) setAmEdits(keepAm)
-      if (!ok) notify("Baholar saqlandi, lekin jadvalni qayta yuklab bo'lmadi — sahifani yangilang", 'warning')
+      if (mode === 'manual') notify(`${items.length} ta qator muvaffaqiyatli saqlandi!`, 'success')
+      await afterSave(sent, {})
+      return true
     } catch (e) {
-      // Tahrirlar o'chmaydi — xatoni tuzatib qayta saqlash mumkin
-      notify(`Saqlanmadi: ${(e as Error).message}. O'zgarishlaringiz jadvalda qoldi, qayta urinib ko'ring.`, 'error')
+      // Tahrirlar o'chmaydi (brauzer zaxirasida ham bor) — keyin qayta saqlanadi
+      saveFailed(mode, e)
+      return false
     } finally {
       savingRef.current = false
       setSaving(false)
     }
-  }, [invalidCount, edits, amEdits, shown, post, notify, load])
+  }, [guruh, semestr, invalidCount, serverText, post, notify, afterSave, saveFailed])
+  const saveBaholarRef = useRef(saveBaholar)
+  saveBaholarRef.current = saveBaholar
 
   const canSaveBaholar = Object.keys(edits).length > 0 && !invalidCount
   const canSaveAm = Object.keys(amEdits).length > 0 && !amInvalid
@@ -1063,28 +1200,40 @@ export default function BaholarSection({
     })
   }
 
-  const saveAmaliyot = async () => {
-    if (savingRef.current || !Object.keys(amEdits).length) return
-    if (amInvalid) {
+  const saveAmaliyot = async (mode: 'manual' | 'auto' = 'manual'): Promise<boolean> => {
+    const cur = amEditsRef.current
+    if (savingRef.current || !Object.keys(cur).length) return false
+    if (loadedForRef.current !== `${guruh}|${semestr}`) return false
+    if (mode === 'manual' && amInvalid) {
       notify("Noto'g'ri baho bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
-      return
+      return false
     }
-    const pinfls = new Set(Object.keys(amEdits).map((k) => k.split('|')[0]))
-    const items = [...pinfls].map((pinfl) => {
+    const val = (pinfl: string, f: AmField) => cur[`${pinfl}|${f}`] ?? amServer(pinfl, f, amNom)
+    const pinfls = [...new Set(Object.keys(cur).map((k) => k.split('|')[0]))]
+      .filter((pinfl) => mode === 'manual' || parseBaho(val(pinfl, 'ball')) !== undefined)
+    if (!pinfls.length) return false
+    const items = pinfls.map((pinfl) => {
       const item: Record<string, string> = { pinfl }
-      for (const f of AM_FIELDS) item[f] = amShown(pinfl, f)
+      for (const f of AM_FIELDS) item[f] = val(pinfl, f)
       return item
     })
+    const sent: Record<string, string> = {}
+    for (const pinfl of pinfls) {
+      for (const f of AM_FIELDS) {
+        const key = `${pinfl}|${f}`
+        if (key in cur) sent[key] = cur[key]
+      }
+    }
     savingRef.current = true
     setSaving(true)
     try {
       await post({ action: 'saveAmaliyot', nom: amNom, items })
-      notify(`${items.length} ta qator saqlandi`, 'success')
-      // Baholar jadvalidagi saqlanmagan tahrirlar yo'qolmasin
-      const keep = edits
-      if ((await load()) && Object.keys(keep).length) resetEdits(keep)
+      if (mode === 'manual') notify(`${items.length} ta qator saqlandi`, 'success')
+      await afterSave({}, sent)
+      return true
     } catch (e) {
-      notify(`Saqlanmadi: ${(e as Error).message}. O'zgarishlaringiz jadvalda qoldi.`, 'error')
+      saveFailed(mode, e)
+      return false
     } finally {
       savingRef.current = false
       setSaving(false)
@@ -1092,6 +1241,38 @@ export default function BaholarSection({
   }
   const saveAmaliyotRef = useRef(saveAmaliyot)
   saveAmaliyotRef.current = saveAmaliyot
+
+  /** Avto-saqlash: avval baholar, keyin amaliyot (bitta so'rov bir vaqtda) */
+  const runAutoSave = useCallback(async () => {
+    if (!autoSaveRef.current || savingRef.current) return
+    if (Object.keys(editsRef.current).length) await saveBaholarRef.current('auto')
+    if (Object.keys(amEditsRef.current).length) await saveAmaliyotRef.current('auto')
+  }, [])
+
+  // Baho qo'yilgach ~3 soniyada saqlanadi; to'xtovsiz yozilsa ham ko'pi bilan 1 daqiqada bir marta
+  useEffect(() => {
+    if (!dirty) {
+      firstDirtyAtRef.current = null
+      return
+    }
+    if (!autoSave) return
+    firstDirtyAtRef.current ??= Date.now()
+    const wait = Math.max(0, Math.min(AUTO_DEBOUNCE_MS, firstDirtyAtRef.current + AUTO_MAX_MS - Date.now()))
+    const t = setTimeout(() => void runAutoSave(), wait)
+    return () => clearTimeout(t)
+  }, [edits, amEdits, dirty, autoSave, runAutoSave])
+
+  // Har daqiqada tekshiruv (internet uzilib, saqlanmay qolgan bo'lsa — qayta urinish) va internet qaytganda darhol
+  useEffect(() => {
+    if (!autoSave) return
+    const iv = setInterval(() => void runAutoSave(), AUTO_MAX_MS)
+    const online = () => void runAutoSave()
+    window.addEventListener('online', online)
+    return () => {
+      clearInterval(iv)
+      window.removeEventListener('online', online)
+    }
+  }, [autoSave, runAutoSave])
 
   /* ---------------------------- Excel Eksport ---------------------------- */
 
@@ -1332,7 +1513,9 @@ export default function BaholarSection({
               className="field h-9 cursor-pointer py-1.5 font-bold"
               value={guruh}
               onChange={(e) => {
-                if (confirmLeave()) setGuruh(e.target.value)
+                if (!confirmLeave()) return
+                if (dirty) dropDraft(guruh, semestr)
+                setGuruh(e.target.value)
               }}
             >
               {groupsByKurs.map(([k, gs]) => (
@@ -1356,7 +1539,9 @@ export default function BaholarSection({
               className="field h-9 cursor-pointer py-1.5 font-bold"
               value={semestr}
               onChange={(e) => {
-                if (confirmLeave()) setSemestr(Number(e.target.value))
+                if (!confirmLeave()) return
+                if (dirty) dropDraft(guruh, semestr)
+                setSemestr(Number(e.target.value))
               }}
             >
               {SEMESTRLAR.map((s) => (
@@ -1415,11 +1600,40 @@ export default function BaholarSection({
               </div>
             )}
 
-            {dirty > 0 && (
-              <span className="chip border-amber/50 bg-amber/10 text-amber font-bold">
-                {dirty} ta o'zgarish
+            {/* Saqlash holati: avto-saqlash yoqilgan bo'lsa baho kiritilgach o'zi bazaga yoziladi */}
+            <button
+              type="button"
+              onClick={toggleAutoSave}
+              className={cx(
+                'chip font-bold cursor-pointer',
+                autoSave ? 'border-emerald/40 bg-emerald/10 text-emerald-soft' : 'border-line bg-ink-800/80 text-fg-muted',
+              )}
+              title={autoSave
+                ? "Avto-saqlash yoqilgan: baho kiritilgach ~3 soniyada va har daqiqada bazaga yoziladi. O'chirish uchun bosing"
+                : 'Avto-saqlash o\'chirilgan: Saqlash tugmasi yoki Ctrl + S. Yoqish uchun bosing'}
+              aria-pressed={autoSave}
+            >
+              <Zap size={12} />
+              Avto-saqlash: {autoSave ? 'yoqilgan' : "o'chiq"}
+            </button>
+            {saving ? (
+              <span className="chip border-sky/40 bg-sky/10 text-sky-soft font-bold">
+                <Loader2 size={12} className="animate-spin" />
+                Saqlanmoqda…
               </span>
-            )}
+            ) : dirty > 0 ? (
+              <span
+                className="chip border-amber/50 bg-amber/10 text-amber font-bold"
+                title="Saqlanmagan o'zgarishlar brauzerda ham saqlab turiladi — sahifa yopilsa ham yo'qolmaydi"
+              >
+                {dirty} ta saqlanmagan
+              </span>
+            ) : lastSavedAt ? (
+              <span className="chip border-emerald/40 bg-emerald/10 text-emerald-soft font-bold" title="Hamma o'zgarishlar bazaga yozilgan">
+                <Check size={12} />
+                Saqlandi {lastSavedAt.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            ) : null}
 
             {/* O'qituvchiga ulashish tugmasi */}
             {view === 'baholar' && (
@@ -1449,7 +1663,7 @@ export default function BaholarSection({
             <button
               type="button"
               className="btn-success h-9 px-4"
-              onClick={view === 'baholar' ? saveBaholar : saveAmaliyot}
+              onClick={() => void (view === 'baholar' ? saveBaholar() : saveAmaliyot())}
               disabled={!canSave || saving}
               title="Saqlash (Ctrl + S)"
             >
@@ -1486,7 +1700,7 @@ export default function BaholarSection({
               faylini ishga tushiring.
             </li>
           </ol>
-          <button type="button" className="btn-primary h-9 px-4" onClick={load}>
+          <button type="button" className="btn-primary h-9 px-4" onClick={() => void load({ restore: true })}>
             Qayta tekshirish
           </button>
         </div>
@@ -1495,7 +1709,7 @@ export default function BaholarSection({
       {error && !error.setup && (
         <div className="panel flex flex-wrap items-center gap-3 border-rose/40 bg-rose/5 p-4 text-[13px] text-rose">
           <AlertTriangle size={16} /> <span className="min-w-0 flex-1">{error.text}</span>
-          <button type="button" className="btn-ghost h-9 px-3" onClick={load}>
+          <button type="button" className="btn-ghost h-9 px-3" onClick={() => void load({ restore: true })}>
             Qayta urinish
           </button>
         </div>
@@ -2299,7 +2513,7 @@ export default function BaholarSection({
 
                 <button
                   type="button"
-                  onClick={saveBaholar}
+                  onClick={() => void saveBaholar()}
                   disabled={saving || !canSaveBaholar}
                   className="btn-success h-9 px-4 text-[13px] font-bold flex items-center gap-1.5"
                   title="Saqlash (Ctrl + S)"
