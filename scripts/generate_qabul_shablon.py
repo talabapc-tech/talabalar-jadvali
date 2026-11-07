@@ -40,7 +40,7 @@ HEADERS = [
     'Avval o`qigan muassasa nomi(Rus tilida)',
     'Maktab, kollej va HK', 'Avval olgan diplom seriya+raqami', 'Boshlagan va tugatgan yili',
 ]
-WIDTHS = [5, 9, 34, 15, 17, 14, 17, 17, 26, 26, 38, 34, 38, 14, 19, 13]
+WIDTHS = [5, 9, 42, 15, 17, 14, 17, 17, 26, 26, 38, 34, 38, 14, 19, 13]
 SHEET = 'Лист1'
 REVIEW_COL = {'viloyat': 9, 'makEn': 12, 'makRu': 13}  # 1 dan boshlangan ustun
 

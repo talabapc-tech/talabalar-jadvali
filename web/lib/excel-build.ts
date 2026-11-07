@@ -238,7 +238,7 @@ export const C = {
   buyruq: { header: 'Buyruq №', wch: 14, val: (s: Student) => s.buyruq || '', center: true } as Col,
   buyruqSana: { header: 'Buyruq sanasi', wch: 16, val: (s: Student) => s.buyruq_sana || '', center: true } as Col,
   leader: { header: 'Guruh rahbari', wch: 32, val: (s: Student) => GROUP_LEADERS[s.group] || '—' } as Col,
-  fish: { header: 'F.I.SH (Talaba)', wch: 34, val: (s: Student) => fullName(s), bold: true } as Col,
+  fish: { header: 'F.I.SH (Talaba)', wch: 42, val: (s: Student) => fullName(s), bold: true } as Col,
   shnum: { header: 'Shartnoma №', wch: 14, val: (s: Student) => numIf(s.shnum), bold: true, num: true, center: true } as Col,
   pv: { header: 'Pasport seriya va raqami', wch: 18, val: (s: Student) => s.pv || '', bold: true, center: true } as Col,
   pinfl: { header: 'JSHSHIR (PINFL)', wch: 18, val: (s: Student) => s.pinfl || '', center: true } as Col,
@@ -318,12 +318,14 @@ export const ROLES: Record<SheetRole, { bg: string; cols: Col[] }> = {
   },
   toliq: {
     bg: '0F172A',
+    // 20 ustun — tasdiqlangan tartib (guruh rahbari jadval tepasidagi kontingent blokida)
     cols: [
-      C.tr, C.group, C.shnum, C.fish, // guruh rahbari — jadval tepasidagi kontingent blokida
+      C.tr, C.group, C.fish,
       { ...C.dob, header: "Tug'ilgan sanasi (dd.mm.yyyy)", wch: 18, bold: true },
-      C.viloyatTuman, C.mfy, C.kochaUy, C.manzilToliq, C.qatnov,
-      C.telTalaba, C.telOtaona, C.telKim,
       C.pv, C.pinfl, C.ber, C.docTur, C.shDoc, C.mak, C.yil,
+      C.viloyatTuman, C.mfy, C.kochaUy, C.qatnov,
+      C.telTalaba, C.telOtaona, C.telKim,
+      C.shnum,
       { header: 'Bazaga kiritilganligi', wch: 18, val: (s) => s.baza || 'KIRITILDI', center: true },
     ],
   },
@@ -388,23 +390,20 @@ export function buildSheet(X: XLSXModule, students: Student[], role: SheetRole, 
 
 /**
  * "Jami talabalar" sahifasi: tepada KONTINGENT (guruh, guruh rahbari, talabalar soni — jadvaldan
- * COUNTIF/COUNTIFS formulalari bilan hisoblanadi), pastida talabalar jadvali (filtr bilan).
+ * COUNTIF formulasi bilan hisoblanadi), pastida talabalar jadvali (filtr bilan).
  * Jadvalga talaba qo'shilsa/o'chirilsa, formulalar qayta hisoblanadi; keshlangan qiymatlar esa
  * formulani hisoblamaydigan ko'ruvchilar (telefon, Telegram ko'rinishi) uchun yoziladi.
  */
 function buildToliqSheet(X: XLSXModule, students: Student[]) {
   const cols = ROLES.toliq.cols
   const groups = [...new Set(students.map((s) => (s.group || '').trim()).filter(Boolean))].sort(groupOrder)
-  const KOUNT_HEADERS = ['№', 'Guruh', 'Guruh rahbari', 'Talabalar soni', 'Bazaga kiritilgan', 'Kiritilmagan']
+  const KOUNT_HEADERS = ['№', 'Guruh', 'Guruh rahbari', 'Talabalar soni']
   // 0: sarlavha, 1: ustunlar, 2..: guruhlar, JAMI, bo'sh qator — keyin jadval sarlavhasi
   const offset = groups.length + 4
   const first = offset + 2 // jadvalning birinchi talaba qatori (Excelda 1 dan)
   const last = offset + 1 + students.length
   const groupCol = X.utils.encode_col(cols.indexOf(C.group))
-  const bazaCol = X.utils.encode_col(cols.length - 1)
   const groupRange = `$${groupCol}$${first}:$${groupCol}$${last}`
-  const bazaRange = `$${bazaCol}$${first}:$${bazaCol}$${last}`
-  const entered = (s: Student) => (s.baza || 'KIRITILDI') === 'KIRITILDI'
 
   return buildSheet(X, students, 'toliq', undefined, {
     rows: offset,
@@ -417,35 +416,25 @@ function buildToliqSheet(X: XLSXModule, students: Student[]) {
       KOUNT_HEADERS.forEach((h, c) => put(1, c, { t: 's', v: h }, head))
 
       let sumAll = 0
-      let sumIn = 0
       groups.forEach((g, i) => {
         const r = 2 + i
         const xr = r + 1 // Excel qator raqami
-        const list = students.filter((s) => (s.group || '').trim() === g)
-        const n = list.length
-        const k = list.filter(entered).length
+        const n = students.filter((s) => (s.group || '').trim() === g).length
         sumAll += n
-        sumIn += k
         const alt = r % 2 === 0
         put(r, 0, { t: 'n', v: i + 1 }, cell(alt, true, true, '475569'))
         put(r, 1, { t: 's', v: g }, cell(alt, true, true))
         put(r, 2, { t: 's', v: GROUP_LEADERS[g] || '—' }, cell(alt, false, false))
         // "26-07 (asl: ?)" kabi yozuvlar ham sanalsin deb prefiks bo'yicha
         put(r, 3, { t: 'n', f: `COUNTIF(${groupRange},B${xr}&"*")`, v: n }, cell(alt, true, true))
-        put(r, 4, { t: 'n', f: `COUNTIFS(${groupRange},B${xr}&"*",${bazaRange},"KIRITILDI")`, v: k }, cell(alt, false, true))
-        put(r, 5, { t: 'n', f: `D${xr}-E${xr}`, v: n - k }, cell(alt, false, true))
       })
 
       const jr = 2 + groups.length
-      const x1 = 3
-      const x2 = 2 + groups.length
       const totalStyle = total(cell(false, true, true))
       put(jr, 0, { t: 's', v: '' }, totalStyle)
       put(jr, 1, { t: 's', v: 'JAMI' }, totalStyle)
       put(jr, 2, { t: 's', v: `${groups.length} ta guruh` }, total(cell(false, true, false)))
-      put(jr, 3, { t: 'n', f: `SUM(D${x1}:D${x2})`, v: sumAll }, totalStyle)
-      put(jr, 4, { t: 'n', f: `SUM(E${x1}:E${x2})`, v: sumIn }, totalStyle)
-      put(jr, 5, { t: 'n', f: `SUM(F${x1}:F${x2})`, v: sumAll - sumIn }, totalStyle)
+      put(jr, 3, { t: 'n', f: `SUM(D3:D${2 + groups.length})`, v: sumAll }, totalStyle)
 
       ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: KOUNT_HEADERS.length - 1 } }]
       ws['!autofilter'] = { ref: X.utils.encode_range({ s: { r: offset, c: 0 }, e: { r: last - 1, c: tcols.length - 1 } }) }
@@ -463,6 +452,15 @@ export const groupOrder = (a: string, b: string) => {
  * Fayl nomiga sana va vaqtni kiritish (masalan: 4_Toliq_Malumotlar_Bazasi (06.10.2026 10-05).xlsx).
  * utcOffsetHours berilsa (server: Toshkent = 5) shu vaqt, aks holda qurilma vaqti.
  */
+/** Bugungi sana: 07.11.2026 (utcOffsetHours berilsa shu vaqt zonasida, aks holda qurilma vaqti) */
+export function todayStamp(utcOffsetHours?: number): string {
+  const real = new Date()
+  const useUtc = utcOffsetHours !== undefined
+  const now = useUtc ? new Date(real.getTime() + utcOffsetHours * 3600 * 1000) : real
+  const part = (utc: number, local: number) => String(useUtc ? utc : local).padStart(2, '0')
+  return `${part(now.getUTCDate(), now.getDate())}.${part(now.getUTCMonth() + 1, now.getMonth() + 1)}.${useUtc ? now.getUTCFullYear() : now.getFullYear()}`
+}
+
 export function withTimestamp(baseName: string, ext = '.xlsx', utcOffsetHours?: number): string {
   const real = new Date()
   const useUtc = utcOffsetHours !== undefined
@@ -527,6 +525,9 @@ export async function buildRoleXlsx(students: Student[], role: Role, hooks: Buil
     bytes: workbookBytes(X, wb),
     count,
     sheets: wb.SheetNames.length,
-    fileName: withTimestamp(ROLE_META[role].file, '.xlsx', hooks.utcOffsetHours),
+    // To'liq ro'yxat: "07.11.2026 Talabalarning to'liq ro'yhati.xlsx"; QABUL — sana va vaqt bilan
+    fileName: role === 'toliq'
+      ? `${todayStamp(hooks.utcOffsetHours)} Talabalarning to'liq ro'yhati.xlsx`
+      : withTimestamp(ROLE_META[role].file, '.xlsx', hooks.utcOffsetHours),
   }
 }
