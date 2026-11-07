@@ -16,7 +16,7 @@ export type Role = 'qabul_shablon' | 'toliq'
 export type SheetRole = 'guruh_rahbari' | 'toliq'
 
 export const ROLE_META: Record<Role, { file: string; title: string; sub: string }> = {
-  qabul_shablon: { file: `${QABUL_FILE}.xlsx`, title: QABUL_FILE, sub: "Admin shabloni: barcha guruhlar, 14 ustun, rasmiy UZ / EN tarjima" },
+  qabul_shablon: { file: `${QABUL_FILE}.xlsx`, title: QABUL_FILE, sub: "Barcha guruhlar, 16 ustun (tug'ilgan sana bilan), muassasa nomi UZ / EN / RU" },
   toliq: { file: '4_Toliq_Malumotlar_Bazasi.xlsx', title: "To'liq ma'lumotlar", sub: 'Kontingent (formulalar bilan) + barcha ustunlar jamlangan baza' },
 }
 
@@ -38,9 +38,10 @@ export type QabulTranslate = (r: QabulRow) => QabulRow
  * Bu Microsoft Excel'da "Ошибка в части содержимого в книге... Выполнить попытку восстановления?"
  * xatoligini keltirib chiqaradi. codeName olib tashlangach, Excel faylni toza ochadi.
  */
-export function cleanXlsxBuffer(raw: ArrayBuffer | Uint8Array): Uint8Array {
+export function cleanXlsxBuffer(raw: ArrayBuffer | Uint8Array, patch?: (files: Record<string, Uint8Array>) => void): Uint8Array {
   try {
     const unzipped = unzipSync(new Uint8Array(raw))
+    patch?.(unzipped)
     if (unzipped['xl/workbook.xml']) {
       let wbXml = strFromU8(unzipped['xl/workbook.xml'])
       wbXml = wbXml.replace(/\s+codeName=(["']).*?\1/g, '')
@@ -56,7 +57,32 @@ export function cleanXlsxBuffer(raw: ArrayBuffer | Uint8Array): Uint8Array {
 /** Ish kitobini Excel ochadigan toza .xlsx baytlariga aylantirish */
 export function workbookBytes(X: XLSXModule, wb: any): Uint8Array {
   const raw = X.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true, bookSST: false })
-  return cleanXlsxBuffer(raw)
+  return cleanXlsxBuffer(raw, (files) => freezePanes(wb, files))
+}
+
+/**
+ * xlsx-js-style qotirilgan qatorlar/ustunlarni yozmaydi — sahifada ws['!freeze'] = { cols, rows } bo'lsa,
+ * tegishli sheetN.xml ga <pane> qo'shiladi (cols — chapdan qotiriladigan ustunlar, rows — tepadan qatorlar).
+ */
+function freezePanes(wb: any, files: Record<string, Uint8Array>) {
+  ;(wb.SheetNames as string[]).forEach((name, i) => {
+    const fr = wb.Sheets[name]?.['!freeze'] as { cols: number; rows: number } | undefined
+    const path = `xl/worksheets/sheet${i + 1}.xml`
+    if (!fr || !files[path]) return
+    const topLeft = `${XLSXColName(fr.cols)}${fr.rows + 1}`
+    const pane =
+      `<pane xSplit="${fr.cols}" ySplit="${fr.rows}" topLeftCell="${topLeft}" activePane="bottomRight" state="frozen"/>` +
+      `<selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="${topLeft}" sqref="${topLeft}"/>`
+    const xml = strFromU8(files[path]).replace(/<sheetView\b([^>]*?)\/>/, `<sheetView$1>${pane}</sheetView>`)
+    files[path] = strToU8(xml)
+  })
+}
+
+/** 0 dan boshlangan ustun indeksi → harf (0 → A, 3 → D) */
+function XLSXColName(n: number): string {
+  let s = ''
+  for (let x = n; x >= 0; x = Math.floor(x / 26) - 1) s = String.fromCharCode(65 + (x % 26)) + s
+  return s
 }
 
 interface Col {
@@ -74,43 +100,80 @@ const numIf = (v: string) => {
 }
 
 /*
- * QABUL - 2026 / Baza administratori — administratorning qabul jadvali formati:
- * bitta "Лист1" sahifa, 1–2-qatorlar bo'sh, 3-qatorda sarlavha, 4-qatordan talabalar (№ 1 dan),
- * 14 ustun (guruhi bilan), Times New Roman 12, ingichka chegara. Qatorlar va tarjimalar lib/qabul.ts da (Python bilan umumiy).
- * Sariq katak — qoida ham, AI ham tarjima qila olmagan nom (qo'lda tekshirish).
+ * QABUL - 2026: bitta "Лист1" sahifa. 1-qator — sarlavha, 2-qator — jami, 3-qator — ustun nomlari,
+ * 4-qatordan talabalar (№ 1 dan). 16 ustun (guruhi, tug'ilgan sana, muassasa nomi UZ / EN / RU).
+ * Dizayn: hamma yozuv QORA, hamma chiziq QORA (sarlavha atrofi qalin), sarlavha och kulrang fonda,
+ * birinchi 3 ustun va sarlavha qatori qotirilgan, filtr bor. Qatorlar va tarjimalar lib/qabul.ts da (Python bilan umumiy).
+ * Sariq katak — qoida ham, AI ham tarjima qila olmagan nom yoki hudud (qo'lda tekshirish).
  */
 export function buildQabulShablonSheet(X: XLSXModule, students: Student[], translate: QabulTranslate = (r) => r) {
-  const thin = { style: 'thin', color: { rgb: '000000' } }
-  const border = { top: thin, bottom: thin, left: thin, right: thin }
-  const font = { sz: 12, name: 'Times New Roman', color: { rgb: '000000' } }
-  const headStyle = { font, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border }
-  const cellStyle = (review: boolean) => ({
-    font,
-    border,
-    ...(review ? { fill: { fgColor: { rgb: 'FFF2CC' }, patternType: 'solid' } } : {}),
-  })
+  const black = { rgb: '000000' }
+  const thin = { style: 'thin', color: black }
+  const medium = { style: 'medium', color: black }
+  const thinBorder = { top: thin, bottom: thin, left: thin, right: thin }
+  const headBorder = { top: medium, bottom: medium, left: medium, right: medium }
+  const font = { sz: 11, name: 'Calibri', color: black }
+  const boldFont = { ...font, bold: true }
+
+  const HEAD_ROW = 2
+  const lastCol = QABUL_HEADERS.length - 1
+  // Qisqa qiymatli ustunlar markazda, uzun matnlar chapda (qatorga o'raladi)
+  const CENTER = new Set([0, 1, 3, 4, 5, 6, 7, 13, 14, 15])
+  const BOLD = new Set([0, 2])
 
   const rows = students.map((s) => translate(qabulRow(s, (ISTISNOLAR as Record<string, QabulIstisno>)[String(s.pinfl || '').replace(/\D/g, '')])))
-  const aoa: (string | number)[][] = [[], [], QABUL_HEADERS, ...rows.map((r, i) => qabulCells(r, i))]
+  const groupCount = new Set(rows.map((r) => r.group).filter(Boolean)).size
+  const aoa: (string | number)[][] = [
+    ['QABUL - 2026'],
+    [`Jami: ${rows.length} nafar talaba · ${groupCount} ta guruh`],
+    QABUL_HEADERS,
+    ...rows.map((r, i) => qabulCells(r, i)),
+  ]
 
   const ws = X.utils.aoa_to_sheet(aoa)
-  for (let r = 2; r < aoa.length; r++) {
-    const reviewCols = r === 2 ? [] : rows[r - 3].review.map((k) => REVIEW_COL[k]).filter((c) => c !== undefined)
-    for (let c = 0; c < QABUL_HEADERS.length; c++) {
+  for (let r = 0; r < aoa.length; r++) {
+    const reviewCols = r <= HEAD_ROW ? [] : rows[r - HEAD_ROW - 1].review.map((k) => REVIEW_COL[k]).filter((c) => c !== undefined)
+    for (let c = 0; c <= lastCol; c++) {
       const addr = X.utils.encode_cell({ r, c })
       if (!ws[addr]) ws[addr] = { t: 's', v: '' }
       const ref = ws[addr]
-      if (r === 2) {
-        ref.s = headStyle
+      if (r === 0) {
+        ref.s = { font: { ...boldFont, sz: 16 }, alignment: { horizontal: 'left', vertical: 'center' } }
+      } else if (r === 1) {
+        ref.s = { font, alignment: { horizontal: 'left', vertical: 'center' } }
+      } else if (r === HEAD_ROW) {
+        ref.s = {
+          font: boldFont,
+          fill: { fgColor: { rgb: 'D9D9D9' }, patternType: 'solid' },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: headBorder,
+        }
       } else {
         if (c === QABUL_PINFL_COL) ref.t = 's'
-        ref.s = cellStyle(reviewCols.includes(c))
+        ref.s = {
+          font: BOLD.has(c) ? boldFont : font,
+          border: thinBorder,
+          alignment: { horizontal: CENTER.has(c) ? 'center' : 'left', vertical: 'center', wrapText: true },
+          ...(reviewCols.includes(c) ? { fill: { fgColor: { rgb: 'FFF2CC' }, patternType: 'solid' } } : {}),
+        }
       }
     }
   }
-  ws['!ref'] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: QABUL_HEADERS.length - 1 } })
+  ws['!ref'] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: aoa.length - 1, c: lastCol } })
   ws['!cols'] = QABUL_WIDTHS.map((width) => ({ width })) // width — Excel birligida aniq (wch +0.83 qo'shadi)
-  ws['!rows'] = [{ hpt: 15 }, { hpt: 15 }, { hpt: 47.25 }, ...rows.map(() => ({ hpt: 15.75 }))]
+  // Qator balandligi: eng uzun o'raladigan matn necha qatorga sig'ishiga qarab (hamma qator bir tekis, Excel/LibreOffice farqsiz)
+  const rowHeight = (cells: (string | number)[]) => {
+    const lines = cells.reduce<number>((m, v, c) => (CENTER.has(c) ? m : Math.max(m, Math.ceil(String(v ?? '').length / (QABUL_WIDTHS[c] * 0.95)))), 1)
+    return Math.max(21, lines * 15 + 6)
+  }
+  ws['!rows'] = [{ hpt: 26 }, { hpt: 18 }, { hpt: 48 }, ...rows.map((r, i) => ({ hpt: rowHeight(qabulCells(r, i)) }))]
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } },
+  ]
+  if (rows.length) ws['!autofilter'] = { ref: X.utils.encode_range({ s: { r: HEAD_ROW, c: 0 }, e: { r: aoa.length - 1, c: lastCol } }) }
+  // Sarlavha qatori va №, Guruhi, F.I.O ustunlari qotirilgan
+  ;(ws as any)['!freeze'] = { cols: 3, rows: HEAD_ROW + 1 }
   return ws
 }
 

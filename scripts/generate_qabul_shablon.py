@@ -33,15 +33,16 @@ OUT_DIR_GROUPS = os.path.join(ROOT, 'hisobotlar', 'qabul', 'guruhlar')
 
 # web/lib/qabul.ts dagi QABUL_HEADERS / QABUL_WIDTHS / QABUL_SHEET bilan bir xil
 HEADERS = [
-    '№', 'Guruhi', 'F.I.O', 'JSHSHIR', 'Pasport seriya raqami',
+    '№', 'Guruhi', 'F.I.O', "Tug'ilgan sana (kun.oy.yil)", 'JSHSHIR', 'Pasport seriya raqami',
     'Tel raqam(pastdagi shablondagidek kiritilsin)', '2-Tel raqam(pastdagi shablondagidek kiritilsin)',
     'Yashash viloyat+tumani', 'UY manzili',
     'Avval o`qigan muassasa nomi(Uzbek tilida)', 'Avval o`qigan muassasa nomi(Ingliz tilida)',
+    'Avval o`qigan muassasa nomi(Rus tilida)',
     'Maktab, kollej va HK', 'Avval olgan diplom seriya+raqami', 'Boshlagan va tugatgan yili',
 ]
-WIDTHS = [3.14, 10.0, 34.43, 17.29, 13.43, 17.86, 22.57, 21.71, 17.71, 36.0, 26.29, 13.86, 16.43, 11.0]
+WIDTHS = [5, 9, 34, 15, 17, 14, 17, 17, 26, 26, 38, 34, 38, 14, 19, 13]
 SHEET = 'Лист1'
-REVIEW_COL = {'viloyat': 8, 'makEn': 11}  # 1 dan boshlangan ustun
+REVIEW_COL = {'viloyat': 9, 'makEn': 12, 'makRu': 13}  # 1 dan boshlangan ustun
 
 
 def qabul_rows(students: list[dict]) -> list[dict]:
@@ -60,34 +61,60 @@ def qabul_rows(students: list[dict]) -> list[dict]:
 
 def row_cells(r: dict, idx: int) -> list:
     num9 = lambda t: int(t) if len(t) == 9 and t.isdigit() else t  # noqa: E731
-    return [idx, r['group'], r['fio'], r['pinfl'], r['pv'], num9(r['tel1']), num9(r['tel2']), r['viloyat'], r['manzil'],
-            r['makUz'], r['makEn'], r['eduType'], r['diplom'], r['yillar']]
+    return [idx, r['group'], r['fio'], r['dob'], r['pinfl'], r['pv'], num9(r['tel1']), num9(r['tel2']), r['viloyat'], r['manzil'],
+            r['makUz'], r['makEn'], r['makRu'], r['eduType'], r['diplom'], r['yillar']]
 
 
 def populate_sheet(ws, rows: list[dict]):
-    """Admin shabloni: 3-qatorda sarlavha, 4-qatordan talabalar (rows tartibi saqlanadi)."""
-    thin = Side(style='thin', color='000000')
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    font = Font(name='Times New Roman', size=12)
+    """1-qator sarlavha, 2-qator jami, 3-qatorda ustun nomlari, 4-qatordan talabalar.
+    Dizayn web/lib/excel-build.ts (buildQabulShablonSheet) bilan bir xil: yozuv va chiziqlar qora."""
+    black = '000000'
+    thin = Side(style='thin', color=black)
+    medium = Side(style='medium', color=black)
+    body_border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    head_border = Border(left=medium, right=medium, top=medium, bottom=medium)
+    font = Font(name='Calibri', size=11, color=black)
+    bold = Font(name='Calibri', size=11, bold=True, color=black)
     fill_review = PatternFill('solid', start_color='FFF2CC')
+    fill_head = PatternFill('solid', start_color='D9D9D9')
+    center_cols = {1, 2, 4, 5, 6, 7, 8, 14, 15, 16}  # 1 dan boshlangan
+    bold_cols = {1, 3}
+    last = len(HEADERS)
 
     for c, w in enumerate(WIDTHS, 1):
         ws.column_dimensions[get_column_letter(c)].width = w
-    ws.row_dimensions[3].height = 47.25
+    ws.cell(1, 1, 'QABUL - 2026').font = Font(name='Calibri', size=16, bold=True, color=black)
+    groups = len({r['group'] for r in rows if r['group']})
+    ws.cell(2, 1, f"Jami: {len(rows)} nafar talaba · {groups} ta guruh").font = font
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last)
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last)
+    ws.row_dimensions[1].height = 26
+    ws.row_dimensions[2].height = 18
+    ws.row_dimensions[3].height = 48
     for c, h in enumerate(HEADERS, 1):
         cell = ws.cell(3, c, h)
-        cell.font, cell.border = font, border
+        cell.font, cell.border, cell.fill = bold, head_border, fill_head
         cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
     for idx, r in enumerate(rows, 1):
         rr = idx + 3
-        ws.row_dimensions[rr].height = 15.75
         review_cols = {REVIEW_COL[k] for k in r['review'] if k in REVIEW_COL}
-        for c, val in enumerate(row_cells(r, idx), 1):
+        values = row_cells(r, idx)
+        lines = 1
+        for c, val in enumerate(values, 1):
             cell = ws.cell(rr, c, val if val != '' else None)
-            cell.font, cell.border = font, border
+            cell.font = bold if c in bold_cols else font
+            cell.border = body_border
+            cell.alignment = Alignment(horizontal='center' if c in center_cols else 'left', vertical='center', wrap_text=True)
             if c in review_cols:
                 cell.fill = fill_review
+            if c not in center_cols:
+                lines = max(lines, -(-len(str(val)) // int(WIDTHS[c - 1] * 0.95)))
+        ws.row_dimensions[rr].height = max(21, lines * 15 + 6)
+
+    if rows:
+        ws.auto_filter.ref = f"A3:{get_column_letter(last)}{len(rows) + 3}"
+    ws.freeze_panes = 'D4'
 
 
 def sort_rows(rows: list[dict]) -> list[dict]:

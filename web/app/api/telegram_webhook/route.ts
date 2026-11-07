@@ -428,7 +428,7 @@ function excelReportsView(): View {
     text: [
       '📑 <b>Excel hisobotlar</b>',
       quote([
-        `1️⃣ <b>${esc(ROLE_META.qabul_shablon.title)}</b> — admin shabloni: barcha guruhlar, 14 ustun, rasmiy UZ / EN tarjima`,
+        `1️⃣ <b>${esc(ROLE_META.qabul_shablon.title)}</b> — barcha guruhlar, 16 ustun (tug'ilgan sana bilan), muassasa nomi UZ / EN / RU`,
         "2️⃣ <b>To'liq ma'lumotlar</b> — barcha ustunlar (manzil, ota-ona, telefonlar ham), har bir guruh alohida sahifada",
       ], false),
       '<i>Fayl jonli bazadan yasalib, darhol shu chatga yuboriladi.</i>',
