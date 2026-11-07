@@ -39,32 +39,48 @@ async function selectAll(page: (from: number, to: number) => Page) {
   }
 }
 
+/**
+ * GET ?guruh=&semestr=[&pinfl=a,b,c]
+ * Guruh/semestr bo'yicha baholar. `pinfl` — guruhning HOZIRGI a'zolari: ularning shu semestrda BOSHQA
+ * guruhda qo'yilgan baholari ham qaytariladi (akademik ta'tildan qaytgan yoki guruhi almashgan talaba
+ * eski baholari bilan ko'rinsin). Har qatorda `guruh` — baho qo'yilgan paytdagi guruh.
+ */
 export async function GET(req: NextRequest) {
   const guruh = guruhOf(req.nextUrl.searchParams.get('guruh'))
   const semestr = Number(req.nextUrl.searchParams.get('semestr'))
   if (!guruh || !isSemestr(semestr)) return fail('guruh va semestr (1-8) kerak')
+  const members = [...new Set((req.nextUrl.searchParams.get('pinfl') || '').split(',').map((x) => x.trim()).filter(isPinfl))].slice(0, 300)
   const db = getServiceSupabase()
 
-  const [f, b, a] = await Promise.all([
+  const noData = Promise.resolve({ data: [] as Record<string, any>[], error: null }) // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [f, b, a, bx, ax] = await Promise.all([
     db.from('fanlar').select('nom, tartib').eq('guruh', guruh).eq('semestr', semestr)
       .order('tartib', { ascending: true }).order('id', { ascending: true }),
     selectAll((from, to) => db.from('baholar').select('*').eq('guruh', guruh).eq('semestr', semestr).order('id').range(from, to)),
     selectAll((from, to) => db.from('malakaviy_amaliyot').select('*').eq('guruh', guruh).eq('semestr', semestr).order('id').range(from, to)),
+    members.length
+      ? selectAll((from, to) => db.from('baholar').select('*').in('pinfl', members).eq('semestr', semestr).neq('guruh', guruh).order('id').range(from, to))
+      : noData,
+    members.length
+      ? selectAll((from, to) => db.from('malakaviy_amaliyot').select('*').in('pinfl', members).eq('semestr', semestr).neq('guruh', guruh).order('id').range(from, to))
+      : noData,
   ])
   if (f.error) return dbError(f.error)
   if (b.error) return dbError(b.error)
   if (a.error) return dbError(a.error)
+  if (bx.error) return dbError(bx.error)
+  if (ax.error) return dbError(ax.error)
 
   const body: BaholarPayload = {
     ok: true,
     fanlar: (f.data ?? []).map((r) => ({ nom: r.nom, tartib: r.tartib })) satisfies Fan[],
-    baholar: (b.data ?? []).map((r) => ({
-      pinfl: r.pinfl, fan: r.fan,
+    baholar: [...(b.data ?? []), ...(bx.data ?? [])].map((r) => ({
+      pinfl: r.pinfl, fan: r.fan, guruh: r.guruh,
       yakuniy: num(r.yakuniy), joriy: num(r.joriy), oraliq: num(r.oraliq), r_semestr: num(r.r_semestr),
       yakuniy100: num(r.yakuniy100), joriy100: num(r.joriy100), oraliq100: num(r.oraliq100), r100: num(r.r100),
     })) satisfies BahoRow[],
-    amaliyot: (a.data ?? []).map((r) => ({
-      pinfl: r.pinfl, nom: r.nom, joy: r.joy ?? '', boshlanish: r.boshlanish ?? '', tugash: r.tugash ?? '',
+    amaliyot: [...(a.data ?? []), ...(ax.data ?? [])].map((r) => ({
+      pinfl: r.pinfl, nom: r.nom, guruh: r.guruh, joy: r.joy ?? '', boshlanish: r.boshlanish ?? '', tugash: r.tugash ?? '',
       ball: num(r.ball), ball100: num(r.ball100), izoh: r.izoh ?? '',
     })) satisfies AmaliyotRow[],
   }

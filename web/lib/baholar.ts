@@ -44,6 +44,8 @@ export interface Fan { nom: string; tartib: number }
 export interface BahoRow {
   pinfl: string
   fan: string
+  /** Baho qo'yilgan paytdagi guruh (talaba keyin boshqa guruhga o'tgan bo'lishi mumkin) */
+  guruh?: string
   yakuniy: number | null
   joriy: number | null
   oraliq: number | null
@@ -57,6 +59,8 @@ export interface BahoRow {
 export interface AmaliyotRow {
   pinfl: string
   nom: string
+  /** Baho qo'yilgan paytdagi guruh */
+  guruh?: string
   joy: string
   boshlanish: string
   tugash: string
