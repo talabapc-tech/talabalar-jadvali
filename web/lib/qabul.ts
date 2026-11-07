@@ -86,7 +86,7 @@ export const QABUL_HEADERS = [
   'Boshlagan va tugatgan yili',
 ]
 /** Ustun kengliklari (Excel birligida) */
-export const QABUL_WIDTHS = [5, 9, 34, 15, 17, 14, 17, 17, 26, 26, 38, 34, 38, 14, 19, 13]
+export const QABUL_WIDTHS = [5, 9, 42, 15, 17, 14, 17, 17, 26, 26, 38, 34, 38, 14, 19, 13]
 /** Sahifa nomi */
 export const QABUL_SHEET = 'Лист1'
 

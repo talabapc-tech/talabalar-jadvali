@@ -430,7 +430,7 @@ function excelReportsView(): View {
       '📑 <b>Excel hisobotlar</b>',
       quote([
         `1️⃣ <b>${esc(ROLE_META.qabul_shablon.title)}</b> — barcha guruhlar, 16 ustun (tug'ilgan sana bilan), muassasa nomi UZ / EN / RU`,
-        "2️⃣ <b>To'liq ma'lumotlar</b> — barcha ustunlar (manzil, ota-ona, telefonlar ham), har bir guruh alohida sahifada",
+        "2️⃣ <b>To'liq ma'lumotlar</b> — tepada guruhlar kontingenti (guruh rahbari bilan), pastda 20 ustunli to'liq jadval",
       ], false),
       '<i>Fayl jonli bazadan yasalib, darhol shu chatga yuboriladi.</i>',
     ].join('\n'),
