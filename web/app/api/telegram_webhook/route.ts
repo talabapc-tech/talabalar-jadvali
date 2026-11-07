@@ -372,6 +372,7 @@ async function studentsMenuView(): Promise<View> {
       inline_keyboard: [
         [{ text: "👥 Guruhlar ro'yxati", callback_data: 'gl' }, { text: '📈 Kontingent', callback_data: 'st:kont' }],
         [{ text: '⚠️ Kamchiliklar', callback_data: 'st:kam' }, { text: "📄 Ma'lumotnoma", callback_data: 'st:mal' }],
+        [{ text: "📥 Excel: to'liq ro'yxat", callback_data: 'doc:tol' }, { text: `📥 Excel: ${ROLE_META.qabul_shablon.title}`, callback_data: 'doc:qab' }],
         [{ text: '➕ Yangi talaba qo\'shish', callback_data: 'add:st' }],
       ],
     },
@@ -611,6 +612,7 @@ async function coursePickerView(): Promise<View> {
     text: `${k === 'akademik' ? "⏸ Akademik ta'til" : '🚫 Safdan chiqarilgan'} · ${count(SPECIAL_LISTS[k].pick)}`,
     callback_data: `g:${k}`,
   })))
+  rows.push([{ text: "📥 To'liq ro'yxat (.xlsx)", callback_data: 'doc:tol' }])
   rows.push(backTo('m:st', 'Talabalar menyusi'))
   return {
     text: `👥 <b>Guruhlar ro'yxati</b>\n${quote(lines, false)}\n<b>Kursni tanlang</b>, keyin guruhni — ro'yxat matn va rasm bo'lib keladi.`,
