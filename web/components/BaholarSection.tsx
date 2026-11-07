@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 import type { OquvReja } from '@/lib/curriculum'
 import { GROUP_SETTINGS } from '@/lib/config'
-import { academicGroups, byName, fullName, kursOf } from '@/lib/student'
+import { academicGroups, byName, fullName, isAcademicLeave, isOutside, kursOf } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import {
   BAHO_TURLARI,
@@ -251,8 +251,61 @@ export default function BaholarSection({
   }, [guruh, semestr])
 
   const list = useMemo(() => students.filter((s) => s.group.trim() === guruh).sort(byName), [students, guruh])
-  const baseRows = useMemo(() => list.filter((s) => s.pinfl), [list])
+  /** Guruhning hozirgi a'zolari (JSHSHIR bilan) — server ularning boshqa guruhdagi baholarini ham qaytaradi */
+  const memberKey = useMemo(() => list.map((s) => s.pinfl).filter(Boolean).sort().join(','), [list])
+  /**
+   * Sobiq a'zolar: shu guruh va semestrda bahosi bor, lekin hozir boshqa joyda (akademik ta'til, safdan
+   * chiqqan yoki boshqa guruh). Ular jadval oxirida belgi bilan ko'rinadi — baholari yo'qolmaydi.
+   */
+  const formerRows = useMemo(() => {
+    const members = new Set(list.map((s) => s.pinfl))
+    const pinfls = new Set(
+      [...(data?.baholar ?? []), ...(data?.amaliyot ?? [])]
+        .filter((r) => (r.guruh ?? guruh) === guruh && !members.has(r.pinfl))
+        .map((r) => r.pinfl),
+    )
+    return students.filter((s) => s.pinfl && pinfls.has(s.pinfl)).sort(byName)
+  }, [data, list, students, guruh])
+  const formerSet = useMemo(() => new Set(formerRows.map((s) => s.pinfl)), [formerRows])
+  /** Hozirgi a'zoning shu semestrdagi bahosi boshqa guruhda qo'yilgan bo'lsa — o'sha guruh(lar) */
+  const otherGroupOf = useMemo(() => {
+    const m = new Map<string, Set<string>>()
+    for (const r of [...(data?.baholar ?? []), ...(data?.amaliyot ?? [])]) {
+      if (!r.guruh || r.guruh === guruh || formerSet.has(r.pinfl)) continue
+      m.set(r.pinfl, (m.get(r.pinfl) ?? new Set()).add(r.guruh))
+    }
+    return m
+  }, [data, guruh, formerSet])
+  const baseRows = useMemo(() => [...list.filter((s) => s.pinfl), ...formerRows], [list, formerRows])
   const noPinfl = useMemo(() => list.filter((s) => !s.pinfl), [list])
+
+  /** Sobiq a'zo yoki boshqa guruhdagi baho uchun qisqa belgi (ism yonida) */
+  const holatOf = (s: Student): { text: string; tone: string; title: string } | null => {
+    if (formerSet.has(s.pinfl)) {
+      const g = s.group.trim()
+      if (isAcademicLeave(g)) return { text: "⏸ akademik ta'til", tone: 'border-amber/40 bg-amber/10 text-amber', title: `Hozir akademik ta'tilda — ${guruh} guruhidagi baholari saqlangan` }
+      if (isOutside(g)) return { text: '🚫 safdan chiqqan', tone: 'border-rose/40 bg-rose/10 text-rose', title: `Safdan chiqarilgan — ${guruh} guruhidagi baholari saqlangan` }
+      return { text: `→ ${g}`, tone: 'border-sky/40 bg-sky/10 text-sky-soft', title: `Hozir ${g} guruhida — ${guruh} guruhidagi baholari saqlangan` }
+    }
+    const other = otherGroupOf.get(s.pinfl)
+    if (other?.size) {
+      const gs = [...other].join(', ')
+      return { text: `↩ ${gs}`, tone: 'border-line bg-ink-800 text-fg-muted', title: `Bu semestr baholari ${gs} guruhida qo'yilgan (avvalgi guruhi)` }
+    }
+    return null
+  }
+  const holatTitle = (s: Student) => {
+    const h = holatOf(s)
+    return h ? `${fullName(s)} — ${h.title}` : fullName(s)
+  }
+  const holatBelgi = (s: Student) => {
+    const h = holatOf(s)
+    return h ? (
+      <span className={cx('ml-1.5 inline-block rounded border px-1 py-px align-middle text-[10.5px] font-semibold leading-tight', h.tone)}>
+        {h.text}
+      </span>
+    ) : null
+  }
 
   // Maxsus tartiblangan talabalar qatorlari
   const rows = useMemo(() => {
@@ -405,7 +458,7 @@ export default function BaholarSection({
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${semestr}`, {
+      const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${semestr}&pinfl=${memberKey}`, {
         cache: 'no-store',
       })
       const body = await res.json().catch(() => ({}))
@@ -427,7 +480,7 @@ export default function BaholarSection({
     } finally {
       if (seq === loadSeq.current) setLoading(false)
     }
-  }, [guruh, semestr, resetEdits])
+  }, [guruh, semestr, memberKey, resetEdits])
 
   useEffect(() => {
     if (prefsLoaded && guruh) void load()
@@ -1051,7 +1104,7 @@ export default function BaholarSection({
    * tahrirlar bilan olinadi, boshqasi serverdan yuklanadi. Talabalarning hech biri tushib qolmaydi.
    */
   const onExport = async ({ semestr: sem, turi, fanlar: tanlangan }: ExportTanlov) => {
-    const talabalar = [...rows, ...noPinfl]
+    let talabalar = [...rows, ...noPinfl]
     const planFanlar = [...(curriculumPlan?.semestrlar?.[String(sem)]?.fanlar ?? [])]
       .sort((x, y) => x.tartib - y.tartib)
       .map((f) => f.nom)
@@ -1094,9 +1147,12 @@ export default function BaholarSection({
         }
       }
     } else {
-      const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${sem}`, { cache: 'no-store' })
+      const res = await fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${sem}&pinfl=${memberKey}`, { cache: 'no-store' })
       const body = (await res.json().catch(() => ({}))) as Partial<BaholarPayload> & { error?: string }
       if (!res.ok || !body.ok) throw new Error(body.error || `Server ${res.status} qaytardi`)
+      // Sobiq a'zo faqat o'sha semestrda shu guruhda bahosi bo'lsagina kiradi
+      const hasData = new Set([...(body.baholar ?? []), ...(body.amaliyot ?? [])].filter((r) => (r.guruh ?? guruh) === guruh).map((r) => r.pinfl))
+      talabalar = talabalar.filter((s) => !formerSet.has(s.pinfl) || hasData.has(s.pinfl))
       const bm = new Map((body.baholar ?? []).map((r) => [`${r.pinfl}|${r.fan}`, r]))
       semFanlar = planFanlar.length ? planFanlar : (body.fanlar ?? []).map((f) => f.nom)
       gradeOf = (pinfl, fan) => fromRow(bm.get(`${pinfl}|${fan}`), pinfl, fan)
@@ -1461,8 +1517,16 @@ export default function BaholarSection({
                 {guruh} · {semestr}-semestr
               </div>
               <span className="chip border-line bg-ink-800/80 text-fg-muted font-bold text-[11px]">
-                {rows.length} talaba
+                {rows.length - formerRows.length} talaba
               </span>
+              {formerRows.length > 0 && (
+                <span
+                  className="chip border-amber/40 bg-amber/10 text-amber font-bold text-[11px]"
+                  title="Shu semestrda bu guruhda bahosi bor, hozir akademik ta'tilda yoki boshqa joyda — jadval oxirida"
+                >
+                  +{formerRows.length} sobiq a'zo
+                </span>
+              )}
               <span className="chip border-line bg-ink-800/80 text-fg-muted font-bold text-[11px]">
                 {fanlar.length} fan
               </span>
@@ -1765,9 +1829,10 @@ export default function BaholarSection({
                             'sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold text-fg transition-colors duration-500',
                             !tableSort.dragKey && 'group-hover:bg-ink-800',
                           )}
-                          title={fullName(s)}
+                          title={holatTitle(s)}
                         >
                           {fullName(s)}
+                          {holatBelgi(s)}
                         </td>
 
                         {/* 3. Fanlar ustunlari */}
@@ -2005,9 +2070,10 @@ export default function BaholarSection({
                         </td>
                         <td
                           className="sticky left-10 z-10 min-w-[13rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1 font-semibold text-fg group-hover:bg-ink-800"
-                          title={fullName(s)}
+                          title={holatTitle(s)}
                         >
                           {fullName(s)}
+                          {holatBelgi(s)}
                         </td>
                         <td className="border-b border-line px-1 py-1">
                           <input
