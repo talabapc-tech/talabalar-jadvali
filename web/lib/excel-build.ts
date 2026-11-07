@@ -17,7 +17,7 @@ export type SheetRole = 'guruh_rahbari' | 'toliq'
 
 export const ROLE_META: Record<Role, { file: string; title: string; sub: string }> = {
   qabul_shablon: { file: `${QABUL_FILE}.xlsx`, title: QABUL_FILE, sub: "Admin shabloni: barcha guruhlar, 14 ustun, rasmiy UZ / EN tarjima" },
-  toliq: { file: '4_Toliq_Malumotlar_Bazasi.xlsx', title: "To'liq ma'lumotlar", sub: 'Barcha ustunlar jamlangan baza' },
+  toliq: { file: '4_Toliq_Malumotlar_Bazasi.xlsx', title: "To'liq ma'lumotlar", sub: 'Kontingent (formulalar bilan) + barcha ustunlar jamlangan baza' },
 }
 
 export type XLSXModule = typeof import('xlsx-js-style')
@@ -256,7 +256,7 @@ export const ROLES: Record<SheetRole, { bg: string; cols: Col[] }> = {
   toliq: {
     bg: '0F172A',
     cols: [
-      C.tr, C.group, C.leader, C.shnum, C.fish,
+      C.tr, C.group, C.shnum, C.fish, // guruh rahbari — jadval tepasidagi kontingent blokida
       { ...C.dob, header: "Tug'ilgan sanasi (dd.mm.yyyy)", wch: 18, bold: true },
       C.viloyatTuman, C.mfy, C.kochaUy, C.manzilToliq, C.qatnov,
       C.telTalaba, C.telOtaona, C.telKim,
@@ -266,7 +266,13 @@ export const ROLES: Record<SheetRole, { bg: string; cols: Col[] }> = {
   },
 }
 
-export function buildSheet(X: XLSXModule, students: Student[], role: SheetRole, colsOverride?: Col[]) {
+/** Jadval tepasiga ajratilgan qatorlar (masalan kontingent bloki): `rows` ta bo'sh qator, `decorate` ularni to'ldiradi */
+export interface SheetTop {
+  rows: number
+  decorate: (ws: any, helpers: { head: any; cell: (alt: boolean, bold: boolean, center: boolean, color?: string) => any; cols: Col[] }) => void
+}
+
+export function buildSheet(X: XLSXModule, students: Student[], role: SheetRole, colsOverride?: Col[], top?: SheetTop) {
   const { bg } = ROLES[role]
   const cols = colsOverride ?? ROLES[role].cols
   const grid = { style: 'thin', color: { rgb: '94A3B8' } }
@@ -289,17 +295,18 @@ export function buildSheet(X: XLSXModule, students: Student[], role: SheetRole, 
     border,
   })
 
-  const aoa: (string | number)[][] = [cols.map((c) => c.header)]
+  const offset = top?.rows ?? 0
+  const aoa: (string | number)[][] = [...Array.from({ length: offset }, () => [] as (string | number)[]), cols.map((c) => c.header)]
   students.forEach((s, i) => aoa.push(cols.map((c) => c.val(s, i))))
   const ws = X.utils.aoa_to_sheet(aoa)
   const range = X.utils.decode_range(ws['!ref'] || 'A1')
-  for (let r = range.s.r; r <= range.e.r; r++) {
+  for (let r = Math.max(range.s.r, offset); r <= range.e.r; r++) {
     for (let c = range.s.c; c <= range.e.c; c++) {
       const addr = X.utils.encode_cell({ r, c })
       const ref = ws[addr]
       if (!ref) continue
       const alt = r % 2 === 0
-      if (r === 0) ref.s = head
+      if (r === offset) ref.s = head
       else if (c === 0) { ref.t = 'n'; ref.s = cell(alt, true, true, '475569') }
       else {
         const meta = cols[c]
@@ -309,8 +316,78 @@ export function buildSheet(X: XLSXModule, students: Student[], role: SheetRole, 
     }
   }
   ws['!cols'] = cols.map((c) => ({ wch: c.wch }))
-  ws['!rows'] = [{ hpt: 28 }, ...students.map(() => ({ hpt: 22 }))]
+  ws['!rows'] = [...Array.from({ length: offset }, () => ({ hpt: 22 })), { hpt: 28 }, ...students.map(() => ({ hpt: 22 }))]
+  // Tepadagi bo'sh qatorlar ham sahifa doirasiga kirsin (aks holda jadval 1-qatordan boshlanib, blok yo'qoladi)
+  if (offset) ws['!ref'] = X.utils.encode_range({ s: { r: 0, c: 0 }, e: range.e })
+  top?.decorate(ws, { head, cell, cols })
   return ws
+}
+
+/**
+ * "Jami talabalar" sahifasi: tepada KONTINGENT (guruh, guruh rahbari, talabalar soni — jadvaldan
+ * COUNTIF/COUNTIFS formulalari bilan hisoblanadi), pastida talabalar jadvali (filtr bilan).
+ * Jadvalga talaba qo'shilsa/o'chirilsa, formulalar qayta hisoblanadi; keshlangan qiymatlar esa
+ * formulani hisoblamaydigan ko'ruvchilar (telefon, Telegram ko'rinishi) uchun yoziladi.
+ */
+function buildToliqSheet(X: XLSXModule, students: Student[]) {
+  const cols = ROLES.toliq.cols
+  const groups = [...new Set(students.map((s) => (s.group || '').trim()).filter(Boolean))].sort(groupOrder)
+  const KOUNT_HEADERS = ['№', 'Guruh', 'Guruh rahbari', 'Talabalar soni', 'Bazaga kiritilgan', 'Kiritilmagan']
+  // 0: sarlavha, 1: ustunlar, 2..: guruhlar, JAMI, bo'sh qator — keyin jadval sarlavhasi
+  const offset = groups.length + 4
+  const first = offset + 2 // jadvalning birinchi talaba qatori (Excelda 1 dan)
+  const last = offset + 1 + students.length
+  const groupCol = X.utils.encode_col(cols.indexOf(C.group))
+  const bazaCol = X.utils.encode_col(cols.length - 1)
+  const groupRange = `$${groupCol}$${first}:$${groupCol}$${last}`
+  const bazaRange = `$${bazaCol}$${first}:$${bazaCol}$${last}`
+  const entered = (s: Student) => (s.baza || 'KIRITILDI') === 'KIRITILDI'
+
+  return buildSheet(X, students, 'toliq', undefined, {
+    rows: offset,
+    decorate: (ws, { head, cell, cols: tcols }) => {
+      const put = (r: number, c: number, cellObj: any, style: any) => { ws[X.utils.encode_cell({ r, c })] = { ...cellObj, s: style } }
+      const total = (style: any) => ({ ...style, font: { ...style.font, bold: true }, fill: { fgColor: { rgb: 'E2E8F0' }, patternType: 'solid' } })
+
+      // Sarlavha
+      put(0, 0, { t: 's', v: 'KONTINGENT' }, { font: { bold: true, sz: 14, name: 'Calibri', color: { rgb: '0F172A' } }, alignment: { horizontal: 'left', vertical: 'center' } })
+      KOUNT_HEADERS.forEach((h, c) => put(1, c, { t: 's', v: h }, head))
+
+      let sumAll = 0
+      let sumIn = 0
+      groups.forEach((g, i) => {
+        const r = 2 + i
+        const xr = r + 1 // Excel qator raqami
+        const list = students.filter((s) => (s.group || '').trim() === g)
+        const n = list.length
+        const k = list.filter(entered).length
+        sumAll += n
+        sumIn += k
+        const alt = r % 2 === 0
+        put(r, 0, { t: 'n', v: i + 1 }, cell(alt, true, true, '475569'))
+        put(r, 1, { t: 's', v: g }, cell(alt, true, true))
+        put(r, 2, { t: 's', v: GROUP_LEADERS[g] || '—' }, cell(alt, false, false))
+        // "26-07 (asl: ?)" kabi yozuvlar ham sanalsin deb prefiks bo'yicha
+        put(r, 3, { t: 'n', f: `COUNTIF(${groupRange},B${xr}&"*")`, v: n }, cell(alt, true, true))
+        put(r, 4, { t: 'n', f: `COUNTIFS(${groupRange},B${xr}&"*",${bazaRange},"KIRITILDI")`, v: k }, cell(alt, false, true))
+        put(r, 5, { t: 'n', f: `D${xr}-E${xr}`, v: n - k }, cell(alt, false, true))
+      })
+
+      const jr = 2 + groups.length
+      const x1 = 3
+      const x2 = 2 + groups.length
+      const totalStyle = total(cell(false, true, true))
+      put(jr, 0, { t: 's', v: '' }, totalStyle)
+      put(jr, 1, { t: 's', v: 'JAMI' }, totalStyle)
+      put(jr, 2, { t: 's', v: `${groups.length} ta guruh` }, total(cell(false, true, false)))
+      put(jr, 3, { t: 'n', f: `SUM(D${x1}:D${x2})`, v: sumAll }, totalStyle)
+      put(jr, 4, { t: 'n', f: `SUM(E${x1}:E${x2})`, v: sumIn }, totalStyle)
+      put(jr, 5, { t: 'n', f: `SUM(F${x1}:F${x2})`, v: sumAll - sumIn }, totalStyle)
+
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: KOUNT_HEADERS.length - 1 } }]
+      ws['!autofilter'] = { ref: X.utils.encode_range({ s: { r: offset, c: 0 }, e: { r: last - 1, c: tcols.length - 1 } }) }
+    },
+  })
 }
 
 export const groupOrder = (a: string, b: string) => {
@@ -364,7 +441,7 @@ export function qabulStudents(students: Student[]): Student[] {
 /**
  * QABUL - 2026: bitta "Лист1" sahifa, BARCHA rasmiy guruhlar (1–3-kurs) — guruh tartibida,
  * ichida alifbo bo'yicha. Akademik ta'til va safdan chiqarilganlar kirmaydi.
- * To'liq ma'lumotlar: "Jami talabalar" + har bir guruh uchun alohida sahifa.
+ * To'liq ma'lumotlar: bitta "Jami talabalar" sahifa — tepada KONTINGENT (formulalar), pastda jadval.
  */
 export async function buildRoleWorkbook(X: XLSXModule, students: Student[], role: Role, hooks: BuildHooks = {}) {
   const wb = X.utils.book_new()
@@ -375,13 +452,7 @@ export async function buildRoleWorkbook(X: XLSXModule, students: Student[], role
     return { wb, count: active.length }
   }
 
-  X.utils.book_append_sheet(wb, buildSheet(X, active, role), 'Jami talabalar')
-  const groups = [...new Set(active.map((s) => (s.group || '').trim()).filter(Boolean))].sort(groupOrder)
-  for (const g of groups) {
-    const list = active.filter((s) => (s.group || '').trim() === g).sort(byName)
-    const name = safeSheetName(/^\d/.test(g) ? `Guruh ${g}` : g)
-    X.utils.book_append_sheet(wb, buildSheet(X, list, role), name)
-  }
+  X.utils.book_append_sheet(wb, buildToliqSheet(X, active), 'Jami talabalar')
   return { wb, count: active.length }
 }
 
