@@ -452,6 +452,15 @@ export const groupOrder = (a: string, b: string) => {
  * Fayl nomiga sana va vaqtni kiritish (masalan: 4_Toliq_Malumotlar_Bazasi (06.10.2026 10-05).xlsx).
  * utcOffsetHours berilsa (server: Toshkent = 5) shu vaqt, aks holda qurilma vaqti.
  */
+/** Bugungi sana: 07.11.2026 (utcOffsetHours berilsa shu vaqt zonasida, aks holda qurilma vaqti) */
+export function todayStamp(utcOffsetHours?: number): string {
+  const real = new Date()
+  const useUtc = utcOffsetHours !== undefined
+  const now = useUtc ? new Date(real.getTime() + utcOffsetHours * 3600 * 1000) : real
+  const part = (utc: number, local: number) => String(useUtc ? utc : local).padStart(2, '0')
+  return `${part(now.getUTCDate(), now.getDate())}.${part(now.getUTCMonth() + 1, now.getMonth() + 1)}.${useUtc ? now.getUTCFullYear() : now.getFullYear()}`
+}
+
 export function withTimestamp(baseName: string, ext = '.xlsx', utcOffsetHours?: number): string {
   const real = new Date()
   const useUtc = utcOffsetHours !== undefined
@@ -516,6 +525,9 @@ export async function buildRoleXlsx(students: Student[], role: Role, hooks: Buil
     bytes: workbookBytes(X, wb),
     count,
     sheets: wb.SheetNames.length,
-    fileName: withTimestamp(ROLE_META[role].file, '.xlsx', hooks.utcOffsetHours),
+    // To'liq ro'yxat: "07.11.2026 Talabalarning to'liq ro'yhati.xlsx"; QABUL — sana va vaqt bilan
+    fileName: role === 'toliq'
+      ? `${todayStamp(hooks.utcOffsetHours)} Talabalarning to'liq ro'yhati.xlsx`
+      : withTimestamp(ROLE_META[role].file, '.xlsx', hooks.utcOffsetHours),
   }
 }
