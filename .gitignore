@@ -59,3 +59,11 @@ scripts/backup_state.json
 data/supabase_backup_before_cleanup.json
 ~$*
 data/google_sheet_survey.*
+
+# ===== Baholar tekshiruvi: shaxsiy ma'lumotli fayllar (repo ommaviy!) =====
+Baholar_Tekshiruv_Hisoboti_*.xlsx
+Guruh hisobotlari/
+Guruh_hisobotlari_*.zip
+Jurnal_bilan_tekshiruv_*.xlsx
+Boshqa baholar/
+Jurnallar/
