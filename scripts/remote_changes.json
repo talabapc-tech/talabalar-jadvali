@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "type": "update_student",
+    "data": {
+      "row": 452,
+      "fields": {
+        "group": "Talabalar safidan chiqarilganlar",
+        "buyruq": "T-64",
+        "buyruq_sana": "17.11.2026"
+      },
+      "shnum": "",
+      "pinfl": "62409075710038",
+      "ism": "Eshmurodova Dinora"
+    },
+    "id": "chg_1794899268927_vj007",
+    "created_at": "2026-11-17T07:07:48.927Z"
+  }
+]
