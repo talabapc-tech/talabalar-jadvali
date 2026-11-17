@@ -14,5 +14,21 @@
     },
     "id": "chg_1794899268927_vj007",
     "created_at": "2026-11-17T07:07:48.927Z"
+  },
+  {
+    "type": "update_student",
+    "data": {
+      "row": 452,
+      "fields": {
+        "group": "Talabalar safidan chiqarilganlar",
+        "buyruq": "T-64",
+        "buyruq_sana": "17.11.2026"
+      },
+      "shnum": "",
+      "pinfl": "62409075710038",
+      "ism": "eshmurodova dinora tolmas qizi"
+    },
+    "id": "chg_1794899272905_5zhu3",
+    "created_at": "2026-11-17T07:07:52.905Z"
   }
 ]
