@@ -4,7 +4,7 @@ import { downloadBlob } from './excel'
 import { groupOrder, loadXlsx, safeSheetName, workbookBytes, type XLSXModule } from './excel-build'
 import { AUDIENCE_META, formatAnswerDisplay, type QuestionType, type Survey, type SurveyResponseRow } from './sorovnoma'
 
-const FORCE_TEXT_TYPES = new Set<QuestionType>(['phone', 'pinfl', 'passport', 'card', 'date'])
+const FORCE_TEXT_TYPES = new Set<QuestionType>(['phone', 'pinfl', 'passport', 'card', 'date', 'group'])
 
 function thinBorder(rgb = 'CBD5E1') {
   const s = { style: 'thin' as const, color: { rgb } }
@@ -160,7 +160,7 @@ export async function exportSurveyResponsesExcel(
   const X = await loadXlsx()
   const wb = X.utils.book_new()
 
-  const showGroup = survey.audience !== 'ochiq'
+  const showGroup = survey.audience !== 'ochiq' || responses.some((r) => Boolean(r.respondent_group))
   const sorted = [...responses].sort((a, b) => {
     if (survey.audience === 'talabalar') {
       const go = groupOrder(a.respondent_group || '', b.respondent_group || '')
@@ -173,13 +173,13 @@ export async function exportSurveyResponsesExcel(
   const headers: string[] = [
     '№',
     survey.audience === 'talabalar' ? 'Talabaning F.I.Sh.' : survey.audience === 'xodimlar' ? 'Xodimning F.I.Sh.' : 'F.I.Sh.',
-    ...(showGroup ? [survey.audience === 'talabalar' ? 'Guruh' : 'Toifa'] : []),
+    ...(showGroup ? [survey.audience === 'xodimlar' ? 'Toifa' : 'Guruh'] : []),
     'Topshirilgan vaqt',
     ...survey.questions.map((q) => q.label),
   ]
 
   const fixedCols = showGroup ? 4 : 3
-  const forceTextCols = new Set<number>([fixedCols - 1]) // Vaqt ustuni
+  const forceTextCols = new Set<number>([...(showGroup ? [2] : []), fixedCols - 1]) // Guruh/Toifa va Vaqt matn bo'lsin
   const centerCols = new Set<number>([0, ...(showGroup ? [2] : []), fixedCols - 1])
 
   survey.questions.forEach((q, qi) => {

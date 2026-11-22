@@ -91,6 +91,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: NavTa
   const [staffExportOpen, setStaffExportOpen] = useState(false)
   const [curriculumAddOpen, setCurriculumAddOpen] = useState(false)
   const [surveyCreateOpen, setSurveyCreateOpen] = useState(false)
+  const [surveyRefreshTick, setSurveyRefreshTick] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Menyu qisqartirilgan/kengaytirilgan holati sahifa yangilanganda ham saqlanadi
@@ -297,6 +298,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: NavTa
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
     await refresh()
+    setSurveyRefreshTick((t) => t + 1)
     setRefreshing(false)
   }, [refresh])
 
@@ -346,6 +348,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: NavTa
               notify={notify}
               createOpen={surveyCreateOpen}
               onCloseCreate={() => setSurveyCreateOpen(false)}
+              refreshTick={surveyRefreshTick}
             />
           ) : mainTab === 'curriculum' ? (
             <CurriculumSection

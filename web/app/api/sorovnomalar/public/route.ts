@@ -1,14 +1,16 @@
 import crypto from 'node:crypto'
 import { NextRequest } from 'next/server'
-import { loadStaff, loadStudents } from '@/lib/server/source'
+import { applyGroupSettings } from '@/lib/config'
+import { loadGroupSettings, loadStaff, loadStudents } from '@/lib/server/source'
 import { getServiceSupabase } from '@/lib/server/supabase'
 import {
   cleanText,
   studentRespondentKey,
   validateAndNormalizeAnswers,
+  type OfficialGroupOption,
   type SurveyQuestion,
 } from '@/lib/sorovnoma'
-import { fullName, isOfficialGroup, kursOf } from '@/lib/student'
+import { academicGroups, fullName, groupTitle, isOfficialGroup, isSecretGroup, kursOf } from '@/lib/student'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,10 +69,18 @@ export async function GET(req: NextRequest) {
     if (keysRes.error) return dbError(keysRes.error)
     const submittedKeys = new Set((keysRes.data ?? []).map((r) => String(r.respondent_key || '')))
 
+    const groupSettings = await loadGroupSettings().catch(() => null)
+    if (groupSettings) applyGroupSettings(groupSettings)
+
+    const buildOfficialGroups = (studentsList: Awaited<ReturnType<typeof loadStudents>>): OfficialGroupOption[] =>
+      academicGroups(studentsList)
+        .filter((g) => !isSecretGroup(g))
+        .map((code) => ({ code, kurs: kursOf(code) ?? 0, title: groupTitle(code) }))
+
     if (survey.audience === 'talabalar') {
       const studentsAll = await loadStudents()
       const courses: number[] = Array.isArray(survey.target_courses) ? survey.target_courses.map(Number) : []
-      const groups: string[] = Array.isArray(survey.target_groups) ? survey.target_groups.map(String) : []
+      const groupsFilter: string[] = Array.isArray(survey.target_groups) ? survey.target_groups.map(String) : []
 
       // Ommaviy sahifaga FAQAT F.I.Sh., guruh, kurs va topshirgan holati beriladi (JSHSHIR/telefon emas!)
       const students = studentsAll
@@ -79,7 +89,7 @@ export async function GET(req: NextRequest) {
           const g = (s.group || '').trim()
           const k = kursOf(g) ?? 0
           if (courses.length > 0 && !courses.includes(k)) return false
-          if (groups.length > 0 && !groups.includes(g)) return false
+          if (groupsFilter.length > 0 && !groupsFilter.includes(g)) return false
           return true
         })
         .map((s) => ({
@@ -91,13 +101,13 @@ export async function GET(req: NextRequest) {
         }))
 
       return Response.json(
-        { ok: true, survey, closed, students },
+        { ok: true, survey, closed, students, groups: buildOfficialGroups(studentsAll) },
         { headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
     if (survey.audience === 'xodimlar') {
-      const staffAll = await loadStaff()
+      const [staffAll, studentsAll] = await Promise.all([loadStaff(), loadStudents()])
       const staff = staffAll
         .filter((m) => m.status !== 'boshatilgan')
         .map((m) => ({
@@ -109,13 +119,14 @@ export async function GET(req: NextRequest) {
         }))
 
       return Response.json(
-        { ok: true, survey, closed, staff },
+        { ok: true, survey, closed, staff, groups: buildOfficialGroups(studentsAll) },
         { headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
+    const studentsAll = await loadStudents()
     return Response.json(
-      { ok: true, survey, closed, totalSubmitted: submittedKeys.size },
+      { ok: true, survey, closed, totalSubmitted: submittedKeys.size, groups: buildOfficialGroups(studentsAll) },
       { headers: { 'Cache-Control': 'no-store' } },
     )
   } catch (e) {
@@ -185,8 +196,11 @@ export async function POST(req: NextRequest) {
       if (!respondentName || respondentName.length < 3) {
         return fail("Iltimos, ism-familiyangizni (F.I.Sh.) to'liq kiriting")
       }
+      respondentGroup = cleanText(body.respondentGroup, 60)
+      if (!respondentGroup) {
+        return fail("Iltimos, guruhingizni tanlang")
+      }
       respondentKey = `open:${crypto.randomUUID()}`
-      respondentGroup = ''
       respondentPinfl = ''
     }
 

@@ -1,3 +1,4 @@
+import { COURSES, GROUP_TITLES, SECRET_GROUP } from './config'
 import { decodePinfl } from './student'
 
 export type SurveyAudience = 'talabalar' | 'xodimlar' | 'ochiq'
@@ -12,6 +13,7 @@ export type QuestionType =
   | 'passport'
   | 'card'
   | 'tuman'
+  | 'group'
   | 'select'
   | 'radio'
   | 'checkbox'
@@ -126,6 +128,12 @@ export const QUESTION_TYPE_META: Record<
     example: 'Shahrisabz tumani, Kitob tumani…',
     category: 'aloqa',
   },
+  group: {
+    label: 'Guruh tanlovi',
+    short: 'Guruh',
+    example: '26-01, 26-02, 25-01…',
+    category: 'aloqa',
+  },
   select: {
     label: "Ro'yxatdan tanlash (Dropdown)",
     short: "Ro'yxat",
@@ -200,9 +208,27 @@ export function cleanMultilineText(v: unknown, max = 3000): string {
     .slice(0, max)
 }
 
+export interface OfficialGroupOption {
+  code: string
+  kurs: number
+  title: string
+}
+
+export function officialGroupOptions(): OfficialGroupOption[] {
+  const out: OfficialGroupOption[] = []
+  for (const c of COURSES) {
+    for (const g of c.groups) {
+      if (g === SECRET_GROUP) continue
+      out.push({ code: g, kurs: c.kurs, title: GROUP_TITLES[g] || 'Hamshiralik ishi' })
+    }
+  }
+  return out
+}
+
 /** +998 prefiksidan keyingi 9 ta mahalliy raqamni ajratib olish (masalan: 881234567) */
 export function extractUzPhoneDigits(raw: string): string {
-  let d = String(raw || '').replace(/\D/g, '')
+  const stripped = String(raw || '').replace(/^\s*\+998[\s()-]*/, '')
+  let d = stripped.replace(/\D/g, '')
   if (d.startsWith('998') && d.length >= 12) {
     d = d.slice(3)
   } else if (d.startsWith('8') && d.length === 10 && !d.startsWith('88')) {

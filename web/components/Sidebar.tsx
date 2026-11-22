@@ -77,28 +77,35 @@ function useSectionCounts() {
           return Array.isArray(v) ? v.length : undefined
         })
         .catch(() => undefined)
-    Promise.all([
-      get('/api/curriculum', (d) => d.plans),
-      get('/api/staff', (d) => d.staff),
-      get('/api/sorovnomalar', (d) => d.surveys),
-    ]).then(([curriculum, staff, surveys]) => {
-      if (!alive) return
-      setCounts((prev) => {
-        const next = {
-          curriculum: curriculum ?? prev.curriculum,
-          staff: staff ?? prev.staff,
-          surveys: surveys ?? prev.surveys,
-        }
-        try {
-          sessionStorage.setItem('sidebar_counts', JSON.stringify(next))
-        } catch {
-          /* bo'sh */
-        }
-        return next
+    const fetchCounts = () =>
+      Promise.all([
+        get('/api/curriculum', (d) => d.plans),
+        get('/api/staff', (d) => d.staff),
+        get('/api/sorovnomalar', (d) => d.surveys),
+      ]).then(([curriculum, staff, surveys]) => {
+        if (!alive) return
+        setCounts((prev) => {
+          const next = {
+            curriculum: curriculum ?? prev.curriculum,
+            staff: staff ?? prev.staff,
+            surveys: surveys ?? prev.surveys,
+          }
+          try {
+            sessionStorage.setItem('sidebar_counts', JSON.stringify(next))
+          } catch {
+            /* bo'sh */
+          }
+          return next
+        })
       })
-    })
+    fetchCounts()
+    const onDirty = () => {
+      fetchCounts()
+    }
+    window.addEventListener('portal:counts-dirty', onDirty)
     return () => {
       alive = false
+      window.removeEventListener('portal:counts-dirty', onDirty)
     }
   }, [])
   return counts

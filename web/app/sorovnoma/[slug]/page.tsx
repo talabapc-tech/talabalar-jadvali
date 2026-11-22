@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { AlertCircle, CheckCircle2, Lock, Loader2, Send, UserCheck } from 'lucide-react'
 import SurveyFieldInput from '@/components/SurveyFieldInput'
 import { cx } from '@/components/ui'
-import { AUDIENCE_META, validateAndNormalizeAnswers, type Survey } from '@/lib/sorovnoma'
+import { AUDIENCE_META, officialGroupOptions, validateAndNormalizeAnswers, type OfficialGroupOption, type Survey } from '@/lib/sorovnoma'
 
 interface PublicStudent {
   row: number
@@ -35,6 +35,7 @@ function PublicSurveyInner() {
   const [closed, setClosed] = useState(false)
   const [students, setStudents] = useState<PublicStudent[]>([])
   const [staff, setStaff] = useState<PublicStaff[]>([])
+  const [officialGroups, setOfficialGroups] = useState<OfficialGroupOption[]>(() => officialGroupOptions())
 
   // Respondent tanlovi
   const [kurs, setKurs] = useState('')
@@ -43,15 +44,26 @@ function PublicSurveyInner() {
   const [staffCat, setStaffCat] = useState('')
   const [staffId, setStaffId] = useState('')
   const [openName, setOpenName] = useState('')
+  const [openGroup, setOpenGroup] = useState(initialGroup)
   const [searchFish, setSearchFish] = useState('')
 
   // Javoblar va xatoliklar
   const [answers, setAnswers] = useState<Record<string, unknown>>({})
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [respondentError, setRespondentError] = useState(false)
+  const [shaking, setShaking] = useState(false)
   const [submitErr, setSubmitErr] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [resetKey, setResetKey] = useState(0)
   const [done, setDone] = useState<{ name: string; group: string; updated?: boolean } | null>(null)
+
+  const triggerShake = () => {
+    setShaking(false)
+    requestAnimationFrame(() => {
+      setShaking(true)
+      setTimeout(() => setShaking(false), 400)
+    })
+  }
 
   useEffect(() => {
     if (!slug) {
@@ -69,6 +81,7 @@ function PublicSurveyInner() {
         closed?: boolean
         students?: PublicStudent[]
         staff?: PublicStaff[]
+        groups?: OfficialGroupOption[]
       }) => {
         if (!b.ok || !b.survey) throw new Error(b.error || "So'rovnoma topilmadi")
         setSurvey(b.survey)
@@ -76,14 +89,24 @@ function PublicSurveyInner() {
         const stList = b.students ?? []
         setStudents(stList)
         setStaff(b.staff ?? [])
+        if (Array.isArray(b.groups) && b.groups.length > 0) {
+          setOfficialGroups(b.groups)
+        }
 
         if (b.survey.audience === 'talabalar') {
+          const distinctCourses = [...new Set(stList.map((s) => s.kurs).filter(Boolean))]
+          const distinctGroups = [...new Set(stList.map((s) => s.group).filter(Boolean))]
           if (initialGroup) {
             const match = stList.find((s) => s.group === initialGroup)
             if (match?.kurs) setKurs(String(match.kurs))
             if (match) setGroup(match.group)
-          } else if (Array.isArray(b.survey.target_courses) && b.survey.target_courses.length === 1) {
-            setKurs(String(b.survey.target_courses[0]))
+          } else {
+            if (distinctCourses.length === 1) {
+              setKurs(String(distinctCourses[0]))
+            }
+            if (distinctGroups.length === 1) {
+              setGroup(distinctGroups[0])
+            }
           }
         }
       })
@@ -158,11 +181,11 @@ function PublicSurveyInner() {
         ? Boolean(selectedStudent)
         : survey.audience === 'xodimlar'
           ? Boolean(selectedStaff)
-          : openName.trim().length >= 3
+          : openName.trim().length >= 3 && openGroup.trim() !== ''
     const total = reqQs.length + 1
     const doneCount = filled + (idDone ? 1 : 0)
     return { done: doneCount, total, pct: total > 0 ? Math.round((doneCount / total) * 100) : 100 }
-  }, [survey, answers, selectedStudent, selectedStaff, openName])
+  }, [survey, answers, selectedStudent, selectedStaff, openName, openGroup])
 
   const setAnswer = (qid: string, val: unknown) => {
     setAnswers((prev) => ({ ...prev, [qid]: val }))
@@ -180,21 +203,37 @@ function PublicSurveyInner() {
     if (!survey) return
     setSubmitErr('')
     setFieldErrors({})
+    setRespondentError(false)
 
     if (survey.audience === 'talabalar' && !selectedStudent) {
+      setRespondentError(true)
       setSubmitErr('Iltimos, guruh va talaba (F.I.Sh.) ni tanlang')
+      triggerShake()
       document.getElementById('respondent-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
     if (survey.audience === 'xodimlar' && !selectedStaff) {
+      setRespondentError(true)
       setSubmitErr("Iltimos, ro'yxatdan o'zingizni (F.I.Sh.) tanlang")
+      triggerShake()
       document.getElementById('respondent-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
-    if (survey.audience === 'ochiq' && openName.trim().length < 3) {
-      setSubmitErr("Iltimos, ism-familiyangizni to'liq kiriting")
-      document.getElementById('respondent-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
+    if (survey.audience === 'ochiq') {
+      if (openName.trim().length < 3) {
+        setRespondentError(true)
+        setSubmitErr("Iltimos, ism-familiyangizni to'liq kiriting")
+        triggerShake()
+        document.getElementById('respondent-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      if (!openGroup.trim()) {
+        setRespondentError(true)
+        setSubmitErr('Iltimos, guruhingizni tanlang')
+        triggerShake()
+        document.getElementById('respondent-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
     }
     if (blockedAlreadySubmitted) {
       setSubmitErr("Siz bu so'rovnomani allaqachon topshirgansiz")
@@ -205,6 +244,7 @@ function PublicSurveyInner() {
     if (!v.ok) {
       setFieldErrors(v.errors)
       setSubmitErr(v.firstError)
+      triggerShake()
       const firstId = Object.keys(v.errors)[0]
       if (firstId) {
         document.getElementById(`q-card-${firstId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -223,6 +263,7 @@ function PublicSurveyInner() {
           studentGroup: selectedStudent?.group,
           staffId: selectedStaff?.id,
           respondentName: openName.trim(),
+          respondentGroup: openGroup.trim(),
           answers: v.answers,
         }),
       })
@@ -262,9 +303,11 @@ function PublicSurveyInner() {
     setStudentRow('')
     setStaffId('')
     setOpenName('')
+    setOpenGroup(initialGroup)
     setSearchFish('')
     setAnswers({})
     setFieldErrors({})
+    setRespondentError(false)
     setSubmitErr('')
     setResetKey((k) => k + 1)
   }
@@ -330,8 +373,8 @@ function PublicSurveyInner() {
             </p>
           </div>
         ) : done ? (
-          <div className="panel space-y-4 p-6 text-center sm:p-8">
-            <div className="mx-auto grid size-14 place-items-center rounded-full border border-emerald/40 bg-emerald/15 text-emerald-soft">
+          <div className="panel animate-pop-in space-y-4 p-6 text-center sm:p-8">
+            <div className="animate-pop-check mx-auto grid size-14 place-items-center rounded-full border border-emerald/40 bg-emerald/15 text-emerald-soft">
               <CheckCircle2 size={30} />
             </div>
             <div>
@@ -350,7 +393,14 @@ function PublicSurveyInner() {
         ) : (
           <form key={resetKey} onSubmit={handleSubmit} className="space-y-3.5" noValidate>
             {/* Kim to'ldiryapti */}
-            <section id="respondent-card" className="panel space-y-3.5 p-4 sm:p-5">
+            <section
+              id="respondent-card"
+              className={cx(
+                'panel animate-fade-slide-up space-y-3.5 p-4 transition-colors sm:p-5',
+                respondentError && 'border-rose/60 bg-rose/[0.03]',
+                respondentError && shaking && 'animate-shake',
+              )}
+            >
               <div className="flex items-center gap-2 text-[13px] font-bold text-sky-soft">
                 <UserCheck size={16} />
                 <span>
@@ -358,7 +408,7 @@ function PublicSurveyInner() {
                     ? 'Talabani tanlang *'
                     : survey.audience === 'xodimlar'
                       ? 'Xodim / O‘qituvchini tanlang *'
-                      : "Ma'lumot beruvchi (F.I.Sh.) *"}
+                      : "Ma'lumot beruvchi (F.I.Sh. va guruh) *"}
                 </span>
               </div>
 
@@ -429,7 +479,10 @@ function PublicSurveyInner() {
                       className="field h-11"
                       value={studentRow}
                       disabled={!group}
-                      onChange={(e) => setStudentRow(e.target.value)}
+                      onChange={(e) => {
+                        setStudentRow(e.target.value)
+                        if (respondentError) setRespondentError(false)
+                      }}
                     >
                       <option value="">
                         {group ? `Talabani tanlang (${groupStudents.length} ta)…` : 'Avval guruhni tanlang'}
@@ -497,7 +550,10 @@ function PublicSurveyInner() {
                       id="sf-staff"
                       className="field h-11"
                       value={staffId}
-                      onChange={(e) => setStaffId(e.target.value)}
+                      onChange={(e) => {
+                        setStaffId(e.target.value)
+                        if (respondentError) setRespondentError(false)
+                      }}
                     >
                       <option value="">Ro&apos;yxatdan tanlang ({filteredStaff.length} ta)…</option>
                       {filteredStaff.map((m) => (
@@ -518,18 +574,53 @@ function PublicSurveyInner() {
               )}
 
               {survey.audience === 'ochiq' && (
-                <div>
-                  <label className="label" htmlFor="sf-open-name">
-                    Familiya, Ism, Sharif (F.I.Sh.) *
-                  </label>
-                  <input
-                    id="sf-open-name"
-                    type="text"
-                    className="field h-11"
-                    placeholder="Masalan: Karimov Sardor Alisher o'g'li"
-                    value={openName}
-                    onChange={(e) => setOpenName(e.target.value)}
-                  />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="label" htmlFor="sf-open-name">
+                      Familiya, Ism, Sharif (F.I.Sh.) *
+                    </label>
+                    <input
+                      id="sf-open-name"
+                      type="text"
+                      className="field h-11"
+                      placeholder="Masalan: Karimov Sardor Alisher o'g'li"
+                      value={openName}
+                      onChange={(e) => {
+                        setOpenName(e.target.value)
+                        if (respondentError) setRespondentError(false)
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="sf-open-group">
+                      Guruh *
+                    </label>
+                    <select
+                      id="sf-open-group"
+                      className="field h-11 font-semibold"
+                      value={openGroup}
+                      onChange={(e) => {
+                        setOpenGroup(e.target.value)
+                        if (respondentError) setRespondentError(false)
+                      }}
+                    >
+                      <option value="">Guruhni tanlang…</option>
+                      {[1, 2, 3].map((k) => {
+                        const items = officialGroups.filter((g) => g.kurs === k)
+                        if (!items.length) return null
+                        return (
+                          <optgroup key={k} label={`${k}-kurs`}>
+                            {items.map((g) => (
+                              <option key={g.code} value={g.code}>
+                                {g.code} — {g.title}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )
+                      })}
+                      <option value="Boshqa / Guruhsiz">Boshqa / Guruhsiz</option>
+                    </select>
+                  </div>
                 </div>
               )}
             </section>
@@ -539,9 +630,11 @@ function PublicSurveyInner() {
               <section
                 key={q.id}
                 id={`q-card-${q.id}`}
+                style={{ animationDelay: `${Math.min(idx + 1, 8) * 35}ms` }}
                 className={cx(
-                  'panel space-y-2.5 p-4 transition-colors sm:p-5',
+                  'panel animate-fade-slide-up space-y-2.5 p-4 transition-colors sm:p-5',
                   fieldErrors[q.id] && 'border-rose/60 bg-rose/[0.03]',
+                  fieldErrors[q.id] && shaking && 'animate-shake',
                 )}
               >
                 <div>
@@ -563,6 +656,7 @@ function PublicSurveyInner() {
                   onChange={(val) => setAnswer(q.id, val)}
                   error={fieldErrors[q.id]}
                   disabled={submitting}
+                  groupOptions={officialGroups}
                 />
               </section>
             ))}

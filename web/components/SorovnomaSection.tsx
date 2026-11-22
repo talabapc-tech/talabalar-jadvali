@@ -13,6 +13,7 @@ import {
   Database,
   ExternalLink,
   FileSpreadsheet,
+  GripVertical,
   Loader2,
   Lock,
   Plus,
@@ -32,6 +33,7 @@ import {
   formatAnswerDisplay,
   makeDefaultQuestion,
   makeQuestionId,
+  officialGroupOptions,
   QUESTION_TYPE_META,
   SOROVNOMA_SETUP_SQL,
   studentRespondentKey,
@@ -54,14 +56,16 @@ interface Props {
   notify: Notify
   createOpen?: boolean
   onCloseCreate?: () => void
+  refreshTick?: number
 }
 
 const COPYABLE_TYPES = new Set<QuestionType>(['phone', 'pinfl', 'passport', 'card'])
-const STATS_TYPES = new Set<QuestionType>(['yes_no', 'radio', 'select', 'checkbox', 'tuman', 'rating'])
+const STATS_TYPES = new Set<QuestionType>(['yes_no', 'radio', 'select', 'checkbox', 'tuman', 'group', 'rating'])
 
 const QUICK_ADD_TYPES: { type: QuestionType; label: string }[] = [
   { type: 'phone', label: '+ Telefon (+998)' },
   { type: 'short_text', label: '+ Qisqa matn' },
+  { type: 'group', label: '+ Guruh' },
   { type: 'radio', label: '+ Bitta tanlov' },
   { type: 'select', label: "+ Ro'yxat" },
   { type: 'checkbox', label: "+ Ko'p tanlov" },
@@ -111,7 +115,7 @@ function normalizeSurveyRow(s: Partial<Survey> & { id: string; slug: string; tit
   }
 }
 
-export default function SorovnomaSection({ students, notify, createOpen, onCloseCreate }: Props) {
+export default function SorovnomaSection({ students, notify, createOpen, onCloseCreate, refreshTick }: Props) {
   const [surveys, setSurveys] = useState<Survey[]>([])
   const [loadingList, setLoadingList] = useState(true)
   const [setupNeeded, setSetupNeeded] = useState(false)
@@ -125,6 +129,12 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
   const [saving, setSaving] = useState(false)
   const [previewAnswers, setPreviewAnswers] = useState<Record<string, unknown>>({})
   const [showPreviewId, setShowPreviewId] = useState<string | null>(null)
+
+  // Drag-and-drop savol tartiblash
+  const [dragArmedId, setDragArmedId] = useState<string | null>(null)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [dropIdx, setDropIdx] = useState<number | null>(null)
+  const [recentlyMovedId, setRecentlyMovedId] = useState<string | null>(null)
 
   // Javoblar va tahlil
   const [responses, setResponses] = useState<SurveyResponseRow[]>([])
@@ -147,6 +157,21 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
     setLocalCreateOpen(false)
     onCloseCreate?.()
   }, [onCloseCreate])
+
+  useEffect(() => {
+    if (!isCreateVisible) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeCreateModal()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isCreateVisible, closeCreateModal])
+
+  const emitCountsDirty = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('portal:counts-dirty'))
+    }
+  }
 
   const loadSurveys = useCallback(async () => {
     setLoadingList(true)
@@ -229,6 +254,12 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
     }
   }, [selectedId, notify])
 
+  useEffect(() => {
+    if (!refreshTick) return
+    if (selectedId) refreshResponsesOnly()
+    else loadSurveys()
+  }, [refreshTick, selectedId, refreshResponsesOnly, loadSurveys])
+
   const surveyUrl = useCallback((slug: string) => {
     if (typeof window === 'undefined') return `/sorovnoma/${slug}`
     return `${window.location.origin}/sorovnoma/${slug}`
@@ -280,6 +311,7 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
       setSurveys((prev) => [created, ...prev])
       setNewTitle('')
       closeCreateModal()
+      emitCountsDirty()
       notify(`"${created.title}" yaratildi! Savollarni moslashingiz mumkin.`)
       openWorkspace(created.id, 'constructor')
     } catch (err) {
@@ -357,6 +389,7 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
       if (!res.ok || !body.ok || !body.survey) throw new Error(body.error || 'Nusxalashda xatolik')
       const copy = normalizeSurveyRow(body.survey)
       setSurveys((prev) => [copy, ...prev])
+      emitCountsDirty()
       notify(`"${copy.title}" nusxalandi`)
     } catch (e) {
       notify((e as Error).message, 'error')
@@ -374,6 +407,7 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
       if (!res.ok || !body.ok) throw new Error(body.error || "O'chirishda xatolik")
       setSurveys((prev) => prev.filter((x) => x.id !== s.id))
+      emitCountsDirty()
       if (selectedId === s.id) {
         setSelectedId(null)
         setDraft(null)
@@ -422,17 +456,37 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
     setDirty(true)
   }
 
-  const moveQuestion = (idx: number, dir: -1 | 1) => {
+  const reorderQuestion = (fromIdx: number, toIdx: number) => {
+    if (!draft || fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || toIdx >= draft.questions.length) return
+    const movedId = draft.questions[fromIdx]?.id
     setDraft((prev) => {
       if (!prev) return prev
-      const target = idx + dir
-      if (target < 0 || target >= prev.questions.length) return prev
       const copy = [...prev.questions]
-      const [item] = copy.splice(idx, 1)
-      copy.splice(target, 0, item)
+      const [item] = copy.splice(fromIdx, 1)
+      copy.splice(toIdx, 0, item)
       return { ...prev, questions: copy }
     })
     setDirty(true)
+    if (movedId) {
+      setRecentlyMovedId(movedId)
+      setTimeout(() => setRecentlyMovedId((cur) => (cur === movedId ? null : cur)), 700)
+    }
+  }
+
+  const moveQuestion = (idx: number, dir: -1 | 1) => {
+    reorderQuestion(idx, idx + dir)
+  }
+
+  const commitDragReorder = () => {
+    if (dragIdx !== null && dropIdx !== null && draft) {
+      const targetIdx = dropIdx > dragIdx ? dropIdx - 1 : dropIdx
+      if (targetIdx !== dragIdx && targetIdx >= 0 && targetIdx < draft.questions.length) {
+        reorderQuestion(dragIdx, targetIdx)
+      }
+    }
+    setDragIdx(null)
+    setDropIdx(null)
+    setDragArmedId(null)
   }
 
   const duplicateQuestion = (idx: number) => {
@@ -739,9 +793,15 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
               type="button"
               disabled={saving}
               onClick={handleSaveDraft}
-              className={cx('h-9 px-3.5 text-[13px]', dirty ? 'btn-success' : 'btn-primary')}
+              className={cx('h-9 px-3.5 text-[13px] transition-all', dirty ? 'btn-success' : 'btn-primary')}
             >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {saving ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : dirty ? (
+                <span className="size-2 animate-pulse rounded-full bg-white" />
+              ) : (
+                <Save size={14} />
+              )}
               <span>{saving ? 'Saqlanmoqda…' : dirty ? 'Saqlash *' : 'Saqlangan'}</span>
             </button>
           </div>
@@ -847,13 +907,20 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
                             key={c.kurs}
                             type="button"
                             onClick={() => {
-                              const next = on
+                              const nextCourses = on
                                 ? draft.target_courses.filter((x) => x !== c.kurs)
                                 : [...draft.target_courses, c.kurs].sort((a, b) => a - b)
-                              patchDraft({ target_courses: next })
+                              const prunedGroups =
+                                nextCourses.length === 0
+                                  ? draft.target_groups
+                                  : draft.target_groups.filter((g) => {
+                                      const k = kursOf(g)
+                                      return k ? nextCourses.includes(k) : false
+                                    })
+                              patchDraft({ target_courses: nextCourses, target_groups: prunedGroups })
                             }}
                             className={cx(
-                              'chip h-7 cursor-pointer px-2.5',
+                              'chip h-7 cursor-pointer px-2.5 transition-colors',
                               on ? 'border-sky/60 bg-sky/15 text-sky-soft' : 'border-line bg-ink-950/50 text-fg-muted',
                             )}
                           >
@@ -907,7 +974,18 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
                 </label>
 
                 <div>
-                  <label className="label">Yopilish muddati (ixtiyoriy)</label>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label className="label mb-0">Yopilish muddati (ixtiyoriy)</label>
+                    {draft.expires_at && (
+                      <button
+                        type="button"
+                        onClick={() => patchDraft({ expires_at: null })}
+                        className="text-[11px] font-semibold text-rose hover:underline cursor-pointer"
+                      >
+                        Tozalash
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="datetime-local"
                     className="field h-9 text-[12.5px]"
@@ -923,7 +1001,18 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
             </aside>
 
             {/* Savollar o'ng ustun */}
-            <div className="space-y-3">
+            <div
+              className="space-y-3"
+              onDragOver={(e) => {
+                if (dragIdx !== null) e.preventDefault()
+              }}
+              onDrop={(e) => {
+                if (dragIdx !== null) {
+                  e.preventDefault()
+                  commitDragReorder()
+                }
+              }}
+            >
               {draft.questions.length === 0 ? (
                 <div className="panel grid place-items-center gap-2 py-14 text-center text-fg-muted">
                   <ClipboardList size={30} className="text-sky/60" />
@@ -934,18 +1023,86 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
                 draft.questions.map((q, idx) => {
                   const hasOpts = q.type === 'select' || q.type === 'radio' || q.type === 'checkbox'
                   const previewOpen = showPreviewId === q.id
+                  const isDragging = dragIdx === idx
+                  const showLineBefore =
+                    dragIdx !== null && dropIdx === idx && dropIdx !== dragIdx && dropIdx !== dragIdx + 1
+                  const showLineAfter =
+                    idx === draft.questions.length - 1 &&
+                    dragIdx !== null &&
+                    dropIdx === draft.questions.length &&
+                    dragIdx !== draft.questions.length - 1
+
                   return (
-                    <div key={q.id} className="panel space-y-3 border-l-4 border-l-sky/60 p-4 sm:p-5">
-                      {/* Savol header */}
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-sky/15 px-1.5 font-mono text-[12px] font-bold text-sky-soft">
-                            #{idx + 1}
-                          </span>
-                          <span className="chip border-line bg-ink-850 text-fg-muted">
-                            {QUESTION_TYPE_META[q.type].label}
-                          </span>
-                        </div>
+                    <div key={q.id} className="space-y-2">
+                      {showLineBefore && (
+                        <div className="h-1 w-full rounded-full bg-sky shadow-[0_0_10px_theme(colors.sky)] transition-all" />
+                      )}
+                      <div
+                        data-q-index={idx}
+                        draggable={dragArmedId === q.id}
+                        onDragStart={(e) => {
+                          setDragIdx(idx)
+                          setDropIdx(idx)
+                          e.dataTransfer.effectAllowed = 'move'
+                          e.dataTransfer.setData('text/plain', String(idx))
+                        }}
+                        onDragOver={(e) => {
+                          if (dragIdx === null) return
+                          e.preventDefault()
+                          const rect = e.currentTarget.getBoundingClientRect()
+                          const after = e.clientY > rect.top + rect.height / 2
+                          setDropIdx(after ? idx + 1 : idx)
+                        }}
+                        onDragEnd={() => {
+                          setDragIdx(null)
+                          setDropIdx(null)
+                          setDragArmedId(null)
+                        }}
+                        className={cx(
+                          'panel animate-fade-slide-up space-y-3 border-l-4 border-l-sky/60 p-4 transition-all duration-150 sm:p-5',
+                          isDragging && 'scale-[0.985] opacity-45 ring-2 ring-sky/50',
+                          recentlyMovedId === q.id && 'ring-2 ring-sky/70 bg-sky/[0.04]',
+                        )}
+                      >
+                        {/* Savol header */}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onMouseDown={() => setDragArmedId(q.id)}
+                              onMouseUp={() => setDragArmedId(null)}
+                              onTouchStart={() => {
+                                setDragIdx(idx)
+                                setDropIdx(idx)
+                              }}
+                              onTouchMove={(e) => {
+                                const t = e.touches[0]
+                                if (!t) return
+                                const el = document.elementFromPoint(t.clientX, t.clientY)?.closest<HTMLElement>('[data-q-index]')
+                                if (!el) return
+                                const overIdx = Number(el.dataset.qIndex)
+                                if (!Number.isInteger(overIdx)) return
+                                const rect = el.getBoundingClientRect()
+                                setDropIdx(t.clientY > rect.top + rect.height / 2 ? overIdx + 1 : overIdx)
+                              }}
+                              onTouchEnd={commitDragReorder}
+                              onTouchCancel={() => {
+                                setDragIdx(null)
+                                setDropIdx(null)
+                              }}
+                              title="Ushlab tortib o'rnini almashtiring"
+                              aria-label="Savol tartibini o'zgartirish uchun ushlab torting"
+                              className="touch-none inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line bg-ink-950/60 text-fg-subtle transition-colors hover:border-sky/50 hover:bg-sky/10 hover:text-sky-soft cursor-grab active:cursor-grabbing"
+                            >
+                              <GripVertical size={15} />
+                            </button>
+                            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-sky/15 px-1.5 font-mono text-[12px] font-bold text-sky-soft">
+                              #{idx + 1}
+                            </span>
+                            <span className="chip border-line bg-ink-850 text-fg-muted">
+                              {QUESTION_TYPE_META[q.type].label}
+                            </span>
+                          </div>
 
                         <div className="flex items-center gap-1">
                           <button
@@ -1011,6 +1168,11 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
                             onChange={(e) => {
                               const nextType = e.target.value as QuestionType
                               const needsOpts = nextType === 'select' || nextType === 'radio' || nextType === 'checkbox'
+                              setPreviewAnswers((prev) => {
+                                const next = { ...prev }
+                                delete next[q.id]
+                                return next
+                              })
                               updateQuestion(q.id, {
                                 type: nextType,
                                 options: needsOpts && !q.options?.length ? ['Variant 1', 'Variant 2'] : q.options,
@@ -1077,6 +1239,14 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
                                     const nextOpts = [...(q.options ?? [])]
                                     nextOpts[oi] = e.target.value
                                     updateQuestion(q.id, { options: nextOpts })
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault()
+                                      const nextOpts = [...(q.options ?? [])]
+                                      nextOpts.splice(oi + 1, 0, `Variant ${nextOpts.length + 1}`)
+                                      updateQuestion(q.id, { options: nextOpts })
+                                    }
                                   }}
                                 />
                                 <button
@@ -1150,16 +1320,22 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
 
                       {/* Jonli sinov ko'rinishi */}
                       {previewOpen && (
-                        <div className="space-y-1.5 rounded-lg border border-sky/30 bg-ink-950/80 p-3.5">
+                        <div className="animate-fade-in space-y-1.5 rounded-lg border border-sky/30 bg-ink-950/80 p-3.5">
                           <div className="text-[11px] font-bold uppercase tracking-wider text-sky-soft">
                             To&apos;ldiruvchiga ko&apos;rinadigan shakl (sinov):
                           </div>
                           <SurveyFieldInput
+                            key={`${q.id}-${q.type}`}
                             question={q}
                             value={previewAnswers[q.id]}
                             onChange={(val) => setPreviewAnswers((prev) => ({ ...prev, [q.id]: val }))}
+                            groupOptions={officialGroupOptions()}
                           />
                         </div>
+                      )}
+                      </div>
+                      {showLineAfter && (
+                        <div className="h-1 w-full rounded-full bg-sky shadow-[0_0_10px_theme(colors.sky)] transition-all" />
                       )}
                     </div>
                   )
@@ -1424,73 +1600,78 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-line">
-                  <table className="w-max min-w-full border-collapse text-left text-[12.5px]">
-                    <thead className="border-b border-line bg-ink-850 text-[11px] font-bold uppercase tracking-wider text-fg-subtle">
-                      <tr>
-                        <th className="px-3 py-2.5 text-center">№</th>
-                        <th className="px-3 py-2.5">F.I.Sh.</th>
-                        {draft.audience !== 'ochiq' && (
-                          <th className="px-3 py-2.5">{draft.audience === 'talabalar' ? 'Guruh' : 'Toifa'}</th>
-                        )}
-                        <th className="px-3 py-2.5">Vaqt</th>
-                        {draft.questions.map((q) => (
-                          <th key={q.id} className="max-w-[240px] px-3 py-2.5">
-                            {q.label}
-                          </th>
-                        ))}
-                        <th className="px-2.5 py-2.5 text-center">Amal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-line">
-                      {filteredResponses.map((r, i) => (
-                        <tr key={r.id} className="hover:bg-ink-850/60">
-                          <td className="px-3 py-2 text-center font-mono text-[11px] text-fg-subtle">{i + 1}</td>
-                          <td className="px-3 py-2 font-semibold whitespace-nowrap text-fg">
-                            <div className="flex items-center gap-1.5">
-                              <span>{r.respondent_name || '—'}</span>
-                              <CopyBtn value={r.respondent_name} label="F.I.Sh." onCopied={notify} />
-                            </div>
-                          </td>
-                          {draft.audience !== 'ochiq' && (
-                            <td className="px-3 py-2 whitespace-nowrap">
-                              <span className="chip mono border-line bg-ink-850 text-sky-soft">{r.respondent_group || '—'}</span>
-                            </td>
-                          )}
-                          <td className="px-3 py-2 font-mono text-[11px] whitespace-nowrap text-fg-subtle">
-                            {fmtDateShort(r.updated_at || r.created_at)}
-                          </td>
-                          {draft.questions.map((q) => {
-                            const disp = formatAnswerDisplay(q, r.answers?.[q.id])
-                            const isMonoCopy = COPYABLE_TYPES.has(q.type) && Boolean(disp)
-                            return (
-                              <td key={q.id} className="max-w-[260px] px-3 py-2 text-fg-muted">
-                                {disp ? (
-                                  <div className="flex items-center gap-1">
-                                    <span className={cx(isMonoCopy && 'mono font-semibold whitespace-nowrap text-fg')}>
-                                      {disp}
-                                    </span>
-                                    {isMonoCopy && <CopyBtn value={disp} label={q.label} onCopied={notify} />}
-                                  </div>
-                                ) : (
-                                  <span className="text-fg-subtle">—</span>
-                                )}
+                  {(() => {
+                    const showGroupCol =
+                      draft.audience !== 'ochiq' || responses.some((r) => Boolean(r.respondent_group))
+                    const groupColLabel = draft.audience === 'xodimlar' ? 'Toifa' : 'Guruh'
+                    return (
+                      <table className="w-max min-w-full border-collapse text-left text-[12.5px]">
+                        <thead className="border-b border-line bg-ink-850 text-[11px] font-bold uppercase tracking-wider text-fg-subtle">
+                          <tr>
+                            <th className="px-3 py-2.5 text-center">№</th>
+                            <th className="px-3 py-2.5">F.I.Sh.</th>
+                            {showGroupCol && <th className="px-3 py-2.5">{groupColLabel}</th>}
+                            <th className="px-3 py-2.5">Vaqt</th>
+                            {draft.questions.map((q) => (
+                              <th key={q.id} className="max-w-[240px] px-3 py-2.5">
+                                {q.label}
+                              </th>
+                            ))}
+                            <th className="px-2.5 py-2.5 text-center">Amal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line">
+                          {filteredResponses.map((r, i) => (
+                            <tr key={r.id} className="hover:bg-ink-850/60">
+                              <td className="px-3 py-2 text-center font-mono text-[11px] text-fg-subtle">{i + 1}</td>
+                              <td className="px-3 py-2 font-semibold whitespace-nowrap text-fg">
+                                <div className="flex items-center gap-1.5">
+                                  <span>{r.respondent_name || '—'}</span>
+                                  <CopyBtn value={r.respondent_name} label="F.I.Sh." onCopied={notify} />
+                                </div>
                               </td>
-                            )
-                          })}
-                          <td className="px-2.5 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteResponse(r)}
-                              className="inline-flex size-7 items-center justify-center rounded text-fg-subtle hover:bg-rose/15 hover:text-rose cursor-pointer"
-                              title="Javobni o'chirish"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                              {showGroupCol && (
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <span className="chip mono border-line bg-ink-850 text-sky-soft">{r.respondent_group || '—'}</span>
+                                </td>
+                              )}
+                              <td className="px-3 py-2 font-mono text-[11px] whitespace-nowrap text-fg-subtle">
+                                {fmtDateShort(r.updated_at || r.created_at)}
+                              </td>
+                              {draft.questions.map((q) => {
+                                const disp = formatAnswerDisplay(q, r.answers?.[q.id])
+                                const isMonoCopy = COPYABLE_TYPES.has(q.type) && Boolean(disp)
+                                return (
+                                  <td key={q.id} className="max-w-[260px] px-3 py-2 text-fg-muted">
+                                    {disp ? (
+                                      <div className="flex items-center gap-1">
+                                        <span className={cx(isMonoCopy && 'mono font-semibold whitespace-nowrap text-fg')}>
+                                          {disp}
+                                        </span>
+                                        {isMonoCopy && <CopyBtn value={disp} label={q.label} onCopied={notify} />}
+                                      </div>
+                                    ) : (
+                                      <span className="text-fg-subtle">—</span>
+                                    )}
+                                  </td>
+                                )
+                              })}
+                              <td className="px-2.5 py-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteResponse(r)}
+                                  className="inline-flex size-7 items-center justify-center rounded text-fg-subtle hover:bg-rose/15 hover:text-rose cursor-pointer"
+                                  title="Javobni o'chirish"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )
+                  })()}
                 </div>
               )}
             </div>
@@ -1563,8 +1744,12 @@ export default function SorovnomaSection({ students, notify, createOpen, onClose
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {surveys.map((s) => (
-            <article key={s.id} className="panel flex flex-col justify-between gap-3.5 p-4 sm:p-5">
+          {surveys.map((s, idx) => (
+            <article
+              key={s.id}
+              style={{ animationDelay: `${Math.min(idx, 6) * 35}ms` }}
+              className="panel animate-fade-slide-up flex flex-col justify-between gap-3.5 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong sm:p-5"
+            >
               <div className="space-y-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
