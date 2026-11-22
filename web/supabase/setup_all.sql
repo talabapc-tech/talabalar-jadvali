@@ -69,8 +69,44 @@ create table if not exists public.malakaviy_amaliyot (
 );
 create index if not exists amaliyot_guruh_semestr_idx on public.malakaviy_amaliyot (guruh, semestr);
 
--- 5. XAVFSIZLIK: RLS YOQISH (faqat server service_role kaliti orqali boshqariladi)
+-- 5. SO'ROVNOMALAR VA JAVOBLAR JADVALLARI
+create table if not exists public.sorovnomalar (
+  id             uuid primary key default gen_random_uuid(),
+  slug           text not null unique,
+  title          text not null,
+  description    text not null default '',
+  audience       text not null default 'talabalar' check (audience in ('talabalar', 'xodimlar', 'ochiq')),
+  target_courses smallint[] not null default '{}',
+  target_groups  text[] not null default '{}',
+  questions      jsonb not null default '[]'::jsonb,
+  active         boolean not null default true,
+  allow_update   boolean not null default true,
+  expires_at     timestamptz,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index if not exists sorovnomalar_created_at_idx on public.sorovnomalar (created_at desc);
+
+create table if not exists public.sorovnoma_javoblar (
+  id               bigint generated always as identity primary key,
+  survey_id        uuid not null references public.sorovnomalar(id) on delete cascade,
+  respondent_key   text not null,
+  respondent_type  text not null default 'ochiq' check (respondent_type in ('talabalar', 'xodimlar', 'ochiq')),
+  respondent_name  text not null default '',
+  respondent_group text not null default '',
+  respondent_pinfl text not null default '',
+  answers          jsonb not null default '{}'::jsonb,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  unique (survey_id, respondent_key)
+);
+create index if not exists sorovnoma_javoblar_survey_created_idx on public.sorovnoma_javoblar (survey_id, created_at desc);
+create index if not exists sorovnoma_javoblar_survey_group_idx   on public.sorovnoma_javoblar (survey_id, respondent_group);
+
+-- 6. XAVFSIZLIK: RLS YOQISH (faqat server service_role kaliti orqali boshqariladi)
 alter table public.oquv_rejalari      enable row level security;
 alter table public.fanlar             enable row level security;
 alter table public.baholar            enable row level security;
 alter table public.malakaviy_amaliyot enable row level security;
+alter table public.sorovnomalar       enable row level security;
+alter table public.sorovnoma_javoblar enable row level security;

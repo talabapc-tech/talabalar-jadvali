@@ -181,7 +181,7 @@ function ExportMenu({ students, notify }: { students: Student[]; notify: Notify 
   )
 }
 
-export type MainTab = 'students' | 'curriculum' | 'staff' | 'grades'
+export type MainTab = 'students' | 'curriculum' | 'staff' | 'grades' | 'surveys'
 
 export default function Header({
   students,
@@ -194,6 +194,7 @@ export default function Header({
   onExportStaff,
   onOpenSidebar,
   onAddCurriculum,
+  onAddSurvey,
 }: {
   students: Student[]
   onRefresh: () => void
@@ -205,10 +206,12 @@ export default function Header({
   onExportStaff?: () => void
   onOpenSidebar?: () => void
   onAddCurriculum?: () => void
+  onAddSurvey?: () => void
 }) {
   const staff = activeTab === 'staff'
   const grades = activeTab === 'grades'
   const curriculum = activeTab === 'curriculum'
+  const surveys = activeTab === 'surveys'
 
   const titleText = staff
     ? 'Xodimlar boshqaruvi'
@@ -216,7 +219,9 @@ export default function Header({
       ? 'Baholar va reyting'
       : curriculum
         ? "O'quv rejalari va fanlar"
-        : 'Talabalar portali'
+        : surveys
+          ? "So'rovnomalar"
+          : 'Talabalar portali'
 
   return (
     <header className="no-print sticky top-0 z-30 border-b border-line bg-ink-950/85 backdrop-blur-xl">
@@ -255,6 +260,18 @@ export default function Header({
               >
                 <Plus size={15} />
                 <span>Yangi reja</span>
+              </button>
+            )
+          ) : surveys ? (
+            onAddSurvey && (
+              <button
+                type="button"
+                className="btn-success h-9 px-3 text-[13px]"
+                onClick={onAddSurvey}
+                title="Yangi so'rovnoma yaratish"
+              >
+                <Plus size={15} />
+                <span>Yangi so&apos;rovnoma</span>
               </button>
             )
           ) : grades ? null : staff ? (
@@ -307,7 +324,7 @@ export default function Header({
             <span className="hidden xl:inline">Yangilash</span>
           </button>
 
-          {!staff && !grades && !curriculum && <ExportMenu students={students} notify={notify} />}
+          {!staff && !grades && !curriculum && !surveys && <ExportMenu students={students} notify={notify} />}
         </div>
       </div>
     </header>

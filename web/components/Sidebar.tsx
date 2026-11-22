@@ -35,7 +35,7 @@ import type { Notify } from './Toast'
 import VersionBadge from './VersionBadge'
 import { cx } from './ui'
 
-export type NavTab = 'students' | 'curriculum' | 'grades' | 'staff'
+export type NavTab = 'students' | 'curriculum' | 'grades' | 'staff' | 'surveys'
 
 interface SyncInfo {
   mode: 'local' | 'github'
@@ -58,9 +58,9 @@ interface SidebarProps {
   onToggleCollapse?: () => void
 }
 
-/** Bo'limlardagi sonlar (o'quv rejalar, xodimlar) — bir marta olinadi, sessiya davomida keshlanadi */
+/** Bo'limlardagi sonlar (o'quv rejalar, xodimlar, so'rovnomalar) — bir marta olinadi, sessiya davomida keshlanadi */
 function useSectionCounts() {
-  const [counts, setCounts] = useState<{ curriculum?: number; staff?: number }>({})
+  const [counts, setCounts] = useState<{ curriculum?: number; staff?: number; surveys?: number }>({})
   useEffect(() => {
     let alive = true
     try {
@@ -77,10 +77,18 @@ function useSectionCounts() {
           return Array.isArray(v) ? v.length : undefined
         })
         .catch(() => undefined)
-    Promise.all([get('/api/curriculum', (d) => d.plans), get('/api/staff', (d) => d.staff)]).then(([curriculum, staff]) => {
+    Promise.all([
+      get('/api/curriculum', (d) => d.plans),
+      get('/api/staff', (d) => d.staff),
+      get('/api/sorovnomalar', (d) => d.surveys),
+    ]).then(([curriculum, staff, surveys]) => {
       if (!alive) return
       setCounts((prev) => {
-        const next = { curriculum: curriculum ?? prev.curriculum, staff: staff ?? prev.staff }
+        const next = {
+          curriculum: curriculum ?? prev.curriculum,
+          staff: staff ?? prev.staff,
+          surveys: surveys ?? prev.surveys,
+        }
         try {
           sessionStorage.setItem('sidebar_counts', JSON.stringify(next))
         } catch {
@@ -350,6 +358,16 @@ export default function Sidebar({
       color: 'text-emerald',
       bar: 'bg-emerald',
     },
+    {
+      id: 'surveys' as const,
+      href: '/sorovnomalar',
+      label: "So'rovnomalar",
+      sub: 'Konstruktor va javoblar',
+      icon: ClipboardList,
+      badge: counts.surveys !== undefined ? `${counts.surveys} ta` : '',
+      color: 'text-sky',
+      bar: 'bg-sky',
+    },
   ]
 
   /** compact — desktop'da qisqartirilgan holat (mobil pardada hech qachon) */
@@ -475,26 +493,6 @@ export default function Sidebar({
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px]">Majlislar</div>
               <div className="truncate text-[10.5px] font-normal text-fg-subtle">Pedkengash davomati</div>
-            </div>
-          )}
-        </a>
-
-        {/* Talabalar onlayn so'rovnomasi (1-3-kurs) */}
-        <a
-          href="/sorovnoma"
-          title={compact ? "So'rovnoma — 1–3-kurs manzil va telefon" : undefined}
-          className={cx(
-            'group flex items-center gap-2.5 rounded-lg border border-transparent py-1.5 font-medium text-fg-muted transition-colors outline-none hover:bg-ink-850 hover:text-fg focus-visible:ring-2 focus-visible:ring-sky/50',
-            compact ? 'justify-center px-0' : 'px-2',
-          )}
-        >
-          <div className="grid size-8 shrink-0 place-items-center rounded-md text-fg-subtle group-hover:text-fg-muted">
-            <ClipboardList size={17} />
-          </div>
-          {!compact && (
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px]">So&apos;rovnoma</div>
-              <div className="truncate text-[10.5px] font-normal text-fg-subtle">1–3-kurs manzil va telefon</div>
             </div>
           )}
         </a>

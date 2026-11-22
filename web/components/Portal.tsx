@@ -20,6 +20,7 @@ import SettingsModal from './SettingsModal'
 import StaffSection from './StaffSection'
 import BaholarSection from './BaholarSection'
 import CurriculumSection from './CurriculumSection'
+import SorovnomaSection from './SorovnomaSection'
 import Sidebar, { type NavTab } from './Sidebar'
 import { Toasts, useToasts } from './Toast'
 import { cx } from './ui'
@@ -76,7 +77,7 @@ function BackToSearch({ target }: { target: React.RefObject<HTMLDivElement | nul
   )
 }
 
-export default function Portal({ initialTab = 'students' }: { initialTab?: 'students' | 'curriculum' | 'staff' | 'grades' } = {}) {
+export default function Portal({ initialTab = 'students' }: { initialTab?: NavTab } = {}) {
   const data = useStudents()
   const { toasts, notify } = useToasts()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
@@ -89,6 +90,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   const [staffAddOpen, setStaffAddOpen] = useState(false)
   const [staffExportOpen, setStaffExportOpen] = useState(false)
   const [curriculumAddOpen, setCurriculumAddOpen] = useState(false)
+  const [surveyCreateOpen, setSurveyCreateOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   // Menyu qisqartirilgan/kengaytirilgan holati sahifa yangilanganda ham saqlanadi
@@ -114,8 +116,9 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
   const [settingsVersion, setSettingsVersion] = useState(0)
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [mainTab, setMainTab] = useState<'students' | 'curriculum' | 'staff' | 'grades'>(() => {
+  const [mainTab, setMainTab] = useState<NavTab>(() => {
     if (typeof window !== 'undefined') {
+      if (window.location.pathname.includes('/sorovnomalar')) return 'surveys'
       if (window.location.pathname.includes('/oquv-reja')) return 'curriculum'
       if (window.location.pathname.includes('/baholar')) return 'grades'
       if (window.location.pathname.includes('/xodimlar')) return 'staff'
@@ -126,7 +129,9 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
 
   useEffect(() => {
     const handlePopState = () => {
-      if (window.location.pathname.includes('/oquv-reja')) {
+      if (window.location.pathname.includes('/sorovnomalar')) {
+        setMainTab('surveys')
+      } else if (window.location.pathname.includes('/oquv-reja')) {
         setMainTab('curriculum')
       } else if (window.location.pathname.includes('/baholar')) {
         setMainTab('grades')
@@ -140,17 +145,19 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const handleTabChange = useCallback((tab: 'students' | 'curriculum' | 'staff' | 'grades') => {
+  const handleTabChange = useCallback((tab: NavTab) => {
     setMainTab(tab)
     if (typeof window !== 'undefined') {
       const targetPath =
-        tab === 'curriculum'
-          ? '/oquv-reja'
-          : tab === 'staff'
-            ? '/xodimlar'
-            : tab === 'grades'
-              ? '/baholar'
-              : '/talabalar'
+        tab === 'surveys'
+          ? '/sorovnomalar'
+          : tab === 'curriculum'
+            ? '/oquv-reja'
+            : tab === 'staff'
+              ? '/xodimlar'
+              : tab === 'grades'
+                ? '/baholar'
+                : '/talabalar'
       if (window.location.pathname !== targetPath) {
         window.history.pushState(null, '', targetPath)
       }
@@ -329,10 +336,18 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
           activeTab={mainTab}
           onOpenSidebar={() => setSidebarOpen(true)}
           onAddCurriculum={() => setCurriculumAddOpen(true)}
+          onAddSurvey={() => setSurveyCreateOpen(true)}
         />
 
         <main className="mx-auto w-full max-w-[1680px] flex-1 space-y-4 px-3 py-4 sm:px-6 sm:py-5">
-          {mainTab === 'curriculum' ? (
+          {mainTab === 'surveys' ? (
+            <SorovnomaSection
+              students={data.students}
+              notify={notify}
+              createOpen={surveyCreateOpen}
+              onCloseCreate={() => setSurveyCreateOpen(false)}
+            />
+          ) : mainTab === 'curriculum' ? (
             <CurriculumSection
               students={data.students}
               notify={notify}

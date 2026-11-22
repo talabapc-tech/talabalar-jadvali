@@ -16,12 +16,14 @@ const PUBLIC_PATHS = new Set([
   '/majlis',
   '/sorovnoma',
   '/api/sorovnoma',
+  '/api/sorovnomalar/public',
   '/baholar/ulashilgan',
   '/api/baholar/ulashilgan',
   '/api/telegram_webhook',
   '/api/mytest-roster',
 ])
-const isPublic = (p: string) => PUBLIC_PATHS.has(p) || p.startsWith('/api/auth/')
+const isPublic = (p: string) =>
+  PUBLIC_PATHS.has(p) || p.startsWith('/api/auth/') || p.startsWith('/sorovnoma/')
 const isMajlisApi = (p: string) => p === '/api/majlislar' || p.startsWith('/api/majlislar/')
 
 export async function proxy(request: NextRequest) {
