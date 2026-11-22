@@ -219,7 +219,7 @@ export default function Header({
         : 'Talabalar portali'
 
   return (
-    <header className="no-print sticky top-0 z-20 border-b border-line bg-ink-950/85 backdrop-blur-xl">
+    <header className="no-print sticky top-0 z-30 border-b border-line bg-ink-950/85 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-[1680px] items-center justify-between gap-3 px-3 sm:px-6">
         {/* Chap qism: Hamburger (mobilda) va Sarlavha */}
         <div className="flex min-w-0 items-center gap-2.5">

@@ -139,6 +139,14 @@ body::before {
 
 * { scrollbar-width: thin; scrollbar-color: var(--color-ink-600) transparent; }
 
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Qayta ishlatiladigan klasslar (Tailwind v4 da @apply bilan ulash uchun @utility bo'lishi shart) */
 @utility panel {
   @apply rounded-xl border border-line bg-ink-900 shadow-(--shadow-card);

@@ -1508,31 +1508,33 @@ export default function BaholarSection({
       <div className="panel space-y-3 p-3 sm:p-3.5">
         {/* 1366 da ham bitta qatorga sig'adi: tanlagichlar ixcham, rejim nomlari 2xl dan kichikda qisqa */}
         <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:items-end">
-          <div className="sm:w-32">
-            <label className="label" htmlFor="b-guruh">
-              Guruh
-            </label>
-            <select
-              id="b-guruh"
-              className="field h-9 cursor-pointer py-1.5 font-bold"
-              value={guruh}
-              onChange={(e) => {
-                if (!confirmLeave()) return
-                if (dirty) dropDraft(guruh, semestr)
-                setGuruh(e.target.value)
-              }}
-            >
-              {groupsByKurs.map(([k, gs]) => (
-                <optgroup key={k} label={k ? `${k}-kurs` : 'Boshqa'}>
-                  {gs.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
+          {view !== 'analitika' && (
+            <div className="sm:w-32">
+              <label className="label" htmlFor="b-guruh">
+                Guruh
+              </label>
+              <select
+                id="b-guruh"
+                className="field h-9 cursor-pointer py-1.5 font-bold"
+                value={guruh}
+                onChange={(e) => {
+                  if (!confirmLeave()) return
+                  if (dirty) dropDraft(guruh, semestr)
+                  setGuruh(e.target.value)
+                }}
+              >
+                {groupsByKurs.map(([k, gs]) => (
+                  <optgroup key={k} label={k ? `${k}-kurs` : 'Boshqa'}>
+                    {gs.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="sm:w-32">
             <label className="label" htmlFor="b-sem">
@@ -1578,7 +1580,8 @@ export default function BaholarSection({
             ))}
           </div>
 
-          <div className="col-span-2 flex items-center gap-1.5 sm:gap-2 sm:ml-auto sm:col-span-1 flex-wrap">
+          {view !== 'analitika' && (
+            <div className="col-span-2 flex items-center gap-1.5 sm:gap-2 sm:ml-auto sm:col-span-1 flex-wrap">
             {/* Bekor qilish (Undo) va Qaytarish (Redo) tugmalari */}
             {view === 'baholar' && (
               <div className="seg h-9">
@@ -1675,10 +1678,11 @@ export default function BaholarSection({
               {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
               <span>Saqlash</span>
             </button>
-          </div>
+            </div>
+          )}
         </div>
 
-        {noPinfl.length > 0 && (
+        {view !== 'analitika' && noPinfl.length > 0 && (
           <div className="flex items-start gap-2 rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 text-[12.5px] text-amber">
             <AlertTriangle size={15} className="mt-0.5 shrink-0" />
             <span>
@@ -1728,7 +1732,7 @@ export default function BaholarSection({
       )}
 
       {data && view === 'baholar' && (
-        <div className="panel overflow-clip border-line bg-ink-900/60 shadow-xl">
+        <div className="panel overflow-clip border-line bg-ink-900 shadow-xl">
           {/* Sub-Header: Holat, Fanlar yangilash, Fanlar filtri, Reyting/5-ball switch va Fan qo'shish */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line p-3 bg-ink-950/40">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1903,11 +1907,11 @@ export default function BaholarSection({
             /* ASOSIY JADVAL */
             <XScroll ref={tableRef}>
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
-                <thead className="sticky top-0 z-20">
+                <thead className="relative z-20">
                   <tr>
                     <th
                       rowSpan={2}
-                      className="sticky left-0 z-30 w-12 border-b border-r border-line bg-ink-900 px-1 py-2 text-center text-[11px] font-bold text-fg-subtle select-none"
+                      className="sticky left-0 z-20 w-12 min-w-12 max-w-12 border-b border-r border-line bg-ink-900 px-1 py-2 text-center text-[11px] font-bold text-fg-subtle select-none"
                       title="Qatorni ushlab tepaga/pastga sudrab tartibni o'zgartirish mumkin"
                     >
                       <div className="flex items-center justify-center gap-0.5">
@@ -1918,7 +1922,7 @@ export default function BaholarSection({
 
                     <th
                       rowSpan={2}
-                      className="sticky left-12 z-30 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-none border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-2 text-left text-[11px] font-bold tracking-wider text-fg-subtle uppercase"
+                      className="sticky left-12 z-20 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-[19rem] truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-2 text-left text-[11px] font-bold tracking-wider text-fg-subtle uppercase shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]"
                     >
                       F.I.Sh.
                     </th>
@@ -1927,7 +1931,7 @@ export default function BaholarSection({
                       <th
                         key={f.nom}
                         colSpan={4}
-                        className="border-b border-r border-line bg-ink-900 px-2 py-1.5 text-center group"
+                        className="border-b border-r-2 border-r-line-strong bg-ink-900 px-2 py-1.5 text-center group"
                       >
                         <div className="flex items-center justify-between gap-1.5">
                           {/* Fanni bosganda alohida ochib baholash */}
@@ -1967,7 +1971,7 @@ export default function BaholarSection({
 
                     <th
                       rowSpan={2}
-                      className="border-b border-line bg-ink-900 px-3 py-2 text-center text-[11px] font-bold tracking-wider text-fg-subtle uppercase"
+                      className="whitespace-nowrap border-b border-l border-line bg-ink-900 px-3 py-2 text-center text-[11px] font-bold tracking-wider text-fg-subtle uppercase"
                     >
                       O'rtacha
                       <br />
@@ -1982,11 +1986,11 @@ export default function BaholarSection({
                         <th
                           key={f.nom + t.key}
                           className={cx(
-                            'border-b border-line px-1 py-1 text-center text-[10.5px] font-bold',
+                            'whitespace-nowrap border-b border-line px-1 py-1 text-center text-[10.5px] font-bold',
                             t.key === 'r_semestr'
-                              ? 'bg-amber/10 text-amber'
-                              : 'bg-ink-850 text-fg-muted',
-                            ti === BAHO_TURLARI.length - 1 && 'border-r',
+                              ? 'min-w-[66px] bg-ink-850 bg-[linear-gradient(rgb(245_158_11_/_0.14),rgb(245_158_11_/_0.14))] text-amber'
+                              : 'min-w-[54px] bg-ink-850 text-fg-muted',
+                            ti === BAHO_TURLARI.length - 1 && 'border-r-2 border-r-line-strong',
                           )}
                         >
                           {birlik === 'reyting' ? (
@@ -2022,7 +2026,7 @@ export default function BaholarSection({
                           // Ko'tarilgan (sudralayotgan) qator: to'liq fon va yumshoq soya — ostidagilar ko'rinmaydi
                           tableSort.dragKey === s.pinfl &&
                             '[&>td]:!bg-ink-800 [&>td]:shadow-[inset_0_1px_0_rgba(56,189,248,0.55),inset_0_-1px_0_rgba(56,189,248,0.55),0_12px_24px_-10px_rgba(0,0,0,0.75)]',
-                          justMovedPinfl === s.pinfl && !tableSort.dragKey && '[&>td]:bg-sky/10',
+                          justMovedPinfl === s.pinfl && !tableSort.dragKey && '[&>td]:bg-[linear-gradient(rgb(56_189_248_/_0.14),rgb(56_189_248_/_0.14))]',
                           !tableSort.dragKey && 'hover:bg-ink-850/50',
                         )}
                       >
@@ -2031,7 +2035,7 @@ export default function BaholarSection({
                           onPointerDown={(e) => tableSort.startDrag(e, s.pinfl)}
                           style={{ touchAction: 'none' }}
                           className={cx(
-                            'sticky left-0 z-10 w-12 border-b border-r border-line bg-ink-900 px-1 py-1 text-center text-[11.5px] font-mono tabular-nums text-fg-subtle select-none transition-colors duration-500',
+                            'sticky left-0 z-10 w-12 min-w-12 max-w-12 border-b border-r border-line bg-ink-900 px-1 py-1 text-center text-[11.5px] font-mono tabular-nums text-fg-subtle select-none transition-colors duration-500',
                             tableSort.dragKey ? 'cursor-grabbing' : 'cursor-grab group-hover:bg-ink-800',
                           )}
                           title="Ushlab yuqoriga/pastga sudrang"
@@ -2045,7 +2049,7 @@ export default function BaholarSection({
                         {/* 2. Talaba F.I.Sh. */}
                         <td
                           className={cx(
-                            'sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-none truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold text-fg transition-colors duration-500',
+                            'sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-[19rem] truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold text-fg transition-colors duration-500 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]',
                             !tableSort.dragKey && 'group-hover:bg-ink-800',
                           )}
                           title={holatTitle(s)}
@@ -2070,7 +2074,7 @@ export default function BaholarSection({
                                   className={cx(
                                     'border-b border-line px-1 py-1 text-center tabular-nums font-semibold',
                                     rangOf(v),
-                                    last && 'border-r',
+                                    last && 'border-r-2 border-r-line-strong',
                                   )}
                                 >
                                   {fmt(v)}
@@ -2089,7 +2093,7 @@ export default function BaholarSection({
                                 className={cx(
                                   'border-b border-line px-0.5 py-1 text-center',
                                   t.key === 'r_semestr' && 'bg-amber/5',
-                                  last && 'border-r',
+                                  last && 'border-r-2 border-r-line-strong',
                                 )}
                               >
                                 <input
@@ -2154,7 +2158,7 @@ export default function BaholarSection({
 
       {/* AMALIYOT BO'LIMI */}
       {data && view === 'amaliyot' && (
-        <div className="panel overflow-hidden">
+        <div className="panel overflow-clip bg-ink-900">
           <div className="space-y-3 border-b border-line p-3">
             <div className="flex flex-wrap items-center gap-2">
               <div className="text-[13px] font-bold text-fg">
@@ -2251,12 +2255,12 @@ export default function BaholarSection({
           ) : (
             <XScroll ref={tableRef}>
               <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
-                <thead className="sticky top-0 z-20">
+                <thead className="relative z-20">
                   <tr className="text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
-                    <th className="sticky left-0 z-30 w-10 border-b border-r border-line bg-ink-900 px-2 py-2">
+                    <th className="sticky left-0 z-20 w-10 min-w-10 max-w-10 border-b border-r border-line bg-ink-900 px-2 py-2">
                       №
                     </th>
-                    <th className="sticky left-10 z-30 min-w-[13rem] border-b border-r border-line bg-ink-900 px-3 py-2 text-left">
+                    <th className="sticky left-10 z-20 min-w-[13rem] max-w-[18rem] border-b border-r border-line bg-ink-900 px-3 py-2 text-left shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]">
                       F.I.Sh.
                     </th>
                     <th className="min-w-[16rem] border-b border-line bg-ink-900 px-2 py-2 text-left">
@@ -2284,11 +2288,11 @@ export default function BaholarSection({
                       cx('field h-8 py-0', extra, ch(f) && 'border-amber/60 bg-amber/10')
                     return (
                       <tr key={s.pinfl} className="group hover:bg-ink-850/50">
-                        <td className="sticky left-0 z-10 w-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">
+                        <td className="sticky left-0 z-10 w-10 min-w-10 max-w-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">
                           {r + 1}
                         </td>
                         <td
-                          className="sticky left-10 z-10 min-w-[13rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1 font-semibold text-fg group-hover:bg-ink-800"
+                          className="sticky left-10 z-10 min-w-[13rem] max-w-[18rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1 font-semibold text-fg group-hover:bg-ink-800 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]"
                           title={holatTitle(s)}
                         >
                           {fullName(s)}
@@ -2549,14 +2553,14 @@ export default function BaholarSection({
             </div>
 
             {/* Alohida Fan Jadvali */}
-            <div ref={focusTableRef} className="overflow-auto flex-1 p-3">
-              <table className="w-full text-left text-[13px] border-collapse">
-                <thead className="sticky top-0 z-10 bg-ink-950 text-[11px] font-bold text-fg-subtle uppercase border-b border-line">
+            <div ref={focusTableRef} className="overflow-auto flex-1 px-3 pb-3 pt-0">
+              <table className="w-full text-left text-[13px] border-separate border-spacing-0">
+                <thead className="sticky top-0 z-10 bg-ink-950 text-[11px] font-bold text-fg-subtle uppercase">
                   <tr>
-                    <th className="py-2.5 px-3 w-12 text-center">№</th>
-                    <th className="py-2.5 px-4 min-w-[200px]">Talaba F.I.Sh.</th>
+                    <th className="border-b border-line bg-ink-950 py-2.5 px-3 w-12 text-center">№</th>
+                    <th className="border-b border-line bg-ink-950 py-2.5 px-4 min-w-[200px]">Talaba F.I.Sh.</th>
                     {BAHO_TURLARI.map((t) => (
-                      <th key={t.key} className={cx('py-2.5 px-2 text-center', t.key === 'r_semestr' ? 'w-24 text-amber' : 'w-20')}>
+                      <th key={t.key} className={cx('border-b border-line bg-ink-950 py-2.5 px-2 text-center', t.key === 'r_semestr' ? 'w-24 text-amber' : 'w-20')}>
                         <CopyColMenu
                           from={t.key as Kiritiladigan}
                           cols={BAHO_TURLARI}
