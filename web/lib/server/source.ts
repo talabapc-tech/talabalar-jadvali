@@ -5,7 +5,7 @@ import { applyGroupSettings, DEFAULT_GROUP_SETTINGS, sanitizeGroupSettings, SECR
 import { buildAddedStudent, fullName, isLeftGroup, lastMoveInto, normalizeShnum, isWithdrawn, isOfficialGroup } from '@/lib/student'
 import type { Change, EditFields, GroupMove, Student } from '@/lib/types'
 import type { StaffMember } from '@/lib/staff'
-import { getServiceSupabase } from '@/lib/supabase'
+import { getServiceSupabase } from '@/lib/server/supabase'
 import { syncStudentsToWebJurnal, withdrawStudentFromWebJurnal } from '@/lib/server/webjurnal'
 
 /*
@@ -42,6 +42,7 @@ const GROUP_SETTINGS_PATH = 'data/guruhlar.json'
 const ASL_GURUH_PATH = 'data/asl_guruhlar.json'
 /** Guruh almashtirishlar tarixi: { "<row>": { fish, pinfl, moves: [{ from, to, buyruq, buyruq_sana, vaqt }] } } */
 const GROUP_HISTORY_PATH = 'data/guruh_tarixi.json'
+const AUDIT_LOG_PATH = 'data/audit_log.json'
 
 /*
   Loyiha papkalari (26.09.2026 dan). GitHub'da ham, kompyuterda ham shu yo'llar.
@@ -250,13 +251,36 @@ async function loadFromSupabase(): Promise<Student[] | null> {
   }
 }
 
+const cleanPin = (v: unknown) => String(v ?? '').replace(/\s/g, '').trim()
+const normFish = (v: unknown) => String(v ?? '').toLowerCase().replace(/[^a-z0-9\u0400-\u04ff]/g, '')
+
 async function enrichSurveyData(students: Student[]): Promise<Student[]> {
   try {
     const buf = await readRepoFile(['data/sorovnoma_1kurs.json', 'sorovnoma_1kurs.json'], { maxAgeMs: 5 * 60_000 })
     if (buf) {
       const map = JSON.parse(buf.toString('utf-8')) as Record<string, Partial<Student>>
+      const byPinfl = new Map<string, Partial<Student>>()
+      const byFishCount = new Map<string, number>()
+      const byFishRec = new Map<string, Partial<Student>>()
+      for (const rec of Object.values(map)) {
+        if (!rec || typeof rec !== 'object') continue
+        const p = cleanPin(rec.pinfl)
+        if (p.length === 14 && !byPinfl.has(p)) byPinfl.set(p, rec)
+        const fn = normFish(rec.fish)
+        if (fn) {
+          byFishCount.set(fn, (byFishCount.get(fn) ?? 0) + 1)
+          byFishRec.set(fn, rec)
+        }
+      }
       for (const s of students) {
-        const sr = map[String(s.row)] || (s.tr ? map[String(s.tr)] : undefined)
+        const sPin = cleanPin(s.pinfl)
+        const sFish = normFish(s.fish || fullName(s))
+        const rowRec = map[String(s.row)]
+        const rowOk = rowRec && (!rowRec.fish || !sFish || normFish(rowRec.fish) === sFish)
+        const sr =
+          (sPin.length === 14 ? byPinfl.get(sPin) : undefined) ??
+          (rowOk ? rowRec : undefined) ??
+          (sFish && byFishCount.get(sFish) === 1 ? byFishRec.get(sFish) : undefined)
         if (sr) {
           if (sr.manzil_tuman) s.manzil_tuman = sr.manzil_tuman
           if (sr.manzil_mfy) s.manzil_mfy = sr.manzil_mfy
@@ -298,8 +322,16 @@ async function loadAslGuruhlar(): Promise<AslGuruhMap> {
 
 async function enrichAslGuruh(students: Student[]): Promise<Student[]> {
   const map = await loadAslGuruhlar()
+  const byPinfl = new Map<string, AslGuruhRecord>()
+  for (const rec of Object.values(map)) {
+    const p = cleanPin(rec?.pinfl)
+    if (p.length === 14 && !byPinfl.has(p)) byPinfl.set(p, rec)
+  }
   for (const s of students) {
-    const rec = map[String(s.row)]
+    const sPin = cleanPin(s.pinfl)
+    const rowRec = map[String(s.row)]
+    const rowOk = rowRec && (!rowRec.pinfl || !sPin || cleanPin(rowRec.pinfl) === sPin)
+    const rec = (sPin.length === 14 ? byPinfl.get(sPin) : undefined) ?? (rowOk ? rowRec : undefined)
     if (rec?.asl) s.asl_guruh = rec.asl
   }
   return students
@@ -361,8 +393,16 @@ async function loadGroupHistory(): Promise<GroupHistoryMap> {
 
 async function enrichGroupHistory(students: Student[]): Promise<Student[]> {
   const map = await loadGroupHistory()
+  const byPinfl = new Map<string, GroupHistoryRecord>()
+  for (const rec of Object.values(map)) {
+    const p = cleanPin(rec?.pinfl)
+    if (p.length === 14 && !byPinfl.has(p)) byPinfl.set(p, rec)
+  }
   for (const s of students) {
-    const moves = map[String(s.row)]?.moves
+    const sPin = cleanPin(s.pinfl)
+    const rowRec = map[String(s.row)]
+    const rowOk = rowRec && (!rowRec.pinfl || !sPin || cleanPin(rowRec.pinfl) === sPin)
+    const moves = ((sPin.length === 14 ? byPinfl.get(sPin) : undefined) ?? (rowOk ? rowRec : undefined))?.moves
     if (!moves?.length) continue
     s.guruh_tarixi = moves
     if (isLeftGroup(s.group)) {
@@ -408,9 +448,16 @@ async function splitGroupHistory(change: Change): Promise<Change | null> {
         const i = moves.map((m) => m.to).lastIndexOf(prev)
         const base = i >= 0 ? moves[i] : { from: '', to: prev, vaqt: '', manba: 'qolda' as const }
         const fixed = { ...base, ...(chiqqan_guruh !== undefined ? { from: chiqqan_guruh.trim() } : {}), ...order }
-        if (i >= 0) moves[i] = fixed
-        else moves.push(fixed)
-        dirty = true
+        const changed =
+          i < 0 ||
+          fixed.from !== base.from ||
+          (fixed.buyruq || '') !== (base.buyruq || '') ||
+          (fixed.buyruq_sana || '') !== (base.buyruq_sana || '')
+        if (changed) {
+          if (i >= 0) moves[i] = fixed
+          else moves.push(fixed)
+          dirty = true
+        }
       }
 
       if (dirty) {
@@ -563,9 +610,41 @@ async function sendGithub(change: Change): Promise<void> {
       if (alreadyInQueue) {
         return
       }
+      list.push(entry)
+    } else if (change.type === 'update_student') {
+      const d = change.data
+      const cleanPinfl = cleanPin(d.pinfl)
+      const idx = list.findIndex((item: unknown) => {
+        const it = item as { type?: string; data?: { row?: number; pinfl?: string } } | null
+        if (it?.type !== 'update_student' || !it.data) return false
+        const itPinfl = cleanPin(it.data.pinfl)
+        if (cleanPinfl && itPinfl) return itPinfl === cleanPinfl
+        return Number(it.data.row) === Number(d.row)
+      })
+      if (idx >= 0) {
+        const existing = list[idx] as {
+          type: 'update_student'
+          data: { row: number; fields: Record<string, string>; shnum?: string; pinfl?: string; ism?: string }
+          id?: string
+          created_at?: string
+        }
+        const curFields = existing.data.fields || {}
+        const allSame = Object.entries(d.fields).every(([k, v]) => (curFields[k] ?? '') === (v ?? ''))
+        if (allSame) return
+        list[idx] = {
+          ...existing,
+          data: {
+            ...existing.data,
+            fields: { ...curFields, ...d.fields },
+          },
+          created_at: entry.created_at,
+        }
+      } else {
+        list.push(entry)
+      }
+    } else {
+      list.push(entry)
     }
-
-    list.push(entry)
 
     const putRes = await fetch(contentsUrl(QUEUE_PATH), {
       method: 'PUT',
@@ -589,35 +668,38 @@ async function sendSupabase(change: Change): Promise<void> {
   const sb = getServiceSupabase()
   if (change.type === 'update_student') {
     const d = change.data
-    const pinfl = d.pinfl
+    const cleanPinfl = cleanPin(d.pinfl)
     const updateData: Record<string, unknown> = { ...d.fields, updated_at: new Date().toISOString() }
     if (d.fields.ism || d.fields.ota) {
       updateData.fish = `${d.fields.ism || ''} ${d.fields.ota || ''}`.trim()
     }
     let query = sb.from('students').update(updateData)
     // Faqat JSHSHIR yoki qator: shartnoma raqami takrorlanadi va .eq('shnum') hamma mos qatorlarni o'zgartirardi
-    if (pinfl) query = query.eq('pinfl', pinfl.replace(/\s/g, ''))
+    if (cleanPinfl) query = query.eq('pinfl', cleanPinfl)
     else query = query.eq('row', d.row)
     const { error } = await query
     if (error) throw error
   } else if (change.type === 'verify_student') {
     const d = change.data
+    const cleanPinfl = cleanPin(d.pinfl)
     let query = sb.from('students').update({ verified: d.status, updated_at: new Date().toISOString() })
-    if (d.pinfl) query = query.eq('pinfl', d.pinfl.replace(/\s/g, ''))
+    if (cleanPinfl) query = query.eq('pinfl', cleanPinfl)
     else query = query.eq('row', d.row)
     const { error } = await query
     if (error) throw error
   } else if (change.type === 'baza_student') {
     const d = change.data
+    const cleanPinfl = cleanPin(d.pinfl)
     let query = sb.from('students').update({ baza: d.status, updated_at: new Date().toISOString() })
-    if (d.pinfl) query = query.eq('pinfl', d.pinfl.replace(/\s/g, ''))
+    if (cleanPinfl) query = query.eq('pinfl', cleanPinfl)
     else query = query.eq('row', d.row)
     const { error } = await query
     if (error) throw error
   } else if (change.type === 'delete_student') {
     const d = change.data
+    const cleanPinfl = cleanPin(d.pinfl)
     let query = sb.from('students').delete()
-    if (d.pinfl) query = query.eq('pinfl', d.pinfl.replace(/\s/g, ''))
+    if (cleanPinfl) query = query.eq('pinfl', cleanPinfl)
     else query = query.eq('row', d.row)
     const { error } = await query
     if (error) throw error
@@ -667,10 +749,17 @@ export async function sendChange(incoming: Change): Promise<void> {
     const f = incoming.type === 'update_student' ? incoming.data.fields : incoming.data
     if (f.shnum !== undefined) f.shnum = normalizeShnum(f.shnum)
   }
+  const before =
+    incoming.type !== 'add_student'
+      ? (await loadStudents().catch(() => [])).find((s) => s.row === incoming.data.row)
+      : undefined
   // Tarix tahrirdan OLDIN yoziladi — hozirgi (eski) guruh "qayerdan" bo'lib qoladi
   const withHistory = await splitGroupHistory(incoming)
   const change = withHistory && await splitAslGuruh(withHistory)
-  if (!change) return
+  if (!change) {
+    await appendAuditLog(incoming, before)
+    return
+  }
   let supabaseOk = false
   try {
     await sendSupabase(change)
@@ -691,6 +780,8 @@ export async function sendChange(incoming: Change): Promise<void> {
   } finally {
     invalidateCache()
   }
+
+  await appendAuditLog(incoming, before)
 
   // ── Web Jurnal avtomatik sinxronlash (qo'shish, safdan chiqarish, o'chirish) ──
   if (change.type === 'add_student') {
@@ -839,4 +930,148 @@ export async function loadStaff(): Promise<StaffMember[]> {
 
 export async function saveStaff(list: StaffMember[], msg = "Xodimlar ma'lumoti yangilandi"): Promise<void> {
   await saveRepoJsonFile('data/xodimlar.json', list, msg)
+}
+
+/* ------------------------------ AMALLAR TARIXI (AUDIT LOG) ------------------------------ */
+
+export interface AuditLogEntry {
+  id: string
+  vaqt: string
+  amal: Change['type'] | 'move_group'
+  row: number
+  fish: string
+  pinfl: string
+  group: string
+  tafsilot: string
+  fields?: Record<string, string>
+}
+
+let auditLogOverlay: AuditLogEntry[] | null = null
+
+async function readStoredAuditLog(): Promise<AuditLogEntry[]> {
+  if (auditLogOverlay) return auditLogOverlay
+  try {
+    const buf = await readRepoFile([AUDIT_LOG_PATH], { maxAgeMs: 15_000 })
+    if (buf) {
+      const parsed = JSON.parse(buf.toString('utf-8'))
+      if (Array.isArray(parsed)) return parsed as AuditLogEntry[]
+    }
+  } catch { /* bo'sh */ }
+  return []
+}
+
+async function appendAuditLog(incoming: Change, before?: Student): Promise<void> {
+  try {
+    const vaqt = new Date().toISOString()
+    const id = `aud_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    let entry: AuditLogEntry | null = null
+
+    if (incoming.type === 'add_student') {
+      const d = incoming.data
+      const fish = `${d.ism || ''} ${d.ota || ''}`.trim()
+      const grp = String(d.group || '26-02').trim()
+      entry = {
+        id,
+        vaqt,
+        amal: 'add_student',
+        row: 0,
+        fish,
+        pinfl: cleanPin(d.pinfl),
+        group: grp,
+        tafsilot: `Yangi talaba qo'shildi (${grp})`,
+        fields: Object.fromEntries(Object.entries(d).map(([k, v]) => [k, String(v ?? '')])),
+      }
+    } else if (incoming.type === 'delete_student') {
+      const d = incoming.data
+      entry = {
+        id,
+        vaqt,
+        amal: 'delete_student',
+        row: d.row,
+        fish: before?.fish || d.fish || d.ism || '',
+        pinfl: cleanPin(before?.pinfl || d.pinfl),
+        group: before?.group || '',
+        tafsilot: "Talaba bazadan o'chirildi",
+      }
+    } else if (incoming.type === 'verify_student') {
+      const d = incoming.data
+      entry = {
+        id,
+        vaqt,
+        amal: 'verify_student',
+        row: d.row,
+        fish: before?.fish || d.ism || '',
+        pinfl: cleanPin(before?.pinfl || d.pinfl),
+        group: before?.group || '',
+        tafsilot: `Tasdiq holati: ${d.status}`,
+      }
+    } else if (incoming.type === 'baza_student') {
+      const d = incoming.data
+      entry = {
+        id,
+        vaqt,
+        amal: 'baza_student',
+        row: d.row,
+        fish: before?.fish || d.ism || '',
+        pinfl: cleanPin(before?.pinfl || d.pinfl),
+        group: before?.group || '',
+        tafsilot: `Baza holati: ${d.status}`,
+      }
+    } else if (incoming.type === 'update_student') {
+      const d = incoming.data
+      const cleanFields: Record<string, string> = {}
+      const parts: string[] = []
+      for (const [k, v] of Object.entries(d.fields)) {
+        const valStr = String(v ?? '')
+        cleanFields[k] = valStr
+        const oldVal = before ? String(before[k as keyof Student] ?? '') : ''
+        if (oldVal !== valStr) parts.push(`${k}: ${oldVal || '—'} → ${valStr || '—'}`)
+      }
+      entry = {
+        id,
+        vaqt,
+        amal: 'update_student',
+        row: d.row,
+        fish: before?.fish || d.ism || '',
+        pinfl: cleanPin(before?.pinfl || d.pinfl),
+        group: cleanFields.group || before?.group || '',
+        tafsilot: parts.length ? parts.join(', ') : "Ma'lumotlar tahrirlandi",
+        fields: cleanFields,
+      }
+    }
+
+    if (!entry) return
+    const existing = await readStoredAuditLog()
+    const next = [entry, ...existing].slice(0, 500)
+    await saveRepoJsonFile(AUDIT_LOG_PATH, next, `Audit: ${entry.fish || entry.row} (${entry.amal})`)
+    auditLogOverlay = next
+  } catch (err) {
+    console.error('Audit log yozishda xato (tahrir baribir saqlanadi):', err)
+  }
+}
+
+export async function loadAuditLog(): Promise<AuditLogEntry[]> {
+  const [stored, historyMap] = await Promise.all([readStoredAuditLog(), loadGroupHistory()])
+  const moves: AuditLogEntry[] = []
+  for (const [rowKey, rec] of Object.entries(historyMap)) {
+    const list = rec?.moves ?? []
+    list.forEach((m, idx) => {
+      moves.push({
+        id: `hist_${rowKey}_${idx}`,
+        vaqt: m.vaqt || '',
+        amal: 'move_group',
+        row: Number(rowKey) || 0,
+        fish: rec?.fish || '',
+        pinfl: cleanPin(rec?.pinfl),
+        group: m.to || '',
+        tafsilot: `${m.from || '?'} → ${m.to}${m.buyruq ? ` (Buyruq: ${m.buyruq}${m.buyruq_sana ? `, ${m.buyruq_sana}` : ''})` : ''}`,
+      })
+    })
+  }
+  return [...stored, ...moves].sort((a, b) => {
+    if (!a.vaqt && !b.vaqt) return 0
+    if (!a.vaqt) return 1
+    if (!b.vaqt) return -1
+    return b.vaqt.localeCompare(a.vaqt)
+  })
 }

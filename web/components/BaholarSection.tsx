@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowUp,
+  BarChart3,
   BookOpen,
   Briefcase,
   Check,
@@ -57,6 +58,7 @@ import {
 } from '@/lib/baholar'
 import { exportBaza, exportHisobot, exportQaydnomalar, type BaholarExportData, type ExportAmaliyot, type ExportGrade } from '@/lib/baholar-excel'
 import BaholarExportModal, { type ExportTanlov } from './BaholarExportModal'
+import BaholarAnalytics from './BaholarAnalytics'
 import XScroll from './XScroll'
 import CopyColMenu from './CopyColMenu'
 import { parseClipboardGrid, useEditHistory } from '@/lib/use-edit-history'
@@ -64,7 +66,7 @@ import { useFlip, useSortable } from '@/lib/use-sortable'
 import type { Notify } from './Toast'
 import { cx } from './ui'
 
-type SubView = 'baholar' | 'amaliyot'
+type SubView = 'baholar' | 'amaliyot' | 'analitika'
 type Birlik = 'ball5' | 'reyting'
 const PREF_KEY = 'baholar_prefs_v2'
 const AM_FIELDS = ['joy', 'boshlanish', 'tugash', 'ball', 'izoh'] as const
@@ -225,7 +227,7 @@ export default function BaholarSection({
   useEffect(() => {
     const p = readPrefs()
     if (p.semestr && SEMESTRLAR.includes(p.semestr as never)) setSemestr(p.semestr)
-    if (p.view === 'amaliyot') setView('amaliyot')
+    if (p.view === 'amaliyot' || p.view === 'analitika') setView(p.view)
     if (p.birlik === 'reyting') setBirlik('reyting')
     setGuruh(p.guruh || '')
     setPrefsLoaded(true)
@@ -861,7 +863,7 @@ export default function BaholarSection({
 
   const canSaveBaholar = Object.keys(edits).length > 0 && !invalidCount
   const canSaveAm = Object.keys(amEdits).length > 0 && !amInvalid
-  const canSave = view === 'baholar' ? canSaveBaholar : canSaveAm
+  const canSave = view === 'baholar' ? canSaveBaholar : view === 'amaliyot' ? canSaveAm : false
 
   /* ---------------------------- Global Tezkor Klavishlar (MS Office / Excel) ---------------------------- */
 
@@ -888,8 +890,10 @@ export default function BaholarSection({
         if (focusedFan || view === 'baholar') {
           if (canSaveBaholar) void saveBaholar()
           else if (invalidCount) notify("Noto'g'ri baholar bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
-        } else if (canSaveAm) void saveAmaliyotRef.current()
-        else if (amInvalid) notify("Noto'g'ri baho bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
+        } else if (view === 'amaliyot') {
+          if (canSaveAm) void saveAmaliyotRef.current()
+          else if (amInvalid) notify("Noto'g'ri baho bor (qizil katak): faqat 2, 3, 4 yoki 5", 'error')
+        }
         return
       }
 
@@ -1557,6 +1561,7 @@ export default function BaholarSection({
               [
                 ['baholar', ClipboardList, "Fanlar bo'yicha baholar", 'Baholar'],
                 ['amaliyot', Briefcase, 'Malakaviy amaliyot', 'Amaliyot'],
+                ['analitika', BarChart3, "Guruhlar kesimida o'zlashtirish tahlili", 'Tahlil'],
               ] as const
             ).map(([v, Icon, t, short]) => (
               <button
@@ -1663,7 +1668,7 @@ export default function BaholarSection({
             <button
               type="button"
               className="btn-success h-9 px-4"
-              onClick={() => void (view === 'baholar' ? saveBaholar() : saveAmaliyot())}
+              onClick={() => void (view === 'baholar' ? saveBaholar() : view === 'amaliyot' ? saveAmaliyot() : undefined)}
               disabled={!canSave || saving}
               title="Saqlash (Ctrl + S)"
             >
@@ -2352,6 +2357,17 @@ export default function BaholarSection({
             </XScroll>
           )}
         </div>
+      )}
+
+      {view === 'analitika' && (
+        <BaholarAnalytics
+          students={students}
+          semestr={semestr}
+          onSelectGroup={(g) => {
+            setGuruh(g)
+            setView('baholar')
+          }}
+        />
       )}
 
       {/* ----------------- MODAL: Telegram uslubida Talabalar tartibini sozlash ----------------- */}

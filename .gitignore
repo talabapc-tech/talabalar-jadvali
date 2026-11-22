@@ -60,10 +60,22 @@ data/supabase_backup_before_cleanup.json
 ~$*
 data/google_sheet_survey.*
 
-# ===== Baholar tekshiruvi: shaxsiy ma'lumotli fayllar (repo ommaviy!) =====
+# Dasturlar papkasi (o'rnatuvchilar va dastur manbalari)
+Dasturlar/
+dasturlar/
+
 Baholar_Tekshiruv_Hisoboti_*.xlsx
 Guruh hisobotlari/
 Guruh_hisobotlari_*.zip
 Jurnal_bilan_tekshiruv_*.xlsx
 Boshqa baholar/
 Jurnallar/
+
+# Lokal ishchi jadval va hujjatlar (GitHub'ga chiqmasin)
+25-23*.xlsx
+SINOV*.xlsx
+talabalar-2026-*.xlsx
+ATTESTATSIYA_SAVOL-JAVOBLARI.*
+O'quv reja/
+O'zbek new/
+*.xls

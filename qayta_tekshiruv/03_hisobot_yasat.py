@@ -176,7 +176,7 @@ for r in range(2, ws.max_row + 1):
     ota = str(ws.cell(row=r, column=7).value or '').strip()
     fish = str(ws.cell(row=r, column=8).value or '').strip()
     pv = str(ws.cell(row=r, column=10).value or '').strip()
-    pinfl = str(ws.cell(row=r, column=11).value or '').strip()
+    pinfl = str(ws.cell(row=r, column=11).value or '').replace(' ', '').strip()
     ber = str(ws.cell(row=r, column=12).value or '').strip()
     dob = str(ws.cell(row=r, column=13).value or '').strip()
     sh_doc = str(ws.cell(row=r, column=15).value or '').strip()
@@ -6147,34 +6147,44 @@ try:
     # docProps/core.xml ga yangi sana yozadi va ma'lumot umuman o'zgarmagan
     # bo'lsa ham fayl "o'zgargan" bo'lib har bir commit ga tushaveradi.
     import datetime as _dt
+    import io as _io
+    import time as _time
+    import zipfile as _zipfile
     _fixed = _dt.datetime(2026, 1, 1, 0, 0, 0)
     multisheet_wb.properties.created = _fixed
     multisheet_wb.properties.modified = _fixed
 
-    def _pin_xlsx_timestamp(path):
-        """openpyxl saqlash paytida properties.modified ni joriy vaqtga
-        majburan almashtiradi, shuning uchun uni fayl yozilgandan keyin
-        qayta qotiramiz. Shunda ma'lumot o'zgarmasa fayl bayt-ma-bayt
-        bir xil bo'ladi va git ga keraksiz commit tushmaydi."""
-        import zipfile, re, shutil
-        tmp = path + '.tmp'
-        with zipfile.ZipFile(path) as zin:
-            items = [(i.filename, i.external_attr, zin.read(i.filename)) for i in zin.infolist()]
-        with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for name, attr, data in items:
-                if name == 'docProps/core.xml':
-                    data = re.sub(rb'(<dcterms:modified[^>]*>)[^<]*(</dcterms:modified>)',
-                                  rb'\g<1>2026-01-01T00:00:00Z\g<2>', data)
-                info = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                info.external_attr = attr
-                zout.writestr(info, data)
-        shutil.move(tmp, path)
+    raw_buf = _io.BytesIO()
+    multisheet_wb.save(raw_buf)
+    raw_buf.seek(0)
 
+    pinned_buf = _io.BytesIO()
+    with _zipfile.ZipFile(raw_buf, 'r') as zin, _zipfile.ZipFile(pinned_buf, 'w', _zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data_bytes = zin.read(item.filename)
+            if item.filename == 'docProps/core.xml':
+                data_bytes = re.sub(
+                    rb'(<dcterms:modified[^>]*>)[^<]*(</dcterms:modified>)',
+                    rb'\g<1>2026-01-01T00:00:00Z\g<2>',
+                    data_bytes,
+                )
+            info = _zipfile.ZipInfo(item.filename, date_time=(2026, 1, 1, 0, 0, 0))
+            info.compress_type = _zipfile.ZIP_DEFLATED
+            info.external_attr = item.external_attr
+            zout.writestr(info, data_bytes)
+
+    xlsx_bytes = pinned_buf.getvalue()
     for _xlsx_path in (os.path.join(BASE_DIR, 'data', 'Talabalar_Yangilangan_Royxat.xlsx'),
                        os.path.join(BASE_DIR, 'qayta_tekshiruv', 'Talabalar_Yangilangan_Royxat.xlsx')):
-        multisheet_wb.save(_xlsx_path)
-        _pin_xlsx_timestamp(_xlsx_path)
+        for _attempt in range(3):
+            try:
+                with open(_xlsx_path, 'wb') as _xf:
+                    _xf.write(xlsx_bytes)
+                break
+            except (OSError, PermissionError):
+                if _attempt == 2:
+                    raise
+                _time.sleep(0.3)
     print("[OK] Yangilangan Excel fayli (8 ta sahifali) saqlandi!")
 except Exception as e_style:
     print(f"Excel stilini qo'llashda xatolik: {e_style}")

@@ -177,6 +177,7 @@ export function useStudents() {
   const inflight = useRef(false)
   const version = useRef('')
   const inFlightAdds = useRef(new Set<string>())
+  const inFlightChanges = useRef(new Set<string>())
   const lastFetchTime = useRef(0)
   const pendingRef = useRef(pending)
   useEffect(() => { pendingRef.current = pending }, [pending])
@@ -201,8 +202,10 @@ export function useStudents() {
   /** Tarmoq xatosi sababli yetmay qolgan o'zgarishlarni qayta yuborish */
   const retryUnsent = useCallback(async () => {
     const p = pendingRef.current
+    const now = Date.now()
     for (const [key, e] of Object.entries(p.edits)) {
-      if (e.sent) continue
+      if (e.sent || inFlightChanges.current.has(`edit:${key}`) || now - e.ts < 15_000) continue
+      inFlightChanges.current.add(`edit:${key}`)
       try {
         await postChange({
           type: 'update_student',
@@ -216,20 +219,25 @@ export function useStudents() {
         })
         markSent('edits', key)
       } catch { return }
+      finally { inFlightChanges.current.delete(`edit:${key}`) }
     }
     for (const [key, v] of Object.entries(p.verifies)) {
-      if (v.sent) continue
+      if (v.sent || inFlightChanges.current.has(`verify:${key}`) || now - v.ts < 15_000) continue
+      inFlightChanges.current.add(`verify:${key}`)
       try {
         await postChange({ type: 'verify_student', data: { row: v.id.row, status: v.status, shnum: v.id.shnum, pinfl: v.id.pinfl, ism: '' } })
         markSent('verifies', key)
       } catch { return }
+      finally { inFlightChanges.current.delete(`verify:${key}`) }
     }
     for (const [key, b] of Object.entries(p.bazas || {})) {
-      if (b.sent) continue
+      if (b.sent || inFlightChanges.current.has(`baza:${key}`) || now - b.ts < 15_000) continue
+      inFlightChanges.current.add(`baza:${key}`)
       try {
         await postChange({ type: 'baza_student', data: { row: b.id.row, status: b.status, shnum: b.id.shnum, pinfl: b.id.pinfl, ism: '' } })
         markSent('bazas', key)
       } catch { return }
+      finally { inFlightChanges.current.delete(`baza:${key}`) }
     }
     for (const a of p.adds || []) {
       if (a.sent || inFlightAdds.current.has(a.key)) continue
@@ -354,6 +362,7 @@ export function useStudents() {
     if (clean.shnum !== undefined) clean.shnum = normalizeShnum(clean.shnum)
     const key = String(student.row)
     const prev = pendingRef.current.edits[key]
+    inFlightChanges.current.add(`edit:${key}`)
     updatePending((p) => ({
       ...p,
       edits: { ...p.edits, [key]: { id: prev?.id ?? identityOf(originalOf(student)), fields: { ...prev?.fields, ...clean }, ts: Date.now(), sent: false } },
@@ -380,6 +389,8 @@ export function useStudents() {
         })
       }
       throw e
+    } finally {
+      inFlightChanges.current.delete(`edit:${key}`)
     }
   }, [originalOf, updatePending, markSent])
 
@@ -387,6 +398,7 @@ export function useStudents() {
     const status: BazaStatus = (student.baza || 'KIRITILDI') === 'KIRITILMAGAN' ? 'KIRITILDI' : 'KIRITILMAGAN'
     const key = String(student.row)
     const prev = pendingRef.current.bazas?.[key]
+    inFlightChanges.current.add(`baza:${key}`)
     updatePending((p) => ({ ...p, bazas: { ...p.bazas, [key]: { id: identityOf(originalOf(student)), status, ts: Date.now(), sent: false } } }))
     try {
       await postChange({
@@ -404,6 +416,8 @@ export function useStudents() {
         })
       }
       throw e
+    } finally {
+      inFlightChanges.current.delete(`baza:${key}`)
     }
     return status
   }, [originalOf, updatePending, markSent])

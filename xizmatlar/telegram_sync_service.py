@@ -360,7 +360,11 @@ def find_student_row_in_sheet(ws, r_idx, pinfl=None, shnum=None, ism=None, stric
                 return r
 
     # 5. Hech narsa topilmadi — tahrirda berilgan qator (eski xatti-harakat), o'chirishda hech narsa
+    #    Lekin berilgan JSHSHIR boshqa talabaga tegishli qator bo'lsa ustiga yozib yubormaymiz
     if not strict and 2 <= r_idx <= ws.max_row:
+        cp = cell_pinfl(r_idx)
+        if len(pinfl_c) == 14 and len(cp) == 14 and cp != pinfl_c:
+            return None
         return r_idx
     return None
 
@@ -2405,6 +2409,13 @@ def _run_rebuild_worker():
                     subprocess.run([sys.executable, script1], check=False, cwd=BASE_DIR)
                 except Exception as e:
                     print(f"03_hisobot_yasat xatosi: {e}")
+
+            script_supa = os.path.join(BASE_DIR, 'scripts', 'supabase_sync.py')
+            if os.path.exists(script_supa):
+                try:
+                    subprocess.run([sys.executable, script_supa], check=False, cwd=BASE_DIR)
+                except Exception as e:
+                    print(f"supabase_sync xatosi: {e}")
 
             with REBUILD_LOCK:
                 if REBUILD_PENDING:

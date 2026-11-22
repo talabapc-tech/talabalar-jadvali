@@ -13,7 +13,7 @@ import {
   type BahoRow,
   type Fan,
 } from '@/lib/baholar'
-import { getServiceSupabase } from '@/lib/supabase'
+import { getServiceSupabase } from '@/lib/server/supabase'
 
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v))

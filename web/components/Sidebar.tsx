@@ -16,6 +16,7 @@ import {
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
   CloudCheck,
   CloudOff,
   CloudUpload,
@@ -370,9 +371,9 @@ export default function Sidebar({
           className="flex min-w-0 items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-sky/50"
           title="Boshqaruv portali"
         >
-          <div className="grid size-9 shrink-0 place-items-center rounded-lg border border-line-strong bg-ink-800">
+          <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-line-strong bg-ink-800 shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="" className="size-6" />
+            <img src="/logo.svg" alt="ShTT" className="size-9 object-contain" />
           </div>
           {!compact && (
             <div className="min-w-0 flex-1">
@@ -474,6 +475,26 @@ export default function Sidebar({
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px]">Majlislar</div>
               <div className="truncate text-[10.5px] font-normal text-fg-subtle">Pedkengash davomati</div>
+            </div>
+          )}
+        </a>
+
+        {/* Talabalar onlayn so'rovnomasi (1-3-kurs) */}
+        <a
+          href="/sorovnoma"
+          title={compact ? "So'rovnoma — 1–3-kurs manzil va telefon" : undefined}
+          className={cx(
+            'group flex items-center gap-2.5 rounded-lg border border-transparent py-1.5 font-medium text-fg-muted transition-colors outline-none hover:bg-ink-850 hover:text-fg focus-visible:ring-2 focus-visible:ring-sky/50',
+            compact ? 'justify-center px-0' : 'px-2',
+          )}
+        >
+          <div className="grid size-8 shrink-0 place-items-center rounded-md text-fg-subtle group-hover:text-fg-muted">
+            <ClipboardList size={17} />
+          </div>
+          {!compact && (
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px]">So&apos;rovnoma</div>
+              <div className="truncate text-[10.5px] font-normal text-fg-subtle">1–3-kurs manzil va telefon</div>
             </div>
           )}
         </a>

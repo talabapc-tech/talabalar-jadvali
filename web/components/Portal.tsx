@@ -1,12 +1,13 @@
 'use client'
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowUp, BookOpenCheck, Database, Loader2, Search, ServerCrash, Zap } from 'lucide-react'
+import { AlertTriangle, ArrowUp, BookOpenCheck, Database, History, Loader2, Search, ServerCrash, ShieldAlert, Zap } from 'lucide-react'
 import { exportFiltered } from '@/lib/excel'
 import { useStudents } from '@/lib/store'
 import { applyGroupSettings, COURSES, GROUP_SETTINGS, type GroupSettings } from '@/lib/config'
 import { academicGroups, EMPTY_FILTERS, fullName, isOfficialGroup, kursOf, matches, scanDuplicates, searchText, selectedGroups, type Filters } from '@/lib/student'
 import type { EditFields, Student } from '@/lib/types'
+import DataAuditView from './DataAuditView'
 import FilterBar, { type DisplayMode } from './FilterBar'
 import GroupSettingsModal from './GroupSettingsModal'
 import GroupsJournal from './GroupsJournal'
@@ -23,7 +24,7 @@ import Sidebar, { type NavTab } from './Sidebar'
 import { Toasts, useToasts } from './Toast'
 import { cx } from './ui'
 
-type View = 'database' | 'groups'
+type View = 'database' | 'groups' | 'audit' | 'history'
 
 const PREFS_KEY = 'portal_v2_prefs'
 
@@ -32,7 +33,8 @@ function readPrefs(): { filters: Filters; mode: DisplayMode; view: View } | null
     const p = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null')
     if (p && typeof p === 'object') {
       const mode: DisplayMode = p.mode === 'table' ? 'table' : p.mode === 'compact' ? 'compact' : 'cards'
-      const view: View = p.view === 'groups' ? 'groups' : 'database'
+      const view: View =
+        p.view === 'groups' || p.view === 'audit' || p.view === 'history' ? p.view : 'database'
       return { filters: { ...EMPTY_FILTERS, ...p.filters }, mode, view }
     }
   } catch { /* bo'sh */ }
@@ -200,9 +202,24 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
 
   const dupGroups = useMemo(() => scanDuplicates(data.students), [data.students])
   const duplicateRows = useMemo(() => new Set(dupGroups.flatMap((g) => g.students.map((s) => s.row))), [dupGroups])
+  const auditIssueCount = useMemo(
+    () =>
+      data.students.filter(
+        (s) =>
+          isOfficialGroup(s.group) &&
+          (!s.tel ||
+            !s.shnum ||
+            !s.sh_doc ||
+            !s.pv ||
+            (s.pinfl || '').replace(/\s/g, '').length !== 14 ||
+            !s.dob ||
+            (!!s.name_flag && s.name_flag !== 'ok')),
+      ).length,
+    [data.students],
+  )
 
   const current = openRow === null ? null : data.students.find((s) => s.row === openRow) ?? null
-  const navList = view === 'groups' ? data.students : shown
+  const navList = view === 'database' ? shown : data.students
   const navIdx = current ? navList.findIndex((s) => s.row === current.row) : -1
 
   const onOpen = useCallback((s: Student) => setOpenRow(s.row), [])
@@ -375,10 +392,12 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
         {data.state === 'ready' && (
           <>
             <nav className="no-print flex flex-wrap items-center gap-2">
-              <div className="seg grid w-full grid-cols-2 sm:inline-flex sm:w-auto">
+              <div className="seg grid w-full grid-cols-2 sm:inline-flex sm:w-auto sm:grid-cols-4">
                 {([
                   ['database', Database, 'Umumiy baza', 'Baza', String(data.students.length)],
                   ['groups', BookOpenCheck, 'Guruhlar jurnali', 'Jurnal', String(groups.length)],
+                  ['audit', ShieldAlert, "Ma'lumotlar auditi", 'Audit', String(auditIssueCount)],
+                  ['history', History, 'Amallar tarixi', 'Tarix', ''],
                 ] as const).map(([v, Icon, t, short, n]) => (
                   <button
                     key={v}
@@ -390,7 +409,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                     <Icon size={15} className={view === v ? 'text-sky' : ''} />
                     <span className="sm:hidden">{short}</span>
                     <span className="hidden sm:inline">{t}</span>
-                    <span className="count">{n}</span>
+                    {n ? <span className="count">{n}</span> : null}
                   </button>
                 ))}
               </div>
@@ -441,8 +460,10 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                 </div>
                 <StudentList students={shown} mode={mode} duplicateRows={duplicateRows} onOpen={onOpen} onToggleBaza={onToggleBaza} onClearFilters={clearFilters} />
               </>
-            ) : (
+            ) : view === 'groups' ? (
               <GroupsJournal key={filters.kurs || 'all'} students={data.students} groups={groups} onOpen={onOpen} notify={notify} />
+            ) : (
+              <DataAuditView students={data.students} mode={view} onOpen={onOpen} notify={notify} />
             )}
 
             {view === 'database' && <BackToSearch target={filterRef} />}

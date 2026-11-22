@@ -9,7 +9,7 @@ import {
 } from '@/lib/server/baholar-shares'
 import { loadStudents } from '@/lib/server/source'
 import { fullName } from '@/lib/student'
-import { getServiceSupabase } from '@/lib/supabase'
+import { getServiceSupabase } from '@/lib/server/supabase'
 import { hisoblaReyting, isPinfl, parseBaho, reytingSeed } from '@/lib/baholar'
 
 const fail = (error: string, status = 400) => Response.json({ ok: false, error }, { status })

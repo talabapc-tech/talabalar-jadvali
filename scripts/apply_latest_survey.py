@@ -330,9 +330,6 @@ def main():
                 'tel_otaona_kim': st.get('tel_otaona_kim', ''),
                 'tel': st.get('tel', '')
             }
-            # Also index by tr if exists
-            if st.get('tr'):
-                sorovnoma_json[str(st['tr'])] = sorovnoma_json[str(rid)]
             updated_count += 1
         else:
             # Did not fill survey
@@ -347,8 +344,6 @@ def main():
                 'tel_otaona_kim': st.get('tel_otaona_kim', ''),
                 'tel': st.get('tel', '')
             }
-            if st.get('tr'):
-                sorovnoma_json[str(st['tr'])] = sorovnoma_json[str(rid)]
 
     print(f"Bazada yangilangan 1-kurs talabalari: {updated_count}")
     
@@ -458,8 +453,20 @@ def main():
     print("=" * 60)
     try:
         import urllib.request
-        SUPABASE_URL = "https://ebzzfbifmorqqtdfvenz.supabase.co"
-        SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVienpmYmlmbW9ycXF0ZGZ2ZW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc5MDg0NjkxMSwiZXhwIjoyMTA2NDIyOTExfQ.h4WmIB4CgX2N7qtybjJ8qrEevvKRUc71esgVOiSzAL4"
+        for env_path in (os.path.join(BASE_DIR, '.env'), os.path.join(BASE_DIR, 'web', '.env.local')):
+            if os.path.exists(env_path):
+                with open(env_path, 'r', encoding='utf-8') as ef:
+                    for line in ef:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            ek, ev = line.split('=', 1)
+                            ek, ev = ek.strip(), ev.strip().strip('"').strip("'")
+                            if ek and ek not in os.environ:
+                                os.environ[ek] = ev
+        SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL", "https://ebzzfbifmorqqtdfvenz.supabase.co")
+        SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+        if not SUPABASE_KEY:
+            raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY topilmadi (.env / web/.env.local)")
 
         req_get = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/students?select=id,row",

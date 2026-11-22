@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import type { NextRequest } from 'next/server'
-import { getServiceSupabase } from '@/lib/supabase'
+import { getServiceSupabase } from '@/lib/server/supabase'
 import type { OquvReja } from '@/lib/curriculum'
 
 export const dynamic = 'force-dynamic'
@@ -249,16 +249,56 @@ export async function POST(req: NextRequest) {
       if (!Number.isInteger(sem) || sem < 1 || sem > 8) {
         return Response.json({ ok: false, error: 'Semestr 1-8 oralig\'ida bo\'lishi kerak' }, { status: 400 })
       }
+      const targetGroup = guruh.trim()
+      const normFanNom = (s: string) =>
+        s
+          .toLowerCase()
+          .replace(/['`ʻʼ‘’´.,:;()\-–—\s]+/g, '')
+          .replace(/tiibbiy/g, 'tibbiy')
+          .replace(/immunizasiya/g, 'immunizatsiya')
+          .replace(/pediateriya/g, 'pediatriya')
+          .replace(/gerantologiya/g, 'gerontologiya')
+
+      // Mavjud fanlar nomini normallashtirilgan kalit orqali tekshirish: imlo farqi tufayli
+      // takroriy ustun ochilib ketmasin (baholar mavjud nomda saqlanib qoladi)
+      const { data: existingFanlar, error: exErr } = await db
+        .from('fanlar')
+        .select('nom')
+        .eq('guruh', targetGroup)
+        .eq('semestr', sem)
+      if (exErr) {
+        return Response.json({ ok: false, error: `Supabase xatosi: ${exErr.message}` }, { status: 500 })
+      }
+      const existingByNorm = new Map<string, string>()
+      for (const row of existingFanlar ?? []) {
+        const nom = String(row.nom ?? '').trim()
+        const key = normFanNom(nom)
+        if (nom && key && !existingByNorm.has(key)) existingByNorm.set(key, nom)
+      }
+
+      const isPracticeOrExam = (nom: string) =>
+        /^\d\s*-\s*semestr\s*\(/i.test(nom) ||
+        /malakaviy amaliyot|bitiruv oldi amaliyot|davlat\s+(imtihoni|attestatsiyasi)/i.test(nom)
+
       // Takroriy nomlar bitta upsert'da bo'lsa Postgres xato beradi — olib tashlaymiz
       const seen = new Set<string>()
       const rows = fanlar
-        .map((f, i) => ({
-          guruh: guruh.trim(),
-          semestr: sem,
-          nom: String(f?.nom ?? '').trim().slice(0, 120),
-          tartib: Number.isFinite(Number(f?.tartib)) ? Number(f.tartib) : i + 1,
-        }))
-        .filter((r) => r.nom && !seen.has(r.nom) && (seen.add(r.nom), true))
+        .map((f, i) => {
+          const rawNom = String(f?.nom ?? '').trim().slice(0, 120)
+          if (!rawNom || isPracticeOrExam(rawNom)) return null
+          const canonical = existingByNorm.get(normFanNom(rawNom)) ?? rawNom
+          return {
+            guruh: targetGroup,
+            semestr: sem,
+            nom: canonical,
+            tartib: Number.isFinite(Number(f?.tartib)) ? Number(f.tartib) : i + 1,
+          }
+        })
+        .filter((r): r is NonNullable<typeof r> => !!r && !!r.nom && !seen.has(r.nom) && (seen.add(r.nom), true))
+
+      if (!rows.length) {
+        return Response.json({ ok: true, count: 0 })
+      }
 
       // Mavjud fanlarning faqat tartibi yangilanadi, yangilari qo'shiladi. Baholar va qo'lda
       // qo'shilgan fanlar o'chirilmaydi.

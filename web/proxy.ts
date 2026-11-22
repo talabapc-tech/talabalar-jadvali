@@ -11,7 +11,16 @@ import { AUTH_COOKIE, isLocalRequest, TG_INIT_HEADER, verifySessionToken, verify
 */
 
 // /baholar/ulashilgan — o'qituvchi havolasi: himoyasi token (API faqat token bilan o'qish/saqlashni o'tkazadi)
-const PUBLIC_PATHS = new Set(['/login', '/majlis', '/baholar/ulashilgan', '/api/baholar/ulashilgan', '/api/telegram_webhook', '/api/mytest-roster'])
+const PUBLIC_PATHS = new Set([
+  '/login',
+  '/majlis',
+  '/sorovnoma',
+  '/api/sorovnoma',
+  '/baholar/ulashilgan',
+  '/api/baholar/ulashilgan',
+  '/api/telegram_webhook',
+  '/api/mytest-roster',
+])
 const isPublic = (p: string) => PUBLIC_PATHS.has(p) || p.startsWith('/api/auth/')
 const isMajlisApi = (p: string) => p === '/api/majlislar' || p.startsWith('/api/majlislar/')
 
@@ -40,5 +49,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Next ichki fayllari, rasm optimizatsiyasi va ikonkalar — har doim ochiq
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|logo.svg|robots.txt).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|logo.svg|logo.png|robots.txt).*)'],
 }
