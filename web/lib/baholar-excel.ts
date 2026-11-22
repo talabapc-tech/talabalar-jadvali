@@ -38,7 +38,6 @@ export interface BaholarExportData {
 
 /* ------------------------------------------------------------------ yordamchilar */
 
-const sanaUz = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso.split('-').reverse().join('.') : iso)
 const letter = (c: number): string => { let s = ''; for (let n = c + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s }
 const addr = (r: number, c: number, abs = false) => (abs ? `$${letter(c)}$${r + 1}` : `${letter(c)}${r + 1}`)
 const mean = (v: (number | null)[]) => { const n = v.filter((x): x is number => x !== null); return n.length ? n.reduce((a, b) => a + b, 0) / n.length : null }
@@ -429,11 +428,11 @@ function fanHisobot(d: BaholarExportData, fan: string): Sheet {
 function amaliyotSheet(d: BaholarExportData): Sheet {
   const sh = new Sheet()
   const { yil } = davr(d.guruh, d.semestr)
-  sh.merge(0, 0, 0, 8, `Malakaviy amaliyot — ${d.guruh} guruh, ${yil} o‘quv yili, ${d.semestr}-semestr`, st({ bold: true, sz: 14, color: '1E3A8A', border: false }))
+  const rey = !d.faqat5
+  const ustunlar = ['№', 'Talabaning F.I.SH', 'Amaliyot', 'Baho (5 ballik)', ...(rey ? ['Reyting (100 ball)'] : []), 'Izoh']
+  sh.merge(0, 0, 0, ustunlar.length - 1, `Malakaviy amaliyot — ${d.guruh} guruh, ${yil} o‘quv yili, ${d.semestr}-semestr`, st({ bold: true, sz: 14, color: '1E3A8A', border: false }))
   sh.height(0, 30)
   const head = st({ bold: true, color: 'FFFFFF', fill: '1E3A8A', wrap: true })
-  const rey = !d.faqat5
-  const ustunlar = ['№', 'Talabaning F.I.SH', 'Amaliyot', 'Amaliyot joyi', 'Boshlanish', 'Tugash', 'Baho (5 ballik)', ...(rey ? ['Reyting (100 ball)'] : []), 'Izoh']
   ustunlar.forEach((t, c) => sh.put(2, c, t, head))
   sh.height(2, 32)
   d.amaliyot.forEach((a, i) => {
@@ -442,15 +441,12 @@ function amaliyotSheet(d: BaholarExportData): Sheet {
     sh.put(r, 0, i + 1, st({ fill: z }))
     sh.put(r, 1, a.name, st({ h: 'left', fill: z }))
     sh.put(r, 2, a.nom, st({ h: 'left', fill: z, wrap: true }))
-    sh.put(r, 3, a.joy, st({ h: 'left', fill: z, wrap: true }))
-    sh.put(r, 4, sanaUz(a.boshlanish), st({ fill: z }))
-    sh.put(r, 5, sanaUz(a.tugash), st({ fill: z }))
-    sh.put(r, 6, a.ball, st({ bold: true, fill: a.ball ? FILL5[a.ball] : z }))
-    if (rey) sh.put(r, 7, a.ball100, st({ bold: true, fill: a.ball100 ? FILL5[bahoOf(a.ball100)] : z }), a.ball100 !== null ? { z: '0' } : {})
-    sh.put(r, rey ? 8 : 7, a.izoh, st({ h: 'left', fill: z, wrap: true }))
+    sh.put(r, 3, a.ball, st({ bold: true, fill: a.ball ? FILL5[a.ball] : z }))
+    if (rey) sh.put(r, 4, a.ball100, st({ bold: true, fill: a.ball100 ? FILL5[bahoOf(a.ball100)] : z }), a.ball100 !== null ? { z: '0' } : {})
+    sh.put(r, rey ? 5 : 4, a.izoh, st({ h: 'left', fill: z, wrap: true }))
     sh.height(r, 20)
   })
-  sh.cols = [{ wch: 5 }, { wch: 38 }, { wch: 24 }, { wch: 36 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, ...(rey ? [{ wch: 16 }] : []), { wch: 30 }]
+  sh.cols = [{ wch: 5 }, { wch: 38 }, { wch: 24 }, { wch: 14 }, ...(rey ? [{ wch: 16 }] : []), { wch: 36 }]
   return sh
 }
 

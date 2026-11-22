@@ -190,7 +190,6 @@ export default function BaholarSection({
   const amNomRef = useRef(amNom)
   amNomRef.current = amNom
   const [newAm, setNewAm] = useState('')
-  const [bulk, setBulk] = useState({ joy: '', boshlanish: '', tugash: '' })
   const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [curriculumPlan, setCurriculumPlan] = useState<OquvReja | null>(null)
   const [curriculumLoading, setCurriculumLoading] = useState(false)
@@ -1199,22 +1198,6 @@ export default function BaholarSection({
     setNewAm('')
   }
 
-  const applyBulk = () => {
-    setAmEdits((e) => {
-      const next = { ...e }
-      for (const s of rows) {
-        for (const f of ['joy', 'boshlanish', 'tugash'] as const) {
-          const v = bulk[f].trim()
-          if (!v) continue
-          const k = `${s.pinfl}|${f}`
-          if (v === amServer(s.pinfl, f)) delete next[k]
-          else next[k] = v
-        }
-      }
-      return next
-    })
-  }
-
   const saveAmaliyot = async (mode: 'manual' | 'auto' = 'manual'): Promise<boolean> => {
     const cur = amEditsRef.current
     if (savingRef.current || !Object.keys(cur).length) return false
@@ -2212,13 +2195,43 @@ export default function BaholarSection({
       {/* AMALIYOT BO'LIMI */}
       {data && view === 'amaliyot' && (
         <div className="panel overflow-clip bg-ink-900">
-          <div className="space-y-3 border-b border-line p-3">
+          <div className="space-y-3 border-b border-line p-3 sm:p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="text-[13px] font-bold text-fg">
-                {guruh} · {semestr}-semestr
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-[14px] font-extrabold text-fg">
+                  Malakaviy amaliyot · {guruh} guruhi
+                </h3>
+                <span className="chip border-sky/40 bg-sky/10 text-sky-soft font-bold text-[11px]">
+                  {semestr}-semestr
+                </span>
+                <span className="chip border-line bg-ink-800/80 text-fg-muted font-bold text-[11px]">
+                  {rows.length} talaba
+                </span>
+                {loading && <Loader2 size={14} className="animate-spin text-sky" />}
               </div>
-              {loading && <Loader2 size={14} className="animate-spin text-sky" />}
-              <div className="flex flex-wrap gap-1.5">
+
+              <form
+                className="flex w-full gap-2 sm:ml-auto sm:w-auto"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  createAm()
+                }}
+              >
+                <input
+                  className="field h-9 min-w-0 flex-1 sm:w-56"
+                  placeholder="Yangi amaliyot nomi"
+                  value={newAm}
+                  maxLength={120}
+                  onChange={(e) => setNewAm(e.target.value)}
+                />
+                <button type="submit" className="btn-primary h-9 shrink-0 px-3" disabled={!newAm.trim()}>
+                  <Plus size={15} /> Amaliyot
+                </button>
+              </form>
+            </div>
+
+            {amNoms.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
                 {amNoms.map((n) => (
                   <button
                     key={n}
@@ -2236,71 +2249,7 @@ export default function BaholarSection({
                   </button>
                 ))}
               </div>
-              <form
-                className="flex w-full gap-2 sm:ml-auto sm:w-auto"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  createAm()
-                }}
-              >
-                <input
-                  className="field h-9 min-w-0 flex-1 sm:w-60"
-                  placeholder="Yangi amaliyot nomi"
-                  value={newAm}
-                  maxLength={120}
-                  onChange={(e) => setNewAm(e.target.value)}
-                />
-                <button type="submit" className="btn-primary h-9 shrink-0 px-3" disabled={!newAm.trim()}>
-                  <Plus size={15} /> Amaliyot
-                </button>
-              </form>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-[1fr_9rem_9rem_auto] sm:items-end">
-              <div>
-                <label className="label" htmlFor="bulk-joy">
-                  Hammaga: amaliyot joyi
-                </label>
-                <input
-                  id="bulk-joy"
-                  className="field h-9"
-                  placeholder="Masalan: Shahrisabz tuman tibbiyot birlashmasi"
-                  value={bulk.joy}
-                  onChange={(e) => setBulk((b) => ({ ...b, joy: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="bulk-bosh">
-                  Boshlanish
-                </label>
-                <input
-                  id="bulk-bosh"
-                  type="date"
-                  className="field h-9"
-                  value={bulk.boshlanish}
-                  onChange={(e) => setBulk((b) => ({ ...b, boshlanish: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="bulk-tug">
-                  Tugash
-                </label>
-                <input
-                  id="bulk-tug"
-                  type="date"
-                  className="field h-9"
-                  value={bulk.tugash}
-                  onChange={(e) => setBulk((b) => ({ ...b, tugash: e.target.value }))}
-                />
-              </div>
-              <button
-                type="button"
-                className="btn-ghost h-9 px-3"
-                onClick={applyBulk}
-                disabled={!bulk.joy.trim() && !bulk.boshlanish && !bulk.tugash}
-              >
-                Hammaga qo'llash
-              </button>
-            </div>
+            )}
           </div>
 
           {rows.length === 0 ? (
@@ -2308,60 +2257,31 @@ export default function BaholarSection({
           ) : (
             <XScroll ref={tableRef}>
               <table
-                className="w-max min-w-full border-separate border-spacing-0 text-[13px]"
+                className="w-full border-separate border-spacing-0 text-[13px]"
                 onBlur={(e) => {
                   if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
                 }}
               >
                 <thead className="relative z-20">
                   <tr className="text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
-                    <th className="sticky left-0 z-20 w-10 min-w-10 max-w-10 border-b border-r border-line bg-ink-900 px-2 py-2">
+                    <th className="sticky left-0 z-20 w-12 min-w-12 max-w-12 border-b border-r border-line bg-ink-900 px-2 py-2.5 text-center">
                       №
                     </th>
-                    <th className="sticky left-10 z-20 min-w-[13rem] max-w-[18rem] border-b border-r border-line bg-ink-900 px-3 py-2 text-left shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]">
+                    <th className="sticky left-12 z-20 min-w-[14rem] max-w-[20rem] border-b border-r border-line bg-ink-900 px-3 py-2.5 text-left shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]">
                       F.I.Sh.
                     </th>
                     <th
                       className={cx(
-                        'min-w-[16rem] border-b border-line bg-ink-900 px-2 py-2 text-left transition-colors',
+                        'w-28 border-b border-line bg-ink-900 px-3 py-2.5 text-center transition-colors',
                         activeCell?.c === 0 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
-                      )}
-                    >
-                      Amaliyot joyi
-                    </th>
-                    <th
-                      className={cx(
-                        'border-b border-line bg-ink-900 px-2 py-2 transition-colors',
-                        activeCell?.c === 1 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
-                      )}
-                    >
-                      Boshlanish
-                    </th>
-                    <th
-                      className={cx(
-                        'border-b border-line bg-ink-900 px-2 py-2 transition-colors',
-                        activeCell?.c === 2 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
-                      )}
-                    >
-                      Tugash
-                    </th>
-                    <th
-                      className={cx(
-                        'border-b border-line bg-ink-900 px-2 py-2 transition-colors',
-                        activeCell?.c === 3 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
                       )}
                     >
                       Baho
                     </th>
-                    {!faqat5 && (
-                      <th className="border-b border-line bg-ink-900 px-2 py-2" title="Avtomatik hosil qilinadi">
-                        Reyting
-                      </th>
-                    )}
                     <th
                       className={cx(
-                        'min-w-[12rem] border-b border-line bg-ink-900 px-2 py-2 text-left transition-colors',
-                        activeCell?.c === 4 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
+                        'min-w-[16rem] border-b border-line bg-ink-900 px-3 py-2.5 text-left transition-colors',
+                        activeCell?.c === 1 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
                       )}
                     >
                       Izoh
@@ -2372,7 +2292,6 @@ export default function BaholarSection({
                   {rows.map((s, r) => {
                     const ch = (f: AmField) => `${s.pinfl}|${f}` in amEdits
                     const ball = amShown(s.pinfl, 'ball')
-                    const rey = amReyting(s.pinfl)
                     const rowActive = activeCell?.r === r
                     const amCellCls = (colIdx: number) => {
                       const colActive = activeCell?.c === colIdx
@@ -2381,13 +2300,11 @@ export default function BaholarSection({
                       if (colActive) return 'bg-[linear-gradient(rgb(56_189_248_/_0.12),rgb(56_189_248_/_0.12))]'
                       return ''
                     }
-                    const txt = (f: AmField, extra = '') =>
-                      cx('field h-8 py-0', extra, ch(f) && 'border-amber/60 bg-amber/10')
                     return (
                       <tr key={s.pinfl} className={cx('group', !rowActive && 'hover:bg-ink-850/50')}>
                         <td
                           className={cx(
-                            'sticky left-0 z-10 w-10 min-w-10 max-w-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums transition-colors',
+                            'sticky left-0 z-10 w-12 min-w-12 max-w-12 border-b border-r border-line bg-ink-900 px-2 py-1.5 text-center text-[12px] font-mono tabular-nums transition-colors',
                             rowActive
                               ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
                               : 'text-fg-subtle group-hover:bg-ink-800',
@@ -2397,7 +2314,7 @@ export default function BaholarSection({
                         </td>
                         <td
                           className={cx(
-                            'sticky left-10 z-10 min-w-[13rem] max-w-[18rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1 font-semibold transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]',
+                            'sticky left-12 z-10 min-w-[14rem] max-w-[20rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1.5 font-semibold transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]',
                             rowActive
                               ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] !text-sky-soft'
                               : 'text-fg group-hover:bg-ink-800',
@@ -2407,34 +2324,7 @@ export default function BaholarSection({
                           {fullName(s)}
                           {holatBelgi(s)}
                         </td>
-                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(0))}>
-                          <input
-                            className={txt('joy')}
-                            value={amShown(s.pinfl, 'joy')}
-                            maxLength={200}
-                            onFocus={() => setActiveCell({ r, c: 0 })}
-                            onChange={(e) => setAm(s.pinfl, 'joy', e.target.value)}
-                          />
-                        </td>
-                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(1))}>
-                          <input
-                            type="date"
-                            className={txt('boshlanish', 'w-[9.5rem]')}
-                            value={amShown(s.pinfl, 'boshlanish')}
-                            onFocus={() => setActiveCell({ r, c: 1 })}
-                            onChange={(e) => setAm(s.pinfl, 'boshlanish', e.target.value)}
-                          />
-                        </td>
-                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(2))}>
-                          <input
-                            type="date"
-                            className={txt('tugash', 'w-[9.5rem]')}
-                            value={amShown(s.pinfl, 'tugash')}
-                            onFocus={() => setActiveCell({ r, c: 2 })}
-                            onChange={(e) => setAm(s.pinfl, 'tugash', e.target.value)}
-                          />
-                        </td>
-                        <td className={cx('border-b border-line px-1 py-1 text-center transition-colors', amCellCls(3))}>
+                        <td className={cx('border-b border-line px-2 py-1.5 text-center transition-colors', amCellCls(0))}>
                           <input
                             data-cell={`${r}:0`}
                             inputMode="numeric"
@@ -2442,31 +2332,23 @@ export default function BaholarSection({
                             maxLength={1}
                             value={ball}
                             className={cellCls(ch('ball'), parseBaho(ball) === undefined)}
+                            aria-label={`${fullName(s)} — Baho`}
                             onChange={(e) => setAm(s.pinfl, 'ball', e.target.value)}
                             onKeyDown={(e) => onCellKey(e, r, 0, 1, tableRef)}
                             onFocus={(e) => {
                               e.currentTarget.select()
-                              setActiveCell({ r, c: 3 })
+                              setActiveCell({ r, c: 0 })
                             }}
                           />
                         </td>
-                        {!faqat5 && (
-                          <td
-                            className={cx(
-                              'border-b border-line px-2 py-1 text-center font-semibold tabular-nums',
-                              rey === null ? 'text-fg-subtle' : BAHO_RANG[bahoOf(rey)],
-                              rowActive && 'bg-[linear-gradient(rgb(56_189_248_/_0.10),rgb(56_189_248_/_0.10))]',
-                            )}
-                          >
-                            {rey ?? '—'}
-                          </td>
-                        )}
-                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(4))}>
+                        <td className={cx('border-b border-line px-2 py-1.5 transition-colors', amCellCls(1))}>
                           <input
-                            className={txt('izoh')}
+                            className={cx('field h-8 py-0', ch('izoh') && 'border-amber/60 bg-amber/10')}
+                            placeholder="Izoh…"
                             value={amShown(s.pinfl, 'izoh')}
                             maxLength={500}
-                            onFocus={() => setActiveCell({ r, c: 4 })}
+                            aria-label={`${fullName(s)} — Izoh`}
+                            onFocus={() => setActiveCell({ r, c: 1 })}
                             onChange={(e) => setAm(s.pinfl, 'izoh', e.target.value)}
                           />
                         </td>

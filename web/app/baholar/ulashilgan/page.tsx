@@ -13,13 +13,15 @@ import { useSearchParams } from 'next/navigation'
 import {
   AlertTriangle,
   BookOpen,
+  Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  GraduationCap,
   LayoutGrid,
   Layers,
   Loader2,
+  PanelLeftClose,
+  PanelLeftOpen,
   Redo2,
   Save,
   Undo2,
@@ -94,6 +96,7 @@ function TeacherGradesContent() {
   const [savedSuccess, setSavedSuccess] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'info' | 'success'; text: string } | null>(null)
   const [activeCell, setActiveCell] = useState<{ r: number; c: number; fan?: string } | null>(null)
+  const [fanPanelOpen, setFanPanelOpen] = useState(true)
   const tableRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -252,6 +255,32 @@ function TeacherGradesContent() {
       setActiveFan(f)
     },
     [fanlar],
+  )
+
+  const focusSubjectCol = useCallback(
+    (fan: string) => {
+      const idx = fanlar.indexOf(fan)
+      if (idx === -1) return
+      if (!butun) {
+        goFan(idx)
+        return
+      }
+      const wrap = tableRef.current
+      if (!wrap) return
+      const escFan = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(fan) : fan.replace(/"/g, '\\"')
+      const th = wrap.querySelector<HTMLElement>(`th[data-fan-col="${escFan}"]`)
+      if (th) {
+        const stickyFio = wrap.querySelector<HTMLElement>('thead th:nth-child(2)')
+        const leftEdge = stickyFio ? stickyFio.getBoundingClientRect().right : wrap.getBoundingClientRect().left + 280
+        const dx = th.getBoundingClientRect().left - leftEdge - 2
+        wrap.scrollBy({ left: dx, behavior: 'smooth' })
+      }
+      const colIdx = idx * COLS.length
+      const firstInput = wrap.querySelector<HTMLInputElement>(`[data-cell="0:${colIdx}"]`)
+      if (firstInput) firstInput.focus({ preventScroll: true })
+      else setActiveCell({ r: 0, c: colIdx, fan })
+    },
+    [fanlar, butun, goFan],
   )
 
   const handleSave = useCallback(async () => {
@@ -528,410 +557,517 @@ function TeacherGradesContent() {
   )
 
   return (
-    <div className="min-h-screen bg-ink-950 text-fg p-3 sm:p-6 pb-20">
-      <div className={`${keng ? 'max-w-[1800px]' : 'max-w-4xl'} mx-auto space-y-4`}>
-        {/* Yuqori Panel */}
-        <div className="panel p-4 sm:p-5 bg-ink-900 border-line shadow-xl space-y-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <GraduationCap size={20} className="text-sky shrink-0" />
-                <span className="text-[12px] font-bold text-fg-subtle tracking-wider uppercase">
-                  Shahrisabz Tibbiyot Texnikumi
-                </span>
+    <div className="min-h-screen bg-ink-950 text-fg pb-20">
+      {/* Yopishqoq Yuqori Panel: Logotip, Ma'lumotlar va Saqlash */}
+      <header className="sticky top-0 z-30 border-b border-line bg-ink-950/92 backdrop-blur-xl">
+        <div className={`${keng ? 'max-w-[1920px]' : multi ? 'max-w-[1440px]' : 'max-w-5xl'} mx-auto flex flex-wrap items-center justify-between gap-2.5 px-3 py-2.5 sm:px-5`}>
+          <div className="flex min-w-0 items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png?v=2"
+              alt="ShTT"
+              className="size-10 shrink-0 rounded-full border border-line object-contain shadow-sm"
+            />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
+                <span>Shahrisabz Tibbiyot Texnikumi</span>
+                {share.teacherName && (
+                  <span className="text-sky-soft normal-case tracking-normal">· {share.teacherName}</span>
+                )}
               </div>
-              <h1 className="text-[18px] sm:text-[22px] font-black text-fg tracking-tight flex items-center gap-2">
-                {multi && <Layers size={20} className="text-sky shrink-0" />}
-                <span>{multi ? `${share.guruh} guruhi — barcha fanlar` : share.fan}</span>
+              <h1 className="flex items-center gap-1.5 truncate text-[16px] sm:text-[18px] font-black tracking-tight text-fg">
+                {multi && <Layers size={17} className="shrink-0 text-sky" />}
+                <span className="truncate">{multi ? `${share.guruh} guruhi — barcha fanlar` : share.fan}</span>
               </h1>
-              <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-fg-muted">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-fg-muted">
                 <span>
                   Guruh: <b className="text-fg">{share.guruh}</b>
                 </span>
                 <span>·</span>
                 <span>
-                  Semestr: <b className="text-fg">{share.semestr}-semestr</b>
+                  <b className="text-fg">{share.semestr}-semestr</b>
+                </span>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1">
+                  <Users size={12} className="text-emerald" />
+                  <b className="text-fg">{students.length}</b> nafar
                 </span>
                 {multi && (
                   <>
                     <span>·</span>
                     <span>
-                      Fanlar: <b className="text-fg">{fanlar.length} ta</b>
+                      <b className="text-fg">{fanlar.length}</b> fan
                     </span>
-                  </>
-                )}
-                {share.teacherName && (
-                  <>
-                    <span>·</span>
-                    <span className="text-sky-soft">
-                      O'qituvchi: <b>{share.teacherName}</b>
-                    </span>
+                    {totalCells > 0 && (
+                      <>
+                        <span>·</span>
+                        <span>
+                          Baholangan: <b className="text-emerald-soft">{Math.round((totalDone / totalCells) * 100)}%</b>
+                        </span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
-            </div>
-
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-              <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
-                <button
-                  type="button"
-                  onClick={handleUndo}
-                  disabled={!history.canUndo}
-                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
-                  title="Bekor qilish (Ctrl + Z)"
-                  aria-label="Bekor qilish"
-                >
-                  <Undo2 size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRedo}
-                  disabled={!history.canRedo}
-                  className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
-                  title="Qaytarish (Ctrl + Y)"
-                  aria-label="Qaytarish"
-                >
-                  <Redo2 size={14} />
-                </button>
-              </div>
-
-              {dirtyCount > 0 && (
-                <span className="chip border-amber/50 bg-amber/10 text-amber font-bold">{dirtyCount} ta o'zgarish</span>
-              )}
-              {savedSuccess && !dirtyCount && (
-                <span className="chip border-emerald/50 bg-emerald/10 text-emerald-soft font-bold flex items-center gap-1">
-                  <CheckCircle2 size={13} />
-                  <span>Saqlandi</span>
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !dirtyCount || invalidCount > 0}
-                className="btn-success h-10 px-5 text-[13.5px] font-bold shadow-lg flex items-center gap-1.5"
-                title={multi ? "Barcha fanlardagi o'zgarishlarni saqlash (Ctrl + S)" : 'Saqlash (Ctrl + S)'}
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                <span>{multi ? 'Hammasini saqlash' : 'Saqlash'}</span>
-              </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[11.5px] text-fg-subtle border-t border-line/60 pt-2.5">
-            <div className="flex items-center gap-1.5">
-              <Users size={13} className="text-emerald" />
-              <span>
-                Talabalar soni: <b className="text-fg">{students.length} nafar</b>
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+            <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-900 p-0.5">
+              <button
+                type="button"
+                onClick={handleUndo}
+                disabled={!history.canUndo}
+                className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                title="Bekor qilish (Ctrl + Z)"
+                aria-label="Bekor qilish"
+              >
+                <Undo2 size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={handleRedo}
+                disabled={!history.canRedo}
+                className="size-8 grid place-items-center rounded-lg text-fg-muted hover:text-fg hover:bg-ink-800 disabled:opacity-25 transition-all"
+                title="Qaytarish (Ctrl + Y)"
+                aria-label="Qaytarish"
+              >
+                <Redo2 size={14} />
+              </button>
+            </div>
+
+            {dirtyCount > 0 && (
+              <span className="chip border-amber/50 bg-amber/10 text-amber font-bold">{dirtyCount} ta o'zgarish</span>
+            )}
+            {savedSuccess && !dirtyCount && (
+              <span className="chip border-emerald/50 bg-emerald/10 text-emerald-soft font-bold flex items-center gap-1">
+                <CheckCircle2 size={13} />
+                <span>Saqlandi</span>
               </span>
-              {multi && totalCells > 0 && (
-                <span className="ml-2">
-                  · Baholangan: <b className="text-fg">{Math.round((totalDone / totalCells) * 100)}%</b>
-                </span>
-              )}
-            </div>
-            <div className="hidden sm:inline">
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Ctrl+S</kbd> saqlash,{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Ctrl+Z</kbd> bekor qilish,{' '}
-              <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Ctrl+V</kbd> Excel'dan
-              {multi && (
-                <>
-                  , <kbd className="px-1 py-0.5 rounded bg-ink-800 text-fg-muted font-mono">Alt+→</kbd> keyingi fan
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Fan tanlash (barcha fanlar havolasida): dropdown + butun jadval */}
-        {multi && fanlar.length > 0 && (
-          <div className="panel flex flex-wrap items-center gap-2 p-2 bg-ink-900 border-line">
-            <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
-              <button
-                type="button"
-                onClick={() => setButun(true)}
-                aria-pressed={butun}
-                className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-bold transition-colors ${butun ? 'bg-sky text-white' : 'text-fg-muted hover:text-fg'}`}
-              >
-                <LayoutGrid size={14} /> Butun jadval
-              </button>
-              <button
-                type="button"
-                onClick={() => goFan(fanIdx)}
-                aria-pressed={!butun}
-                className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-bold transition-colors ${!butun ? 'bg-sky text-white' : 'text-fg-muted hover:text-fg'}`}
-              >
-                <BookOpen size={14} /> Bitta fan
-              </button>
-            </div>
-            <select
-              value={butun ? BUTUN : activeFan}
-              onChange={(e) => (e.target.value === BUTUN ? setButun(true) : goFan(fanlar.indexOf(e.target.value)))}
-              aria-label="Fanni tanlash"
-              className="field h-9 min-w-[14rem] flex-1 cursor-pointer py-0 text-[13px] font-semibold"
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || !dirtyCount || invalidCount > 0}
+              className="btn-success h-9 sm:h-10 px-4 sm:px-5 text-[13px] font-bold shadow-lg flex items-center gap-1.5"
+              title={multi ? "Barcha fanlardagi o'zgarishlarni saqlash (Ctrl + S)" : 'Saqlash (Ctrl + S)'}
             >
-              <option value={BUTUN}>Barcha fanlar — butun jadval ({fanlar.length} ta fan)</option>
-              {fanlar.map((f, i) => {
-                const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
-                const full = students.length > 0 && st.done === students.length
-                return (
-                  <option key={f} value={f}>
-                    {i + 1}. {f} — {full ? '✓ ' : ''}{st.done}/{students.length}
-                    {st.dirty > 0 ? ` · ${st.dirty} ${st.bad ? 'xato' : "o'zgarish"}` : ''}
-                  </option>
-                )
-              })}
-            </select>
-            {!butun && (
-              <div className="flex items-center gap-1">
-                <button type="button" onClick={() => goFan(fanIdx - 1)} disabled={fanIdx === 0} className="btn-ghost size-9 p-0 disabled:opacity-30" title="Oldingi fan (Alt + ←)" aria-label="Oldingi fan">
-                  <ChevronLeft size={16} />
-                </button>
-                <button type="button" onClick={() => goFan(fanIdx + 1)} disabled={fanIdx >= fanlar.length - 1} className="btn-ghost size-9 p-0 disabled:opacity-30" title="Keyingi fan (Alt + →)" aria-label="Keyingi fan">
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {message && (
-          <div
-            role={message.type === 'error' ? 'alert' : 'status'}
-            className={`panel flex items-start gap-2 p-3 text-[13px] ${
-              message.type === 'error'
-                ? 'border-rose/40 bg-rose/10 text-rose'
-                : message.type === 'success'
-                  ? 'border-emerald/40 bg-emerald/10 text-emerald-soft'
-                  : 'border-amber/40 bg-amber/10 text-amber'
-            }`}
-          >
-            {message.type === 'success' ? (
-              <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
-            ) : (
-              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-            )}
-            <span className="flex-1">{message.text}</span>
-            <button type="button" onClick={() => setMessage(null)} className="text-[12px] font-bold opacity-80 hover:opacity-100">
-              Yopish
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              <span>{multi ? 'Hammasini saqlash' : 'Saqlash'}</span>
             </button>
           </div>
-        )}
+        </div>
+      </header>
 
-        {fanlar.length === 0 && (
-          <div className="panel p-6 text-center text-[13px] text-fg-muted">
-            Bu guruhda {share.semestr}-semestr uchun fanlar hali kiritilmagan. Ma'muriyatga murojaat qiling.
-          </div>
-        )}
+      {/* Asosiy Konteyner: Chap Fanlar Paneli (desktop) + Baholar Jadvali */}
+      <div className={`${keng ? 'max-w-[1920px]' : multi ? 'max-w-[1440px]' : 'max-w-5xl'} mx-auto px-3 sm:px-5 pt-4`}>
+        <div className={multi && fanlar.length > 0 && fanPanelOpen ? 'flex flex-col lg:flex-row lg:items-start gap-4' : 'space-y-4'}>
+          {/* Chap tomondagi Fanlar ro'yxati (Desktop lg:) */}
+          {multi && fanlar.length > 0 && fanPanelOpen && (
+            <aside className="hidden lg:flex lg:flex-col w-64 xl:w-72 shrink-0 sticky top-[80px] max-h-[calc(100vh-96px)] panel bg-ink-900 overflow-hidden shadow-xl">
+              <div className="border-b border-line bg-ink-950/60 p-3 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[12.5px] font-extrabold tracking-wide text-fg uppercase">
+                    <BookOpen size={14} className="text-sky" />
+                    <span>Fanlar ({fanlar.length})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFanPanelOpen(false)}
+                    className="grid size-7 place-items-center rounded-lg text-fg-muted hover:bg-ink-800 hover:text-fg"
+                    title="Fanlar panelini yashirish"
+                    aria-label="Fanlar panelini yashirish"
+                  >
+                    <PanelLeftClose size={15} />
+                  </button>
+                </div>
 
-        {students.length === 0 && fanlar.length > 0 && (
-          <div className="panel p-6 text-center text-[13px] text-fg-muted">
-            Bu havolada baho qo'yiladigan talaba yo'q. Ma'muriyatga murojaat qiling.
-          </div>
-        )}
+                {/* Butun jadval / Bitta fan rejimi */}
+                <div className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-ink-950 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setButun(true)}
+                    aria-pressed={butun}
+                    className={`flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-[11.5px] font-bold transition-colors ${
+                      butun ? 'bg-accent text-white shadow-sm' : 'text-fg-muted hover:text-fg'
+                    }`}
+                  >
+                    <LayoutGrid size={13} /> Butun jadval
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goFan(fanIdx)}
+                    aria-pressed={!butun}
+                    className={`flex h-8 items-center justify-center gap-1 rounded-lg px-2 text-[11.5px] font-bold transition-colors ${
+                      !butun ? 'bg-accent text-white shadow-sm' : 'text-fg-muted hover:text-fg'
+                    }`}
+                  >
+                    <BookOpen size={13} /> Bitta fan
+                  </button>
+                </div>
+              </div>
 
-        {/* Butun jadval: barcha fanlar yonma-yon */}
-        {keng && students.length > 0 && (
-          <div className="panel overflow-clip border-line bg-ink-900 shadow-2xl">
-            <XScroll ref={tableRef}>
-              <table
-                className="text-left text-[13px] border-separate border-spacing-0"
-                onBlur={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
-                }}
-              >
-                <thead className="relative z-10 bg-ink-950 border-b border-line text-[10.5px] font-bold text-fg-subtle uppercase tracking-wider">
-                  <tr>
-                    <th rowSpan={2} className="sticky left-0 z-20 w-9 sm:w-11 bg-ink-950 py-2 px-1 text-center border-b border-line">№</th>
-                    <th rowSpan={2} className="sticky left-9 sm:left-11 z-20 min-w-[9rem] sm:min-w-[15rem] bg-ink-950 py-2 px-2 sm:px-3 border-b border-r border-line shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]">Talaba F.I.Sh.</th>
-                    {fanlar.map((f, fi) => {
-                      const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
-                      const fanFocused = activeCell?.fan === f
-                      return (
-                        <th
-                          key={f}
-                          colSpan={COLS.length}
-                          className={`border-b border-r border-line bg-ink-950 px-2 py-1.5 text-center normal-case tracking-normal transition-colors ${
-                            fanFocused ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] shadow-[inset_0_2px_0_var(--color-sky)]' : ''
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => goFan(fi)}
-                            className={`mx-auto block max-w-[15rem] truncate text-[12px] font-extrabold hover:text-sky-soft ${fanFocused ? 'text-sky-soft' : 'text-fg'}`}
-                            title={`${f} — faqat shu fanni ochish`}
-                          >
-                            {fi + 1}. {f}
-                          </button>
-                          <span className={`text-[10.5px] font-semibold ${students.length && st.done === students.length ? 'text-emerald-soft' : 'text-fg-subtle'}`}>
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {fanlar.map((f, i) => {
+                  const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
+                  const full = students.length > 0 && st.done === students.length
+                  const isActive = butun ? activeCell?.fan === f : activeFan === f
+                  return (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => focusSubjectCol(f)}
+                      className={`w-full flex items-start gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors ${
+                        isActive
+                          ? 'border-sky/60 bg-sky/12 text-sky-soft ring-1 ring-sky/25'
+                          : 'border-transparent hover:border-line hover:bg-ink-850 text-fg'
+                      }`}
+                    >
+                      <span
+                        className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-md text-[10.5px] font-mono font-bold ${
+                          isActive ? 'bg-sky/20 text-sky-soft' : 'bg-ink-800 text-fg-muted'
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[12.5px] font-bold leading-snug line-clamp-2">{f}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10.5px] font-semibold">
+                          <span className={`inline-flex items-center gap-0.5 tabular-nums ${full ? 'text-emerald-soft' : 'text-fg-subtle'}`}>
+                            {full && <Check size={11} strokeWidth={2.8} />}
                             {st.done}/{students.length}
-                            {st.dirty > 0 && <span className={st.bad ? 'text-rose' : 'text-amber'}> · {st.dirty} {st.bad ? 'xato' : "o'zgarish"}</span>}
                           </span>
-                        </th>
-                      )
-                    })}
-                  </tr>
-                  <tr>
-                    {fanlar.map((f, fi) =>
-                      COLS.map((c, ci) => {
-                        const colIdx = fi * COLS.length + ci
-                        const colFocused = activeCell?.c === colIdx
-                        return (
-                          <th
-                            key={f + c}
-                            className={`border-b border-line bg-ink-900 px-0.5 py-1 text-center whitespace-nowrap transition-colors ${
-                              colFocused
-                                ? 'bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
-                                : c === 'r_semestr'
-                                  ? 'text-amber'
-                                  : ''
-                            } ${ci === COLS.length - 1 ? 'border-r' : ''}`}
-                          >
-                            {colHead(f, c, true)}
-                          </th>
-                        )
-                      }),
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line/40">
-                  {students.map((s, r) => {
-                    const rowActive = activeCell?.r === r
+                          {st.dirty > 0 && (
+                            <span className={st.bad ? 'text-rose' : 'text-amber'}>
+                              · {st.dirty} {st.bad ? 'xato' : "o'zgarish"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </aside>
+          )}
+
+          {/* O'ng asosiy jadval ustuni */}
+          <div className="min-w-0 flex-1 space-y-4">
+            {/* Mobil uchun yoki chap panel yopilganda fan tanlagich */}
+            {multi && fanlar.length > 0 && (
+              <div className={`panel flex flex-wrap items-center gap-2 p-2 bg-ink-900 border-line ${fanPanelOpen ? 'lg:hidden' : ''}`}>
+                {!fanPanelOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setFanPanelOpen(true)}
+                    className="btn-ghost hidden lg:inline-flex h-8 px-2.5 text-[12px] font-bold"
+                    title="Chap tomonda fanlar ro'yxatini ochish"
+                  >
+                    <PanelLeftOpen size={14} className="text-sky" /> Fanlar ({fanlar.length})
+                  </button>
+                )}
+                <div className="flex items-center gap-0.5 rounded-xl border border-line bg-ink-950 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setButun(true)}
+                    aria-pressed={butun}
+                    className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-bold transition-colors ${
+                      butun ? 'bg-accent text-white shadow-sm' : 'text-fg-muted hover:text-fg'
+                    }`}
+                  >
+                    <LayoutGrid size={14} /> Butun jadval
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => goFan(fanIdx)}
+                    aria-pressed={!butun}
+                    className={`flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12.5px] font-bold transition-colors ${
+                      !butun ? 'bg-accent text-white shadow-sm' : 'text-fg-muted hover:text-fg'
+                    }`}
+                  >
+                    <BookOpen size={14} /> Bitta fan
+                  </button>
+                </div>
+                <select
+                  value={butun ? BUTUN : activeFan}
+                  onChange={(e) => (e.target.value === BUTUN ? setButun(true) : goFan(fanlar.indexOf(e.target.value)))}
+                  aria-label="Fanni tanlash"
+                  className="field h-9 min-w-[14rem] flex-1 cursor-pointer py-0 text-[13px] font-semibold"
+                >
+                  <option value={BUTUN}>Barcha fanlar — butun jadval ({fanlar.length} ta fan)</option>
+                  {fanlar.map((f, i) => {
+                    const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
+                    const full = students.length > 0 && st.done === students.length
                     return (
-                      <tr key={s.pinfl} className="group">
-                        <td
-                          className={`sticky left-0 z-[1] border-b border-line/40 bg-ink-900 py-2 px-1 text-center text-[12px] font-mono transition-colors ${
-                            rowActive
-                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
-                              : 'text-fg-muted group-hover:bg-ink-850'
-                          }`}
-                        >
-                          {s.tartib}
-                        </td>
-                        <td
-                          className={`sticky left-9 sm:left-11 z-[1] border-b border-line/40 bg-ink-900 py-2 px-2 sm:px-3 border-r border-line text-[12.5px] leading-snug font-semibold sm:whitespace-nowrap transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)] ${
-                            rowActive
-                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] !text-sky-soft'
-                              : 'text-fg group-hover:bg-ink-850'
-                          }`}
-                        >
-                          {s.name}
-                        </td>
-                        {fanlar.map((f, fi) =>
-                          COLS.map((col, c) => cell(s, r, f, col, fi * COLS.length + c, `border-b border-line/40 ${c === COLS.length - 1 ? 'border-r border-line' : ''}`)),
-                        )}
-                      </tr>
+                      <option key={f} value={f}>
+                        {i + 1}. {f} — {full ? '✓ ' : ''}{st.done}/{students.length}
+                        {st.dirty > 0 ? ` · ${st.dirty} ${st.bad ? 'xato' : "o'zgarish"}` : ''}
+                      </option>
                     )
                   })}
-                </tbody>
-              </table>
-            </XScroll>
-            <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle">
-              Baho faqat 2, 3, 4 yoki 5. Ustun nomini bosing — baholarni boshqa ustunga ko‘chirish (masalan Yakuniy → Oraliq). Fan nomini bosing — faqat shu fan ochiladi.
-            </div>
-          </div>
-        )}
-
-        {/* Baholar Jadvali (tanlangan fan) */}
-        {!keng && activeFan && students.length > 0 && (
-          <div className="panel overflow-clip border-line bg-ink-900 shadow-2xl">
-            {multi && (
-              <div className="flex items-center gap-2 border-b border-line bg-ink-950/70 px-3 py-2.5">
-                <BookOpen size={16} className="text-sky shrink-0" />
-                <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-fg">{activeFan}</span>
-                <span className="text-[11.5px] font-semibold text-fg-subtle">
-                  {fanIdx + 1}/{fanlar.length}
-                </span>
+                </select>
+                {!butun && (
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => goFan(fanIdx - 1)} disabled={fanIdx === 0} className="btn-ghost size-9 p-0 disabled:opacity-30" title="Oldingi fan (Alt + ←)" aria-label="Oldingi fan">
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button type="button" onClick={() => goFan(fanIdx + 1)} disabled={fanIdx >= fanlar.length - 1} className="btn-ghost size-9 p-0 disabled:opacity-30" title="Keyingi fan (Alt + →)" aria-label="Keyingi fan">
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-            <XScroll ref={tableRef}>
-              <table
-                className="w-full text-left text-[13px] border-separate border-spacing-0"
-                onBlur={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
-                }}
-              >
-                <thead className="sticky top-0 z-10 bg-ink-950 border-b border-line text-[11px] font-bold text-fg-subtle uppercase tracking-wider">
-                  <tr>
-                    <th className="border-b border-line bg-ink-950 py-3 px-1 sm:px-3 w-8 sm:w-12 text-center">№</th>
-                    <th className="border-b border-line bg-ink-950 py-3 px-1.5 sm:px-4 sm:min-w-[200px]">Talaba F.I.Sh.</th>
-                    {COLS.map((c, ci) => {
-                      const colFocused = activeCell?.c === ci
-                      return (
-                        <th
-                          key={c}
-                          className={`border-b border-line bg-ink-950 py-3 px-0.5 sm:px-2 text-center whitespace-nowrap transition-colors ${
-                            colFocused
-                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
-                              : c === 'r_semestr'
-                                ? 'text-amber'
-                                : ''
-                          } ${c === 'r_semestr' ? 'sm:w-24' : 'sm:w-20'}`}
-                        >
-                          {colHead(activeFan, c)}
-                        </th>
-                      )
-                    })}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line/40">
-                  {students.map((s, r) => {
-                    const rowActive = activeCell?.r === r
-                    return (
-                      <tr key={s.pinfl} className={`transition-colors ${!rowActive ? 'hover:bg-ink-850/60' : ''}`}>
-                        <td
-                          className={`border-b border-line/40 py-2.5 px-1 sm:px-3 text-center text-[12px] font-mono transition-colors ${
-                            rowActive
-                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
-                              : 'text-fg-muted'
-                          }`}
-                        >
-                          {s.tartib}
-                        </td>
-                        <td
-                          className={`border-b border-line/40 py-2.5 px-1.5 sm:px-4 text-[12.5px] sm:text-[13px] leading-snug font-semibold transition-colors ${
-                            rowActive ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] text-sky-soft' : 'text-fg'
-                          }`}
-                        >
-                          {s.name}
-                        </td>
-                        {COLS.map((col, c) => cell(s, r, activeFan, col, c, 'border-b border-line/40'))}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </XScroll>
 
-            <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle flex flex-wrap items-center justify-between gap-2">
-              {multi ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => goFan(fanIdx - 1)}
-                    disabled={fanIdx === 0}
-                    className="btn-ghost h-9 px-3 text-[12.5px] font-bold disabled:opacity-30"
+            {message && (
+              <div
+                role={message.type === 'error' ? 'alert' : 'status'}
+                className={`panel flex items-start gap-2 p-3 text-[13px] ${
+                  message.type === 'error'
+                    ? 'border-rose/40 bg-rose/10 text-rose'
+                    : message.type === 'success'
+                      ? 'border-emerald/40 bg-emerald/10 text-emerald-soft'
+                      : 'border-amber/40 bg-amber/10 text-amber'
+                }`}
+              >
+                {message.type === 'success' ? (
+                  <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                ) : (
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                )}
+                <span className="flex-1">{message.text}</span>
+                <button type="button" onClick={() => setMessage(null)} className="text-[12px] font-bold opacity-80 hover:opacity-100">
+                  Yopish
+                </button>
+              </div>
+            )}
+
+            {fanlar.length === 0 && (
+              <div className="panel p-6 text-center text-[13px] text-fg-muted">
+                Bu guruhda {share.semestr}-semestr uchun fanlar hali kiritilmagan. Ma'muriyatga murojaat qiling.
+              </div>
+            )}
+
+            {students.length === 0 && fanlar.length > 0 && (
+              <div className="panel p-6 text-center text-[13px] text-fg-muted">
+                Bu havolada baho qo'yiladigan talaba yo'q. Ma'muriyatga murojaat qiling.
+              </div>
+            )}
+
+            {/* Butun jadval: barcha fanlar yonma-yon */}
+            {keng && students.length > 0 && (
+              <div className="panel overflow-clip border-line bg-ink-900 shadow-2xl">
+                <XScroll ref={tableRef}>
+                  <table
+                    className="w-max min-w-full text-left text-[13px] border-separate border-spacing-0"
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
+                    }}
                   >
-                    <ChevronLeft size={15} /> Oldingi fan
-                  </button>
-                  <span className="hidden sm:inline">Baho faqat 2, 3, 4 yoki 5. O'zgarishlar barcha fanlar uchun birga saqlanadi.</span>
-                  <button
-                    type="button"
-                    onClick={() => goFan(fanIdx + 1)}
-                    disabled={fanIdx >= fanlar.length - 1}
-                    className="btn-primary h-9 px-3 text-[12.5px] font-bold disabled:opacity-30"
+                    <thead className="relative z-20 bg-ink-950 border-b border-line text-[10.5px] font-bold text-fg-subtle uppercase tracking-wider">
+                      <tr>
+                        <th rowSpan={2} className="sticky left-0 z-20 w-10 min-w-10 max-w-10 sm:w-11 sm:min-w-11 sm:max-w-11 bg-ink-950 py-2 px-1 text-center border-b border-r border-line">№</th>
+                        <th rowSpan={2} className="sticky left-10 sm:left-11 z-20 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-[18rem] truncate bg-ink-950 py-2 px-2 sm:px-3 border-b border-r border-line shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]">Talaba F.I.Sh.</th>
+                        {fanlar.map((f, fi) => {
+                          const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
+                          const fanFocused = activeCell?.fan === f
+                          return (
+                            <th
+                              key={f}
+                              data-fan-col={f}
+                              colSpan={COLS.length}
+                              className={`border-b border-r-2 border-r-line-strong bg-ink-950 px-2 py-1.5 text-center normal-case tracking-normal transition-colors ${
+                                fanFocused ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] shadow-[inset_0_2px_0_var(--color-sky)]' : ''
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => goFan(fi)}
+                                className={`mx-auto block max-w-[14rem] truncate text-[12px] font-extrabold hover:text-sky-soft ${fanFocused ? 'text-sky-soft' : 'text-fg'}`}
+                                title={`${f} — faqat shu fanni ochish`}
+                              >
+                                {fi + 1}. {f}
+                              </button>
+                              <span className={`text-[10.5px] font-semibold ${students.length && st.done === students.length ? 'text-emerald-soft' : 'text-fg-subtle'}`}>
+                                {st.done}/{students.length}
+                                {st.dirty > 0 && <span className={st.bad ? 'text-rose' : 'text-amber'}> · {st.dirty} {st.bad ? 'xato' : "o'zgarish"}</span>}
+                              </span>
+                            </th>
+                          )
+                        })}
+                      </tr>
+                      <tr>
+                        {fanlar.map((f, fi) =>
+                          COLS.map((c, ci) => {
+                            const colIdx = fi * COLS.length + ci
+                            const colFocused = activeCell?.c === colIdx
+                            return (
+                              <th
+                                key={f + c}
+                                className={`border-b border-line px-0.5 py-1 text-center whitespace-nowrap transition-colors ${
+                                  c === 'r_semestr' ? 'min-w-[60px]' : 'min-w-[50px]'
+                                } ${
+                                  colFocused
+                                    ? 'bg-ink-900 bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
+                                    : c === 'r_semestr'
+                                      ? 'bg-ink-900 bg-[linear-gradient(rgb(245_158_11_/_0.14),rgb(245_158_11_/_0.14))] text-amber'
+                                      : 'bg-ink-900'
+                                } ${ci === COLS.length - 1 ? 'border-r-2 border-r-line-strong' : ''}`}
+                              >
+                                {colHead(f, c, true)}
+                              </th>
+                            )
+                          }),
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line/40">
+                      {students.map((s, r) => {
+                        const rowActive = activeCell?.r === r
+                        return (
+                          <tr key={s.pinfl} className="group">
+                            <td
+                              className={`sticky left-0 z-[1] w-10 min-w-10 max-w-10 sm:w-11 sm:min-w-11 sm:max-w-11 border-b border-r border-line/40 bg-ink-900 py-2 px-1 text-center text-[12px] font-mono transition-colors ${
+                                rowActive
+                                  ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
+                                  : 'text-fg-muted group-hover:bg-ink-850'
+                              }`}
+                            >
+                              {s.tartib}
+                            </td>
+                            <td
+                              className={`sticky left-10 sm:left-11 z-[1] min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-[18rem] truncate border-b border-r border-line bg-ink-900 py-2 px-2 sm:px-3 text-[12.5px] leading-snug font-semibold transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)] ${
+                                rowActive
+                                  ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] !text-sky-soft'
+                                  : 'text-fg group-hover:bg-ink-850'
+                              }`}
+                              title={s.name}
+                            >
+                              {s.name}
+                            </td>
+                            {fanlar.map((f, fi) =>
+                              COLS.map((col, c) =>
+                                cell(s, r, f, col, fi * COLS.length + c, `border-b border-line/40 ${c === COLS.length - 1 ? 'border-r-2 border-r-line-strong' : ''}`),
+                              ),
+                            )}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </XScroll>
+                <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle flex flex-wrap items-center justify-between gap-2">
+                  <span>Baho faqat 2, 3, 4 yoki 5. Ustun nomini bosing — baholarni boshqa ustunga ko‘chirish (masalan Yakuniy → Oraliq). Fan nomini bosing — faqat shu fan ochiladi.</span>
+                  <span className="hidden sm:inline text-fg-muted">
+                    <kbd className="px-1 py-0.5 rounded bg-ink-800 font-mono">Ctrl+S</kbd> saqlash · <kbd className="px-1 py-0.5 rounded bg-ink-800 font-mono">Ctrl+Z</kbd> bekor qilish
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Baholar Jadvali (tanlangan fan) */}
+            {!keng && activeFan && students.length > 0 && (
+              <div className="panel overflow-clip border-line bg-ink-900 shadow-2xl">
+                {multi && (
+                  <div className="flex items-center gap-2 border-b border-line bg-ink-950/70 px-3 py-2.5">
+                    <BookOpen size={16} className="text-sky shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-fg">{activeFan}</span>
+                    <span className="chip border-line bg-ink-800 text-fg-muted text-[11px] font-bold">
+                      {fanIdx + 1} / {fanlar.length}
+                    </span>
+                  </div>
+                )}
+                <XScroll ref={tableRef}>
+                  <table
+                    className="w-full text-left text-[13px] border-separate border-spacing-0"
+                    onBlur={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
+                    }}
                   >
-                    Keyingi fan <ChevronRight size={15} />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span>Baho faqat 2, 3, 4 yoki 5 kiritiladi. Bo'sh qoldirilsa baho belgilanmagan hisoblanadi.</span>
-                  <span className="font-semibold text-sky-soft">Shahrisabz Tibbiyot Texnikumi</span>
-                </>
-              )}
-            </div>
+                    <thead className="relative z-20 bg-ink-950 border-b border-line text-[11px] font-bold text-fg-subtle uppercase tracking-wider">
+                      <tr>
+                        <th className="border-b border-r border-line bg-ink-950 py-3 px-1 sm:px-3 w-10 sm:w-12 text-center">№</th>
+                        <th className="border-b border-r border-line bg-ink-950 py-3 px-2 sm:px-4 sm:min-w-[200px]">Talaba F.I.Sh.</th>
+                        {COLS.map((c, ci) => {
+                          const colFocused = activeCell?.c === ci
+                          return (
+                            <th
+                              key={c}
+                              className={`border-b border-line py-3 px-0.5 sm:px-2 text-center whitespace-nowrap transition-colors ${
+                                colFocused
+                                  ? 'bg-ink-950 bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
+                                  : c === 'r_semestr'
+                                    ? 'bg-ink-950 bg-[linear-gradient(rgb(245_158_11_/_0.14),rgb(245_158_11_/_0.14))] text-amber'
+                                    : 'bg-ink-950'
+                              } ${c === 'r_semestr' ? 'sm:w-24' : 'sm:w-20'}`}
+                            >
+                              {colHead(activeFan, c)}
+                            </th>
+                          )
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line/40">
+                      {students.map((s, r) => {
+                        const rowActive = activeCell?.r === r
+                        return (
+                          <tr key={s.pinfl} className={`transition-colors ${!rowActive ? 'hover:bg-ink-850/60' : ''}`}>
+                            <td
+                              className={`border-b border-r border-line/40 bg-ink-900 py-2.5 px-1 sm:px-3 text-center text-[12px] font-mono transition-colors ${
+                                rowActive
+                                  ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
+                                  : 'text-fg-muted'
+                              }`}
+                            >
+                              {s.tartib}
+                            </td>
+                            <td
+                              className={`border-b border-r border-line/40 bg-ink-900 py-2.5 px-2 sm:px-4 text-[12.5px] sm:text-[13px] leading-snug font-semibold transition-colors ${
+                                rowActive ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] text-sky-soft' : 'text-fg'
+                              }`}
+                            >
+                              {s.name}
+                            </td>
+                            {COLS.map((col, c) => cell(s, r, activeFan, col, c, 'border-b border-line/40'))}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </XScroll>
+
+                <div className="p-3 bg-ink-950/80 border-t border-line text-[11.5px] text-fg-subtle flex flex-wrap items-center justify-between gap-2">
+                  {multi ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => goFan(fanIdx - 1)}
+                        disabled={fanIdx === 0}
+                        className="btn-ghost h-9 px-3 text-[12.5px] font-bold disabled:opacity-30"
+                      >
+                        <ChevronLeft size={15} /> Oldingi fan
+                      </button>
+                      <span className="hidden sm:inline">Baho faqat 2, 3, 4 yoki 5. O'zgarishlar barcha fanlar uchun birga saqlanadi.</span>
+                      <button
+                        type="button"
+                        onClick={() => goFan(fanIdx + 1)}
+                        disabled={fanIdx >= fanlar.length - 1}
+                        className="btn-primary h-9 px-3 text-[12.5px] font-bold disabled:opacity-30"
+                      >
+                        Keyingi fan <ChevronRight size={15} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span>Baho faqat 2, 3, 4 yoki 5 kiritiladi. Bo'sh qoldirilsa baho belgilanmagan hisoblanadi.</span>
+                      <span className="font-semibold text-sky-soft">Shahrisabz Tibbiyot Texnikumi</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
