@@ -373,7 +373,7 @@ export default function Sidebar({
         >
           <div className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-line-strong bg-ink-800 shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="ShTT" className="size-9 object-contain" />
+            <img src="/logo.png?v=2" alt="ShTT" className="size-9 object-contain" />
           </div>
           {!compact && (
             <div className="min-w-0 flex-1">

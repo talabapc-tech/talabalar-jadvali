@@ -212,7 +212,7 @@ export default function LoginPage() {
             <div className="mb-6 flex items-center gap-3.5">
               <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-full border border-line bg-ink-850 shadow-md">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.svg" alt="Texnikum" className="size-14 object-contain" />
+                <img src="/logo.png?v=2" alt="Texnikum" className="size-14 object-contain" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-bold tracking-[0.12em] text-emerald-soft uppercase">

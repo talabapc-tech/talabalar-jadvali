@@ -8,6 +8,11 @@ const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrai
 export const metadata: Metadata = {
   title: 'Talabalar portali',
   description: "Shahrisabz Tibbiyot Texnikumi — talabalar shartnomalari va akademik guruhlar",
+  icons: {
+    icon: '/icon.svg?v=2',
+    shortcut: '/logo.png?v=2',
+    apple: '/logo.png?v=2',
+  },
 }
 
 export const viewport: Viewport = {

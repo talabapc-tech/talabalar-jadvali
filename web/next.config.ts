@@ -8,7 +8,8 @@ const nextConfig: NextConfig = {
   // Ma'lumotnoma Word shabloni — diskdan o'qiladi, Vercel'ga ham tushsin
   outputFileTracingIncludes: {
     '/api/malumotnoma': ['./assets/malumotnoma/**/*'],
-    '/api/telegram_webhook': ['./assets/malumotnoma/**/*'],
+    '/api/telegram_webhook': ['./assets/malumotnoma/**/*', './public/logo.png'],
+    '/api/send_group_telegram': ['./assets/malumotnoma/**/*', './public/logo.png'],
     // Buyruq Word shablonlari (akademik ta'til, safdan chiqarish, guruh almashtirish)
     '/api/buyruq': ['./assets/buyruqlar/**/*'],
   },

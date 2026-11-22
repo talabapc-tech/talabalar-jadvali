@@ -14,10 +14,8 @@ import type { Student } from '@/lib/types'
 */
 
 const ASSETS = path.join(process.cwd(), 'assets', 'malumotnoma')
+const LOGO_FILE = path.join(process.cwd(), 'public', 'logo.png')
 const W = 1240
-const ROW = 46
-const HEAD = 250
-const FOOT = 70
 
 let fontsPromise: Promise<{ regular: ArrayBuffer; bold: ArrayBuffer }> | null = null
 function loadFonts() {
@@ -28,6 +26,24 @@ function loadFonts() {
   ]).then(([r, b]) => ({ regular: ab(r), bold: ab(b) }))
     .catch((e) => { fontsPromise = null; throw e })
   return fontsPromise
+}
+
+let logoPromise: Promise<string | null> | null = null
+function loadLogoUri() {
+  logoPromise ??= readFile(LOGO_FILE)
+    .then((b) => `data:image/png;base64,${b.toString('base64')}`)
+    .catch(() => null)
+  return logoPromise
+}
+
+function formatDob(raw: unknown): string {
+  const s = String(raw || '').trim()
+  if (!s || s === '—' || s === '-' || s === 'None' || s === 'nan') return '—'
+  const mDmy = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/.exec(s)
+  if (mDmy) return `${mDmy[1].padStart(2, '0')}.${mDmy[2].padStart(2, '0')}.${mDmy[3]}`
+  const mYmd = /^(\d{4})[./-](\d{1,2})[./-](\d{1,2})/.exec(s)
+  if (mYmd) return `${mYmd[3].padStart(2, '0')}.${mYmd[2].padStart(2, '0')}.${mYmd[1]}`
+  return s
 }
 
 export interface GroupImageInput {
@@ -70,47 +86,153 @@ export const groupListFileName = (key: string) =>
  *  ro'yxatni 11 soniyada chizardi (busiz 0,7 s) — shuning uchun matnni o'zimiz qisqartiramiz */
 const fit = (v: string, max: number) => (v.length > max ? `${v.slice(0, max - 1)}…` : v)
 
-const phoneOf = (s: Student) => String(s.tel_shaxsiy || s.tel || '').split(/[/,;]/)[0].trim()
-
-/** PNG qaytaradi: JPEG'ga o'girish (jpeg-js) katta ro'yxatda 5–10 soniya olardi, Telegram PNG'ni ham qabul qiladi */
+/** PNG qaytaradi: A4 nisbatida barcha talabalar 1 ta sahifaga sig'adigan zamonaviy dizayn */
 export async function renderGroupListPng(g: GroupImageInput): Promise<Buffer> {
-  const fonts = await loadFonts()
-  const cols = g.special
-    ? [{ h: '№', w: 70 }, { h: 'F.I.SH', w: 580 }, { h: "Tug'ilgan sana", w: 170 }, { h: 'Qaysi guruhdan', w: 170 }, { h: 'Buyruq sanasi', w: 170 }]
-    : [{ h: '№', w: 70 }, { h: 'F.I.SH', w: 580 }, { h: "Tug'ilgan sana", w: 170 }, { h: 'Shartnoma №', w: 140 }, { h: 'Telefon', w: 200 }]
-  const cells = (s: Student, i: number) => g.special
-    ? [String(i + 1), fit(s.fish, 46), s.dob || '—', s.chiqqan_guruh || '—', fit(s.buyruq_sana || '—', 12)]
-    : [String(i + 1), fit(s.fish, 46), s.dob || '—', fit(s.shnum || '—', 10), fit(phoneOf(s) || '—', 17)]
-  const H = HEAD + ROW + g.students.length * ROW + FOOT
-  const accent = g.special ? '#7C3AED' : '#1D4ED8'
+  const [fonts, logoUri] = await Promise.all([loadFonts(), loadLogoUri()])
+  const count = Math.max(1, g.students.length)
+  const TABLE_HEAD_H = 44
+  const FOOTER_H = 38
+  const FIXED_OVERHEAD = 320
+  const maxTableBodyH = 1754 - FIXED_OVERHEAD
+  const rowH = Math.min(44, Math.max(20, Math.floor(maxTableBodyH / count)))
+  const fontSize = Math.min(22, Math.max(14, Math.floor(rowH * 0.56)))
+  const headFontSize = Math.min(22, Math.max(16, fontSize))
+  const H = FIXED_OVERHEAD + count * rowH
+
+  const lowTitle = g.title.toLowerCase()
+  const accent = lowTitle.includes('chiqaril') ? '#9F1239' : g.special ? '#5B21B6' : '#1E3A8A'
+  const badge = lowTitle.includes('chiqaril')
+    ? 'SAFDAN CHIQARILGAN'
+    : g.special
+      ? "AKADEMIK TA'TIL"
+      : g.title.toUpperCase()
+
+  const cols = [
+    { h: '№', w: 90 },
+    { h: "Talabaning F.I.Sh.", w: 826 },
+    { h: "Tug'ilgan sanasi", w: 240 },
+  ]
 
   const el = (
-    <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', background: '#FFFFFF', fontFamily: 'Serif', color: '#0F172A', padding: '40px 40px 0' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: HEAD - 40 }}>
-        <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: 1, color: '#334155' }}>SHAHRISABZ TIBBIYOT TEXNIKUMI</div>
-        <div style={{ fontSize: 46, fontWeight: 700, marginTop: 14, color: accent }}>{g.title}</div>
-        <div style={{ fontSize: 24, marginTop: 8, color: '#475569' }}>{g.subtitle}</div>
-        <div style={{ display: 'flex', fontSize: 24, marginTop: 10, color: '#0F172A' }}>
-          {`${g.leader ? `Guruh rahbari: ${g.leader}  ·  ` : ''}Talabalar soni: ${g.students.length} nafar`}
+    <div style={{ width: W, height: H, display: 'flex', flexDirection: 'column', background: '#FFFFFF', fontFamily: 'Serif', color: '#0F172A', padding: '30px 40px 24px' }}>
+      {/* Yuqori to'q ko'k rasmiy banner */}
+      <div style={{
+        height: 112,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#0F172A',
+        border: '2px solid #1E3A8A',
+        borderRadius: 12,
+        padding: '0 24px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {logoUri && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUri} alt="" width={78} height={78} style={{ borderRadius: 39, marginRight: 18 }} />
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ fontSize: 27, fontWeight: 700, letterSpacing: 0.6, color: '#FFFFFF' }}>
+              SHAHRISABZ TIBBIYOT TEXNIKUMI
+            </div>
+            <div style={{ fontSize: 19, color: '#93C5FD', marginTop: 4 }}>
+              2026–2027 o&apos;quv yili · Talabalar ro&apos;yxati
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+          <div style={{ fontSize: 25, fontWeight: 700, color: '#FDE68A' }}>{badge}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#E2E8F0', marginTop: 4 }}>
+            {`${g.students.length} nafar talaba`}
+          </div>
         </div>
       </div>
-      <div style={{ display: 'flex', background: accent, color: '#FFFFFF', fontSize: 22, fontWeight: 700, height: ROW, alignItems: 'center' }}>
-        {cols.map((c) => (
-          <div key={c.h} style={{ width: c.w, display: 'flex', justifyContent: c.h === 'F.I.SH' ? 'flex-start' : 'center', paddingLeft: c.h === 'F.I.SH' ? 14 : 0 }}>{c.h}</div>
-        ))}
+
+      {/* Yo'nalish va guruh rahbari qatori */}
+      <div style={{
+        height: 46,
+        marginTop: 10,
+        marginBottom: 12,
+        padding: '0 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#F1F5F9',
+        border: '1.5px solid #CBD5E1',
+        borderRadius: 8,
+        fontSize: 19,
+        color: '#0F172A',
+      }}>
+        <div style={{ display: 'flex' }}>
+          {g.special ? `Maxsus ro'yxat: ${g.title}` : g.subtitle}
+        </div>
+        <div style={{ display: 'flex', fontWeight: 700 }}>
+          {g.leader ? `Guruh rahbari: ${g.leader}` : `Jami: ${g.students.length} nafar talaba`}
+        </div>
       </div>
-      {g.students.map((s, i) => (
-        <div key={s.row} style={{ display: 'flex', height: ROW, alignItems: 'center', fontSize: 23, background: i % 2 ? '#F1F5F9' : '#FFFFFF', borderBottom: '1px solid #CBD5E1' }}>
-          {cells(s, i).map((v, j) => (
-            <div key={j} style={{
-              width: cols[j].w, display: 'flex',
-              justifyContent: j === 1 ? 'flex-start' : 'center', paddingLeft: j === 1 ? 14 : 0,
-              fontWeight: j === 1 ? 700 : 400, color: j === 0 ? '#64748B' : '#0F172A',
-            }}>{v}</div>
+
+      {/* 3 ustunli toza jadval (№, F.I.Sh., Tug'ilgan sanasi) */}
+      <div style={{ display: 'flex', flexDirection: 'column', border: `2px solid ${accent}` }}>
+        <div style={{ display: 'flex', background: accent, color: '#FFFFFF', fontSize: headFontSize, fontWeight: 700, height: TABLE_HEAD_H, alignItems: 'center' }}>
+          {cols.map((c, idx) => (
+            <div
+              key={c.h}
+              style={{
+                width: c.w,
+                height: TABLE_HEAD_H,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: idx === 1 ? 'flex-start' : 'center',
+                paddingLeft: idx === 1 ? 16 : 0,
+              }}
+            >
+              {c.h}
+            </div>
           ))}
         </div>
-      ))}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 20, color: '#64748B', marginTop: 18 }}>{g.stamp}</div>
+
+        {g.students.map((s, i) => {
+          const vals = [String(i + 1), fit(s.fish, 52), formatDob(s.dob)]
+          return (
+            <div
+              key={s.row}
+              style={{
+                display: 'flex',
+                height: rowH,
+                alignItems: 'center',
+                fontSize,
+                background: i % 2 ? '#F8FAFC' : '#FFFFFF',
+                borderTop: '1px solid #CBD5E1',
+              }}
+            >
+              {vals.map((v, j) => (
+                <div
+                  key={j}
+                  style={{
+                    width: cols[j].w,
+                    height: rowH,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: j === 1 ? 'flex-start' : 'center',
+                    paddingLeft: j === 1 ? 16 : 0,
+                    fontWeight: j === 2 ? 400 : 700,
+                    color: j === 0 ? '#475569' : j === 2 ? '#1E293B' : '#0F172A',
+                    borderRight: j < 2 ? '1px solid #E2E8F0' : undefined,
+                  }}
+                >
+                  {v}
+                </div>
+              ))}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Pastki sana chizig'i */}
+      <div style={{ height: FOOTER_H, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: 18, color: '#64748B' }}>
+        <div style={{ display: 'flex' }}>Shahrisabz Tibbiyot Texnikumi ERP</div>
+        <div style={{ display: 'flex' }}>{g.stamp}</div>
+      </div>
     </div>
   )
 

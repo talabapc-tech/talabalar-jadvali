@@ -679,9 +679,7 @@ async function sendGroupList(chatId: string | number, key: string) {
     special ? `<i>${esc(subtitle)}</i>` : `📚 ${esc(subtitle)}${leader ? ` · 👤 <b>${esc(leader)}</b>` : ''}`,
     `🕒 ${stamp}`,
   ]
-  const rows = list.map((s, i) => special
-    ? `${i + 1}. ${esc(fullName(s))} — ${s.chiqqan_guruh ? `<b>${esc(s.chiqqan_guruh)}</b> dan` : 'guruhi ?'}${s.buyruq_sana ? `, ${esc(s.buyruq_sana)}` : ''}`
-    : `${i + 1}. ${esc(fullName(s))} — №${esc(s.shnum || '—')}`)
+  const rows = list.map((s, i) => `${i + 1}. ${esc(fullName(s))} — ${esc(s.dob || '—')}`)
   // Guruh ro'yxati o'qish uchun so'raladi — yig'iq emas, ochiq iqtibos
   await sendMessage(chatId, [...head, quote(rows, false)].join('\n'))
 

@@ -140,7 +140,7 @@ function SorovnomaForm() {
         <header className="panel flex items-center gap-3 p-4 sm:p-5">
           <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-full border border-sky/40 bg-ink-900 shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="ShTT" className="size-12 object-contain" />
+            <img src="/logo.png?v=2" alt="ShTT" className="size-12 object-contain" />
           </div>
           <div>
             <h1 className="text-[17px] font-extrabold tracking-tight text-fg sm:text-[19px]">
