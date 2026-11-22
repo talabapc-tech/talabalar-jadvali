@@ -1,15 +1,36 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { BookOpen, Briefcase, Check, Download, FileSpreadsheet, Globe, GraduationCap, Loader2, Send, X } from 'lucide-react'
-import * as XLSX from 'xlsx-js-style'
-import { cleanXlsxBuffer, downloadBlob } from '@/lib/excel'
-import { cleanStaffPhone, type StaffMember } from '@/lib/staff'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  BookOpen,
+  Briefcase,
+  Check,
+  Download,
+  FileSpreadsheet,
+  Filter,
+  Globe,
+  GraduationCap,
+  Layers,
+  Loader2,
+  Send,
+  X,
+} from 'lucide-react'
+import { downloadBlob } from '@/lib/excel'
+import { loadXlsx, safeSheetName, workbookBytes, type XLSXModule } from '@/lib/excel-build'
+import {
+  cleanStaffPhone,
+  cleanStaffPinfl,
+  formatStaffCard,
+  matchesStaffCategory,
+  type StaffMember,
+} from '@/lib/staff'
 
 interface Props {
   open: boolean
   onClose: () => void
   staff: StaffMember[]
+  initialCategory?: string
+  filteredFromPage?: StaffMember[]
   onSuccess?: (msg: string) => void
 }
 
@@ -17,43 +38,287 @@ interface ColumnDef {
   id: string
   label: string
   defaultChecked?: boolean
-  width: number
+  minW: number
+  maxW: number
   align?: 'left' | 'center' | 'right'
+  wrap?: boolean
+  forceText?: boolean
+  extract: (s: StaffMember, idx: number) => string | number
+}
+
+function resolveCategory(s: StaffMember): string {
+  if (s.kategoriya?.trim()) return s.kategoriya.trim()
+  if (s.ish_turi === 'Shtat') return 'ShTAT - xodimlar'
+  if (s.ish_turi?.toLowerCase().includes('asosiy')) return "Asosiy o'qituvchilar"
+  if (s.ish_turi?.toLowerCase().includes("o'rindosh") || s.ish_turi?.toLowerCase().includes('orindosh')) {
+    return "O'rindosh o'qituvchilar"
+  }
+  return s.ish_turi || ''
+}
+
+function categoryRank(s: StaffMember): number {
+  if (matchesStaffCategory(s, 'Shtat')) return 0
+  if (matchesStaffCategory(s, 'Asosiy')) return 1
+  if (matchesStaffCategory(s, "O'rindosh")) return 2
+  return 3
+}
+
+function parseSalaryNumber(val: string | number | undefined): number | null {
+  if (val === undefined || val === null || val === '') return null
+  if (typeof val === 'number') return Number.isFinite(val) && val > 0 ? val : null
+  const digits = String(val).replace(/\D/g, '')
+  if (!digits) return null
+  const n = Number(digits)
+  return Number.isFinite(n) && n > 0 ? n : null
 }
 
 const AVAILABLE_COLUMNS: ColumnDef[] = [
-  { id: 'num', label: '№ (Tartib raqam)', defaultChecked: true, width: 6, align: 'center' },
-  { id: 'fish', label: 'F.I.SH (Familiya, Ism, Sharif)', defaultChecked: true, width: 34, align: 'left' },
-  { id: 'lavozim', label: 'Lavozimi', defaultChecked: true, width: 24, align: 'left' },
-  { id: 'kategoriya', label: 'Kategoriya', defaultChecked: true, width: 22, align: 'left' },
-  { id: 'ish_turi', label: 'Ish turi', defaultChecked: false, width: 14, align: 'center' },
-  { id: 'bolim', label: "Bo'limi", defaultChecked: false, width: 16, align: 'left' },
-  { id: 'tel', label: 'Telefon raqami', defaultChecked: true, width: 18, align: 'center' },
-  { id: 'dob', label: "Tug'ilgan sanasi", defaultChecked: true, width: 15, align: 'center' },
-  { id: 'tugilgan_joy', label: "Tug'ilgan joyi", defaultChecked: true, width: 30, align: 'left' },
-  { id: 'pv', label: 'Pasport seriya va raqami', defaultChecked: true, width: 16, align: 'center' },
-  { id: 'pinfl', label: 'JSHSHIR (PINFL)', defaultChecked: true, width: 18, align: 'center' },
-  { id: 'inn', label: 'INN (STIR)', defaultChecked: true, width: 15, align: 'center' },
-  { id: 'plastik_karta', label: 'Plastik karta raqami', defaultChecked: true, width: 22, align: 'center' },
-  { id: 'plastik_muddati', label: 'Karta muddati', defaultChecked: false, width: 14, align: 'center' },
-  { id: 'toifasi', label: 'Pedagogik toifasi', defaultChecked: true, width: 18, align: 'center' },
-  { id: 'ilmiy_unvoni', label: 'Ilmiy unvoni', defaultChecked: false, width: 18, align: 'center' },
-  { id: 'tamomlagan_otm', label: "Tamomlagan OTM / Muassasa", defaultChecked: true, width: 34, align: 'left' },
-  { id: 'otm_tamom_yili', label: 'OTM tamomlagan yili', defaultChecked: true, width: 16, align: 'center' },
-  { id: 'mutaxassislik', label: "Diplom bo'yicha mutaxassisligi", defaultChecked: true, width: 28, align: 'left' },
-  { id: 'buyruq_sana', label: 'Ishga kirgan buyruq sanasi', defaultChecked: true, width: 18, align: 'center' },
-  { id: 'yashash_joyi', label: 'Doimiy yashash manzili', defaultChecked: false, width: 30, align: 'left' },
-  { id: 'pasport_berilgan_joy', label: 'Pasport berilgan joyi', defaultChecked: false, width: 26, align: 'left' },
-  { id: 'obektivka_file', label: 'Obektivka hujjati', defaultChecked: false, width: 22, align: 'left' },
-  { id: 'stavka', label: 'Stavka', defaultChecked: false, width: 10, align: 'center' },
-  { id: 'maosh', label: 'Oylik maosh', defaultChecked: false, width: 16, align: 'right' },
-  { id: 'status', label: 'Holati (Faol / Ta\'tilda)', defaultChecked: false, width: 14, align: 'center' },
-  { id: 'izoh', label: 'Izoh', defaultChecked: false, width: 22, align: 'left' },
+  { id: 'num', label: '№', defaultChecked: true, minW: 5, maxW: 7, align: 'center', extract: (_s, i) => i + 1 },
+  { id: 'fish', label: 'F.I.SH (Familiya, Ism, Sharif)', defaultChecked: true, minW: 26, maxW: 38, align: 'left', wrap: true, extract: (s) => (s.fish || '').trim() },
+  { id: 'lavozim', label: 'Lavozimi', defaultChecked: true, minW: 18, maxW: 28, align: 'left', wrap: true, extract: (s) => (s.lavozim || '').trim() },
+  { id: 'kategoriya', label: 'Kategoriya', defaultChecked: true, minW: 18, maxW: 24, align: 'left', extract: resolveCategory },
+  { id: 'ish_turi', label: 'Ish turi', defaultChecked: false, minW: 12, maxW: 16, align: 'center', extract: (s) => (s.ish_turi || '').trim() },
+  { id: 'bolim', label: "Bo'limi", defaultChecked: false, minW: 14, maxW: 20, align: 'left', extract: (s) => (s.bolim || '').trim() },
+  { id: 'tel', label: 'Telefon raqami', defaultChecked: true, minW: 18, maxW: 20, align: 'center', forceText: true, extract: (s) => cleanStaffPhone(s.tel) },
+  { id: 'dob', label: "Tug'ilgan sanasi", defaultChecked: true, minW: 14, maxW: 16, align: 'center', forceText: true, extract: (s) => (s.dob || '').trim() },
+  { id: 'tugilgan_joy', label: "Tug'ilgan joyi", defaultChecked: true, minW: 24, maxW: 36, align: 'left', wrap: true, extract: (s) => (s.tugilgan_joy || '').trim() },
+  { id: 'pv', label: 'Pasport seriya va №', defaultChecked: true, minW: 14, maxW: 16, align: 'center', forceText: true, extract: (s) => (s.pv || '').trim().toUpperCase() },
+  { id: 'pinfl', label: 'JSHSHIR (PINFL)', defaultChecked: true, minW: 17, maxW: 19, align: 'center', forceText: true, extract: (s) => cleanStaffPinfl(s.pinfl) },
+  { id: 'pasport_berilgan_joy', label: 'Pasport berilgan joyi', defaultChecked: true, minW: 24, maxW: 34, align: 'left', wrap: true, extract: (s) => (s.pasport_berilgan_joy || '').trim() },
+  { id: 'yashash_joyi', label: 'Doimiy yashash manzili', defaultChecked: true, minW: 24, maxW: 36, align: 'left', wrap: true, extract: (s) => (s.yashash_joyi || '').trim() },
+  { id: 'inn', label: 'INN (STIR)', defaultChecked: false, minW: 13, maxW: 16, align: 'center', forceText: true, extract: (s) => (s.inn || '').trim() },
+  { id: 'plastik_karta', label: 'Plastik karta raqami', defaultChecked: true, minW: 21, maxW: 23, align: 'center', forceText: true, extract: (s) => formatStaffCard(s.plastik_karta) },
+  { id: 'plastik_muddati', label: 'Karta muddati', defaultChecked: true, minW: 12, maxW: 15, align: 'center', forceText: true, extract: (s) => (s.plastik_muddati || '').trim() },
+  { id: 'toifasi', label: 'Pedagogik toifasi', defaultChecked: false, minW: 16, maxW: 20, align: 'center', extract: (s) => (s.toifasi || '').trim() },
+  { id: 'ilmiy_unvoni', label: 'Ilmiy unvoni', defaultChecked: false, minW: 16, maxW: 20, align: 'center', extract: (s) => (s.ilmiy_unvoni || '').trim() },
+  { id: 'tamomlagan_otm', label: 'Tamomlagan OTM / Muassasa', defaultChecked: true, minW: 26, maxW: 38, align: 'left', wrap: true, extract: (s) => (s.tamomlagan_otm || '').trim() },
+  { id: 'otm_tamom_yili', label: 'OTM tamomlagan yili', defaultChecked: true, minW: 14, maxW: 17, align: 'center', forceText: true, extract: (s) => (s.otm_tamom_yili || '').trim() },
+  { id: 'mutaxassislik', label: "Diplom bo'yicha mutaxassisligi", defaultChecked: true, minW: 24, maxW: 36, align: 'left', wrap: true, extract: (s) => (s.mutaxassislik || '').trim() },
+  { id: 'buyruq_sana', label: 'Ishga kirgan buyruq sanasi', defaultChecked: true, minW: 15, maxW: 18, align: 'center', forceText: true, extract: (s) => (s.buyruq_sana || s.ishga_sana || '').trim() },
+  { id: 'obektivka_file', label: 'Obektivka hujjati', defaultChecked: false, minW: 20, maxW: 30, align: 'left', wrap: true, extract: (s) => (s.obektivka_file || '').trim() },
+  { id: 'stavka', label: 'Stavka', defaultChecked: false, minW: 9, maxW: 12, align: 'center', forceText: true, extract: (s) => (s.stavka || '').trim() },
+  {
+    id: 'maosh',
+    label: 'Oylik maosh',
+    defaultChecked: false,
+    minW: 15,
+    maxW: 18,
+    align: 'right',
+    extract: (s) => {
+      const n = parseSalaryNumber(s.maosh)
+      return n !== null ? n : (s.maosh ? String(s.maosh).trim() : '')
+    },
+  },
+  {
+    id: 'status',
+    label: "Holati (Faol / Ta'tilda)",
+    defaultChecked: false,
+    minW: 13,
+    maxW: 16,
+    align: 'center',
+    extract: (s) => (s.status === 'tatilda' ? "Ta'tilda" : s.status === 'boshatilgan' ? "Bo'shatilgan" : 'Faol'),
+  },
+  { id: 'izoh', label: 'Izoh', defaultChecked: false, minW: 18, maxW: 30, align: 'left', wrap: true, extract: (s) => (s.izoh || '').trim() },
 ]
 
-export default function StaffExportModal({ open, onClose, staff, onSuccess }: Props) {
+function todayStr(): string {
+  const now = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(now.getDate())}.${p(now.getMonth() + 1)}.${now.getFullYear()}`
+}
+
+function buildStaffSheet(
+  X: XLSXModule,
+  sheetTitle: string,
+  list: StaffMember[],
+  cols: ColumnDef[],
+  dateStr: string,
+) {
+  const lastCol = Math.max(0, cols.length - 1)
+  const bannerRow: (string | number)[] = ['SHAHRISABZ TIBBIYOT TEXNIKUMI — XODIMLAR RO\'YXATI', ...Array(lastCol).fill('')]
+  const subRow: (string | number)[] = [
+    `Toifa: ${sheetTitle}  ·  Jami: ${list.length} nafar xodim  ·  Sana: ${dateStr}`,
+    ...Array(lastCol).fill(''),
+  ]
+  const headerRow = cols.map((c) => c.label)
+  const dataRows = list.map((s, idx) => cols.map((col) => col.extract(s, idx)))
+
+  // Jami qatori (pastda)
+  let totalMaosh = 0
+  let hasMaoshNum = false
+  if (cols.some((c) => c.id === 'maosh')) {
+    for (const s of list) {
+      const n = parseSalaryNumber(s.maosh)
+      if (n !== null) {
+        totalMaosh += n
+        hasMaoshNum = true
+      }
+    }
+  }
+  const summaryRow = cols.map((c, ci) => {
+    if (c.id === 'num') return ''
+    if (c.id === 'maosh' && hasMaoshNum) return totalMaosh
+    if (ci === (cols[0]?.id === 'num' && cols.length > 1 ? 1 : 0)) {
+      return `JAMI: ${list.length} nafar xodim`
+    }
+    return ''
+  })
+
+  const aoa = [bannerRow, subRow, headerRow, ...dataRows, summaryRow]
+  const ws = X.utils.aoa_to_sheet(aoa)
+
+  // Dinamik ustun kengliklari (ma'lumotlar uzunligiga qarab [minW, maxW])
+  const colWidths = cols.map((col, ci) => {
+    const headerMax = col.label.length + 3
+    let longest = Math.min(headerMax, col.maxW)
+    for (let ri = 0; ri < dataRows.length; ri++) {
+      const val = String(dataRows[ri][ci] ?? '')
+      if (val.length + 3 > longest) longest = val.length + 3
+    }
+    return Math.max(col.minW, Math.min(col.maxW, longest))
+  })
+  ws['!cols'] = colWidths.map((wch) => ({ wch }))
+
+  // Qator balandliklari (wrapText qatorlarga qarab avtomatik balandlik)
+  const rowHeights: { hpt: number }[] = [
+    { hpt: 30 }, // Banner
+    { hpt: 22 }, // Subtitle
+    { hpt: 32 }, // Headers
+  ]
+  for (let ri = 0; ri < dataRows.length; ri++) {
+    let maxLines = 1
+    for (let ci = 0; ci < cols.length; ci++) {
+      if (!cols[ci].wrap) continue
+      const len = String(dataRows[ri][ci] ?? '').length
+      if (!len) continue
+      const cap = Math.max(12, colWidths[ci] - 3)
+      const lines = Math.ceil(len / cap)
+      if (lines > maxLines) maxLines = lines
+    }
+    rowHeights.push({ hpt: Math.max(22, maxLines * 15 + 7) })
+  }
+  rowHeights.push({ hpt: 24 }) // Jami qatori
+  ws['!rows'] = rowHeights
+
+  // Stilar
+  const headerBorder = {
+    top: { style: 'medium', color: { rgb: '0F172A' } },
+    bottom: { style: 'medium', color: { rgb: '0F172A' } },
+    left: { style: 'thin', color: { rgb: '93C5FD' } },
+    right: { style: 'thin', color: { rgb: '93C5FD' } },
+  }
+  const cellBorder = {
+    top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+    bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+    left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+    right: { style: 'thin', color: { rgb: 'CBD5E1' } },
+  }
+  const summaryBorder = {
+    top: { style: 'medium', color: { rgb: '1E3A8A' } },
+    bottom: { style: 'medium', color: { rgb: '1E3A8A' } },
+    left: { style: 'thin', color: { rgb: '94A3B8' } },
+    right: { style: 'thin', color: { rgb: '94A3B8' } },
+  }
+
+  const summaryRowIdx = 3 + dataRows.length
+
+  for (let r = 0; r <= summaryRowIdx; r++) {
+    for (let c = 0; c < cols.length; c++) {
+      const addr = X.utils.encode_cell({ r, c })
+      const cell = ws[addr]
+      if (!cell) continue
+
+      const col = cols[c]
+      if (r === 0) {
+        cell.s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 14, name: 'Calibri' },
+          fill: { fgColor: { rgb: '0F172A' }, patternType: 'solid' },
+          alignment: { vertical: 'center', horizontal: 'center' },
+        }
+      } else if (r === 1) {
+        cell.s = {
+          font: { bold: true, color: { rgb: '1E3A8A' }, sz: 10.5, name: 'Calibri' },
+          fill: { fgColor: { rgb: 'EBF3FA' }, patternType: 'solid' },
+          alignment: { vertical: 'center', horizontal: 'center' },
+          border: { bottom: { style: 'thin', color: { rgb: '93C5FD' } } },
+        }
+      } else if (r === 2) {
+        cell.s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11, name: 'Calibri' },
+          fill: { fgColor: { rgb: '1E3A8A' }, patternType: 'solid' },
+          alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
+          border: headerBorder,
+        }
+      } else if (r === summaryRowIdx) {
+        if (col.id === 'maosh' && typeof cell.v === 'number') {
+          cell.t = 'n'
+          cell.z = '#,##0'
+        }
+        cell.s = {
+          font: { bold: true, color: { rgb: '0F172A' }, sz: 11, name: 'Calibri' },
+          fill: { fgColor: { rgb: 'E2E8F0' }, patternType: 'solid' },
+          alignment: { vertical: 'center', horizontal: col.align || 'left' },
+          border: summaryBorder,
+        }
+      } else {
+        const isAlt = (r - 3) % 2 === 1
+        if (col.forceText) {
+          cell.t = 's'
+          cell.v = String(cell.v ?? '')
+          cell.z = '@'
+        } else if (col.id === 'num' && typeof cell.v === 'number') {
+          cell.t = 'n'
+        } else if (col.id === 'maosh' && typeof cell.v === 'number') {
+          cell.t = 'n'
+          cell.z = '#,##0'
+        }
+
+        cell.s = {
+          font: {
+            sz: 10.5,
+            name: 'Calibri',
+            bold: col.id === 'fish' || col.id === 'num',
+            color: { rgb: col.id === 'num' ? '475569' : '0F172A' },
+          },
+          fill: { fgColor: { rgb: isAlt ? 'F8FAFC' : 'FFFFFF' }, patternType: 'solid' },
+          alignment: {
+            vertical: 'center',
+            horizontal: col.align || 'left',
+            wrapText: Boolean(col.wrap),
+          },
+          border: cellBorder,
+        }
+      }
+    }
+  }
+
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: lastCol } },
+  ]
+  ws['!freeze'] = { cols: Math.min(2, cols.length), rows: 3 }
+  ws['!autofilter'] = {
+    ref: X.utils.encode_range({ s: { r: 2, c: 0 }, e: { r: Math.max(2, 2 + dataRows.length), c: lastCol } }),
+  }
+  ws['!pageSetup'] = { paperSize: 9, orientation: 'landscape', fitToWidth: 1, fitToHeight: 0 }
+
+  return ws
+}
+
+export default function StaffExportModal({
+  open,
+  onClose,
+  staff,
+  initialCategory = 'Barchasi',
+  filteredFromPage,
+  onSuccess,
+}: Props) {
+  const hasPageFilter = Boolean(filteredFromPage && filteredFromPage.length > 0 && filteredFromPage.length < staff.length)
   const [selectedCat, setSelectedCat] = useState<string>('Barchasi')
+  const [splitByCategory, setSplitByCategory] = useState<boolean>(true)
+  const [sortMode, setSortMode] = useState<'category' | 'alpha'>('category')
   const [tgBusy, setTgBusy] = useState(false)
+  const [exportBusy, setExportBusy] = useState(false)
   const [selectedCols, setSelectedCols] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     AVAILABLE_COLUMNS.forEach((c) => {
@@ -63,39 +328,72 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
   })
   const [customName, setCustomName] = useState<string>('')
 
-  // Saralangan xodimlar
+  // Modal ochilganda sahifadagi joriy toifa/filtr holatini moslash
+  useEffect(() => {
+    if (!open) return
+    if (hasPageFilter) {
+      const catCount = staff.filter((s) => matchesStaffCategory(s, initialCategory)).length
+      if (initialCategory !== 'Barchasi' && filteredFromPage && filteredFromPage.length === catCount) {
+        setSelectedCat(initialCategory)
+      } else {
+        setSelectedCat('Joriy filtr')
+      }
+    } else {
+      setSelectedCat(initialCategory || 'Barchasi')
+    }
+  }, [open, initialCategory, hasPageFilter, filteredFromPage, staff])
+
+  // Har bir ustunda nechta xodimda ma'lumot borligini hisoblash
+  const filledCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const col of AVAILABLE_COLUMNS) {
+      if (col.id === 'num') {
+        counts[col.id] = staff.length
+        continue
+      }
+      let n = 0
+      for (let i = 0; i < staff.length; i++) {
+        const val = col.extract(staff[i], i)
+        if (String(val ?? '').trim() !== '') n++
+      }
+      counts[col.id] = n
+    }
+    return counts
+  }, [staff])
+
+  // Tanlangan va saralangan xodimlar
   const filteredStaff = useMemo(() => {
-    if (selectedCat === 'Barchasi') return staff
-    return staff.filter((s) => {
-      if (selectedCat === 'Shtat' || selectedCat === 'ShTAT - xodimlar') {
-        return s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat'
+    const base =
+      selectedCat === 'Joriy filtr' && filteredFromPage
+        ? [...filteredFromPage]
+        : selectedCat === 'Barchasi'
+          ? [...staff]
+          : staff.filter((s) => matchesStaffCategory(s, selectedCat))
+
+    base.sort((a, b) => {
+      if (sortMode === 'category') {
+        const diff = categoryRank(a) - categoryRank(b)
+        if (diff !== 0) return diff
       }
-      if (selectedCat === 'Asosiy' || selectedCat === "Asosiy o'qituvchilar") {
-        return s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy')
-      }
-      if (selectedCat === "O'rindosh" || selectedCat === "O'rindosh o'qituvchilar") {
-        return s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh")
-      }
-      return s.kategoriya === selectedCat
+      return (a.fish || '').localeCompare(b.fish || '', 'uz')
     })
-  }, [staff, selectedCat])
+    return base
+  }, [staff, selectedCat, filteredFromPage, sortMode])
 
-  // Tanlangan ustunlar soni
-  const activeColIds = useMemo(() => {
-    return AVAILABLE_COLUMNS.filter((c) => selectedCols[c.id]).map((c) => c.id)
-  }, [selectedCols])
+  const activeColIds = useMemo(
+    () => AVAILABLE_COLUMNS.filter((c) => selectedCols[c.id]).map((c) => c.id),
+    [selectedCols],
+  )
 
-  // Fayl nomini generatsiya qilish (PROBEL ISHLATILADI, HECH QACHON TAGCHIZIQ '_' EMAS)
+  // Fayl nomini generatsiya qilish (PROBEL ISHLATILADI, TAGCHIZIQ '_' EMAS)
   const defaultFileName = useMemo(() => {
+    const low = selectedCat.toLowerCase()
     let base = 'Barcha xodimlar royxati'
-    if (selectedCat.includes('Shtat')) base = 'Shtat xodimlar royxati'
-    else if (selectedCat.includes('Asosiy')) base = 'Asosiy oqituvchilar royxati'
-    else if (selectedCat.includes("O'rindosh")) base = 'Orindosh oqituvchilar royxati'
-
-    const now = new Date()
-    const p = (n: number) => String(n).padStart(2, '0')
-    const dateStr = `${p(now.getDate())}.${p(now.getMonth() + 1)}.${now.getFullYear()}`
-    return `${base} ${dateStr}`
+    if (selectedCat === 'Joriy filtr') base = 'Tanlangan xodimlar royxati'
+    else if (low.includes('shtat')) base = 'Shtat xodimlar royxati'
+    else if (low.includes('asosiy')) base = 'Asosiy oqituvchilar royxati'
+    else if (low.includes("o'rindosh") || low.includes('orindosh')) base = 'Orindosh oqituvchilar royxati'
+    return `${base} ${todayStr()}`
   }, [selectedCat])
 
   if (!open) return null
@@ -116,166 +414,61 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
     setSelectedCols(none)
   }
 
-  const applyPreset = (preset: 'standard' | 'hr' | 'contact') => {
+  const applyPreset = (preset: 'standard' | 'hr' | 'passport' | 'finance' | 'contact') => {
     const next: Record<string, boolean> = {}
     AVAILABLE_COLUMNS.forEach((c) => { next[c.id] = false })
 
-    if (preset === 'standard') {
-      ;['num', 'fish', 'lavozim', 'tel', 'pv', 'pinfl'].forEach((k) => { next[k] = true })
-    } else if (preset === 'hr') {
-      ;['num', 'fish', 'lavozim', 'kategoriya', 'tel', 'dob', 'tugilgan_joy', 'pv', 'pinfl', 'inn', 'plastik_karta', 'toifasi', 'tamomlagan_otm', 'otm_tamom_yili', 'mutaxassislik', 'buyruq_sana'].forEach((k) => { next[k] = true })
-    } else if (preset === 'contact') {
-      ;['num', 'fish', 'lavozim', 'tel', 'bolim'].forEach((k) => { next[k] = true })
-    }
+    const keys =
+      preset === 'standard'
+        ? ['num', 'fish', 'lavozim', 'kategoriya', 'tel', 'pv', 'pinfl']
+        : preset === 'hr'
+          ? ['num', 'fish', 'lavozim', 'kategoriya', 'tel', 'dob', 'tugilgan_joy', 'pv', 'pinfl', 'pasport_berilgan_joy', 'yashash_joyi', 'tamomlagan_otm', 'otm_tamom_yili', 'mutaxassislik', 'buyruq_sana']
+          : preset === 'passport'
+            ? ['num', 'fish', 'lavozim', 'pv', 'pinfl', 'dob', 'tugilgan_joy', 'pasport_berilgan_joy', 'yashash_joyi']
+            : preset === 'finance'
+              ? ['num', 'fish', 'lavozim', 'kategoriya', 'stavka', 'maosh', 'pinfl', 'inn', 'plastik_karta', 'plastik_muddati']
+              : ['num', 'fish', 'lavozim', 'bolim', 'tel', 'yashash_joyi']
+
+    keys.forEach((k) => { next[k] = true })
     setSelectedCols(next)
   }
 
-  const buildWorkbook = () => {
+  const buildWorkbookBytes = async (): Promise<{ bytes: Uint8Array; outFileName: string; sheetCount: number }> => {
+    const X = await loadXlsx()
     const cols = AVAILABLE_COLUMNS.filter((c) => selectedCols[c.id])
-    const headers = cols.map((c) => c.label)
+    const dateStr = todayStr()
+    const wb = X.utils.book_new()
 
-    const rows = filteredStaff.map((s, idx) => {
-      return cols.map((col) => {
-        switch (col.id) {
-          case 'num':
-            return idx + 1
-          case 'fish':
-            return s.fish || ''
-          case 'lavozim':
-            return s.lavozim || ''
-          case 'kategoriya':
-            return s.kategoriya || (s.ish_turi === 'Shtat' ? 'ShTAT - xodimlar' : s.ish_turi?.includes('Asosiy') ? "Asosiy o'qituvchilar" : s.ish_turi?.includes("O'rindosh") ? "O'rindosh o'qituvchilar" : s.ish_turi || '')
-          case 'ish_turi':
-            return s.ish_turi || ''
-          case 'bolim':
-            return s.bolim || ''
-          case 'tel':
-            return cleanStaffPhone(s.tel)
-          case 'dob':
-            return s.dob || ''
-          case 'tugilgan_joy':
-            return s.tugilgan_joy || ''
-          case 'pv':
-            return s.pv || ''
-          case 'pinfl':
-            return s.pinfl || ''
-          case 'inn':
-            return s.inn || ''
-          case 'plastik_karta':
-            return s.plastik_karta || ''
-          case 'plastik_muddati':
-            return s.plastik_muddati || ''
-          case 'toifasi':
-            return s.toifasi || ''
-          case 'ilmiy_unvoni':
-            return s.ilmiy_unvoni || ''
-          case 'obektivka_file':
-            return s.obektivka_file || ''
-          case 'tamomlagan_otm':
-            return s.tamomlagan_otm || ''
-          case 'otm_tamom_yili':
-            return s.otm_tamom_yili || ''
-          case 'mutaxassislik':
-            return s.mutaxassislik || ''
-          case 'buyruq_sana':
-            return s.buyruq_sana || s.ishga_sana || ''
-          case 'yashash_joyi':
-            return s.yashash_joyi || ''
-          case 'pasport_berilgan_joy':
-            return s.pasport_berilgan_joy || ''
-          case 'stavka':
-            return s.stavka || ''
-          case 'maosh':
-            return s.maosh || ''
-          case 'status':
-            return s.status === 'tatilda' ? "Ta'tilda" : s.status === 'boshatilgan' ? "Bo'shatilgan" : 'Faol'
-          case 'izoh':
-            return s.izoh || ''
-          default:
-            return ''
-        }
-      })
-    })
+    const canSplit = selectedCat === 'Barchasi' && splitByCategory
+    let sheetCount = 0
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1')
-
-    // Ko'k rangli sarlavha va barcha kataklar uchun aniq jadval chiziqlari (borders)
-    const headerFill = { fgColor: { rgb: '1F4E79' }, patternType: 'solid' } // Royal Navy Blue
-    const headerBorder = {
-      top: { style: 'medium', color: { rgb: '14324F' } },
-      bottom: { style: 'medium', color: { rgb: '14324F' } },
-      left: { style: 'thin', color: { rgb: '8EA9DB' } },
-      right: { style: 'thin', color: { rgb: '8EA9DB' } },
-    }
-    const cellBorder = {
-      top: { style: 'thin', color: { rgb: 'B0C4DE' } },
-      bottom: { style: 'thin', color: { rgb: 'B0C4DE' } },
-      left: { style: 'thin', color: { rgb: 'B0C4DE' } },
-      right: { style: 'thin', color: { rgb: 'B0C4DE' } },
-    }
-
-    for (let r = range.s.r; r <= range.e.r; r++) {
-      const isHeader = r === 0
-      const isAltRow = r % 2 === 0
-
-      for (let c = range.s.c; c <= range.e.c; c++) {
-        const addr = XLSX.utils.encode_cell({ r, c })
-        const cell = ws[addr]
-        if (!cell) continue
-
-        const colDef = cols[c]
-        const align = colDef?.align || 'left'
-
-        if (isHeader) {
-          cell.s = {
-            font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11, name: 'Calibri' },
-            fill: headerFill,
-            alignment: { vertical: 'center', horizontal: 'center', wrapText: true },
-            border: headerBorder,
-          }
-        } else {
-          // JSHSHIR, telefon va pasportni matn sifatida saqlash (eksponensial 3.12E+13 ga aylanib ketmasligi uchun)
-          if (colDef?.id === 'pinfl' || colDef?.id === 'tel' || colDef?.id === 'pv' || colDef?.id === 'inn') {
-            cell.t = 's'
-          } else if (colDef?.id === 'num' && typeof cell.v === 'number') {
-            cell.t = 'n'
-          }
-
-          cell.s = {
-            font: {
-              sz: 10.5,
-              name: 'Calibri',
-              bold: colDef?.id === 'fish' || colDef?.id === 'num',
-              color: { rgb: colDef?.id === 'num' ? '334155' : '0F172A' },
-            },
-            fill: {
-              fgColor: { rgb: isAltRow ? 'F4F8FC' : 'FFFFFF' },
-              patternType: 'solid',
-            },
-            alignment: {
-              vertical: 'center',
-              horizontal: align,
-              wrapText: false,
-            },
-            border: cellBorder,
-          }
-        }
+    if (canSplit) {
+      const sheets: { title: string; filter?: string }[] = [
+        { title: 'Barcha xodimlar' },
+        { title: 'Shtat xodimlar', filter: 'Shtat' },
+        { title: 'Asosiy oqituvchilar', filter: 'Asosiy' },
+        { title: 'Orindosh oqituvchilar', filter: "O'rindosh" },
+      ]
+      for (const sh of sheets) {
+        const sub = sh.filter ? filteredStaff.filter((s) => matchesStaffCategory(s, sh.filter!)) : filteredStaff
+        if (!sub.length) continue
+        const ws = buildStaffSheet(X, sh.title, sub, cols, dateStr)
+        X.utils.book_append_sheet(wb, ws, safeSheetName(sh.title))
+        sheetCount++
       }
+    } else {
+      const title =
+        selectedCat === 'Joriy filtr'
+          ? 'Tanlangan filtr'
+          : selectedCat === 'Barchasi'
+            ? 'Barcha xodimlar'
+            : selectedCat
+      const ws = buildStaffSheet(X, title, filteredStaff, cols, dateStr)
+      X.utils.book_append_sheet(wb, ws, safeSheetName(title))
+      sheetCount = 1
     }
 
-    // Qator balandliklari (Header kengroq, ma'lumot qatorlari chiroyli bo'shliq bilan)
-    ws['!rows'] = [
-      { hpt: 30 },
-      ...filteredStaff.map(() => ({ hpt: 22 })),
-    ]
-
-    // Ustun kengliklari
-    ws['!cols'] = cols.map((c) => ({ wch: Math.max(c.width + 2, 10) }))
-
-    const wb = XLSX.utils.book_new()
-    const sheetName = selectedCat.replace(/[\\/?*[\]]/g, ' ').slice(0, 31) || 'Xodimlar'
-    XLSX.utils.book_append_sheet(wb, ws, sheetName)
+    const bytes = workbookBytes(X, wb)
 
     // Fayl nomida tagchiziq '_' ni bo'shliq ' ' ga almashtiramiz
     let outFileName = (customName.trim() || defaultFileName).replace(/_/g, ' ')
@@ -284,33 +477,30 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
       outFileName += '.xlsx'
     }
 
-    return { wb, outFileName }
+    return { bytes, outFileName, sheetCount }
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!activeColIds.length) {
       alert("Kamida bitta ustunni tanlang!")
       return
     }
-
     if (!filteredStaff.length) {
       alert("Tanlangan toifada xodimlar topilmadi!")
       return
     }
 
+    setExportBusy(true)
     try {
-      const { wb, outFileName } = buildWorkbook()
-      const raw = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true, bookSST: false })
-      const cleaned = cleanXlsxBuffer(raw)
-      downloadBlob(cleaned, outFileName)
-
-      if (onSuccess) {
-        onSuccess(`${filteredStaff.length} nafar xodim «${outFileName}» fayliga eksport qilindi`)
-      }
+      const { bytes, outFileName, sheetCount } = await buildWorkbookBytes()
+      downloadBlob(bytes, outFileName)
+      onSuccess?.(`${filteredStaff.length} nafar xodim (${sheetCount} ta varaq) «${outFileName}» fayliga eksport qilindi`)
       onClose()
     } catch (err) {
       console.error('Excel export error:', err)
       alert(`Excel faylni yuklab olishda xatolik: ${(err as Error).message}`)
+    } finally {
+      setExportBusy(false)
     }
   }
 
@@ -326,10 +516,8 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
 
     setTgBusy(true)
     try {
-      const { wb, outFileName } = buildWorkbook()
-      const raw = XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellStyles: true, bookSST: false })
-      const cleaned = cleanXlsxBuffer(raw)
-      const blob = new Blob([new Uint8Array(cleaned)], {
+      const { bytes, outFileName, sheetCount } = await buildWorkbookBytes()
+      const blob = new Blob([new Uint8Array(bytes)], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       })
       const file = new File([blob], outFileName, {
@@ -340,7 +528,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
       fd.append('file', file)
       fd.append(
         'caption',
-        `📊 <b>${outFileName}</b>\n👥 Jami: <b>${filteredStaff.length} nafar</b> (${activeColIds.length} ta ustun)\n✅ <i>Toza probelli maxsus eksport</i>`,
+        `📊 <b>${outFileName}</b>\n👥 Jami: <b>${filteredStaff.length} nafar</b> · <b>${activeColIds.length} ta ustun</b> · <b>${sheetCount} ta varaq</b>\n🏛 Shahrisabz Tibbiyot Texnikumi`,
       )
 
       const res = await fetch('/api/send_role_telegram', {
@@ -349,9 +537,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
       })
       const d = await res.json().catch(() => ({}))
       if (res.ok && d.ok) {
-        if (onSuccess) {
-          onSuccess(`«${outFileName}» Telegram botga muvaffaqiyatli yuborildi!`)
-        }
+        onSuccess?.(`«${outFileName}» Telegram botga muvaffaqiyatli yuborildi!`)
         onClose()
       } else {
         alert(`Telegramga yuborilmadi: ${d.error || 'Server xatosi'}`)
@@ -363,9 +549,22 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
     }
   }
 
+  const catOptions = [
+    ...(hasPageFilter
+      ? [{ id: 'Joriy filtr', label: 'Joriy filtr', icon: Filter, iconColor: 'text-violet-400', count: filteredFromPage?.length || 0 }]
+      : []),
+    { id: 'Barchasi', label: 'Barchasi', icon: Globe, iconColor: 'text-sky-400', count: staff.length },
+    { id: 'ShTAT - xodimlar', label: 'Shtat xodimlar', icon: Briefcase, iconColor: 'text-amber-400', count: staff.filter((s) => matchesStaffCategory(s, 'Shtat')).length },
+    { id: "Asosiy o'qituvchilar", label: "Asosiy o'qituvchilar", icon: GraduationCap, iconColor: 'text-emerald-400', count: staff.filter((s) => matchesStaffCategory(s, 'Asosiy')).length },
+    { id: "O'rindosh o'qituvchilar", label: "O'rindosh o'qituvchilar", icon: BookOpen, iconColor: 'text-blue-400', count: staff.filter((s) => matchesStaffCategory(s, "O'rindosh")).length },
+  ]
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-xl border border-line bg-ink-900 shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-line bg-ink-900 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-line bg-ink-950/70 px-5 py-4">
           <div className="flex items-center gap-3">
@@ -375,7 +574,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
             <div>
               <h2 className="text-[16px] font-bold text-fg">Xodimlarni Excelga Eksport Qilish</h2>
               <p className="text-[12px] text-fg-subtle">
-                Kerakli toifa va ustunlarni belgilab, toza Excel jadvali oling (fayl nomida probel ishlatiladi)
+                Sarlavha, muzlatilgan ustunlar, avtomatik kenglik va toza formatlangan jadval (.xlsx)
               </p>
             </div>
           </div>
@@ -389,36 +588,71 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
         </div>
 
         {/* Body */}
-        <div className="max-h-[70vh] overflow-y-auto p-5 space-y-5">
+        <div className="max-h-[72vh] overflow-y-auto p-5 space-y-5">
           {/* 1. Toifani tanlash */}
           <div>
             <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-fg-subtle">
               1. Eksport Qilinadigan Toifani Tanlang
             </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { id: 'Barchasi', label: 'Barchasi', icon: Globe, iconColor: 'text-sky-400', count: staff.length },
-                { id: 'ShTAT - xodimlar', label: 'Shtat xodimlar', icon: Briefcase, iconColor: 'text-amber-400', count: staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat').length },
-                { id: "Asosiy o'qituvchilar", label: "Asosiy o'qituvchilar", icon: GraduationCap, iconColor: 'text-emerald-400', count: staff.filter((s) => s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy')).length },
-                { id: "O'rindosh o'qituvchilar", label: "O'rindosh o'qituvchilar", icon: BookOpen, iconColor: 'text-blue-400', count: staff.filter((s) => s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh")).length },
-              ].map((cat) => (
+            <div className={`grid grid-cols-2 gap-2 ${catOptions.length > 4 ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
+              {catOptions.map((cat) => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedCat(cat.id)}
-                  className={`flex flex-col items-start rounded-xl border p-2.5 text-left transition-all ${
+                  className={`flex flex-col items-start rounded-xl border p-2.5 text-left transition-all cursor-pointer ${
                     selectedCat === cat.id
                       ? 'border-emerald bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald'
                       : 'border-line bg-ink-950/40 text-fg hover:border-line-hover'
                   }`}
                 >
-                  <span className="flex items-center gap-1.5 text-[12.5px] font-medium">
+                  <span className="flex items-center gap-1.5 text-[12px] font-medium">
                     <cat.icon size={14} className={cat.iconColor} />
                     <span>{cat.label}</span>
                   </span>
                   <span className="mt-1 text-[11px] text-fg-subtle">{cat.count} nafar xodim</span>
                 </button>
               ))}
+            </div>
+
+            {/* Qo'shimcha Excel sozlamalari: Varaqlar va Tartib */}
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-ink-950/40 px-3 py-2 text-[12px]">
+              {selectedCat === 'Barchasi' ? (
+                <label className="flex cursor-pointer items-center gap-2 text-fg select-none">
+                  <input
+                    type="checkbox"
+                    checked={splitByCategory}
+                    onChange={(e) => setSplitByCategory(e.target.checked)}
+                    className="size-4 accent-emerald-500 cursor-pointer"
+                  />
+                  <Layers size={14} className="text-sky-400" />
+                  <span>Toifalar bo&apos;yicha alohida varaqlarga ajratish (Barchasi + Shtat + Asosiy + O&apos;rindosh)</span>
+                </label>
+              ) : (
+                <span className="text-fg-subtle">Bitta alohida varaqda eksport qilinadi</span>
+              )}
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-fg-subtle">Tartib:</span>
+                <button
+                  type="button"
+                  onClick={() => setSortMode('category')}
+                  className={`rounded-lg border px-2 py-0.5 text-[11.5px] cursor-pointer ${
+                    sortMode === 'category' ? 'border-sky/50 bg-sky/15 text-sky-soft font-semibold' : 'border-line text-fg-subtle hover:text-fg'
+                  }`}
+                >
+                  Toifa bo&apos;yicha
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortMode('alpha')}
+                  className={`rounded-lg border px-2 py-0.5 text-[11.5px] cursor-pointer ${
+                    sortMode === 'alpha' ? 'border-sky/50 bg-sky/15 text-sky-soft font-semibold' : 'border-line text-fg-subtle hover:text-fg'
+                  }`}
+                >
+                  Alifbo (A–Z)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -432,35 +666,49 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
                 <button
                   type="button"
                   onClick={() => applyPreset('standard')}
-                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-fg hover:border-line-hover"
+                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-fg cursor-pointer"
                 >
                   Standart
                 </button>
                 <button
                   type="button"
                   onClick={() => applyPreset('hr')}
-                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                  className="rounded-lg border border-emerald-500/30 bg-ink-950/40 px-2 py-1 text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
                 >
                   Kadrlar (SH.T.T)
                 </button>
                 <button
                   type="button"
+                  onClick={() => applyPreset('passport')}
+                  className="rounded-lg border border-sky/30 bg-ink-950/40 px-2 py-1 text-sky-soft hover:bg-sky/10 cursor-pointer"
+                >
+                  Pasport / JSHSHIR
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPreset('finance')}
+                  className="rounded-lg border border-amber/30 bg-ink-950/40 px-2 py-1 text-amber hover:bg-amber/10 cursor-pointer"
+                >
+                  Moliya / Plastik
+                </button>
+                <button
+                  type="button"
                   onClick={() => applyPreset('contact')}
-                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-fg hover:border-line-hover"
+                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-fg cursor-pointer"
                 >
                   Aloqa uchun
                 </button>
                 <button
                   type="button"
                   onClick={selectAll}
-                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-fg"
+                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-fg cursor-pointer"
                 >
                   Barchasi
                 </button>
                 <button
                   type="button"
                   onClick={deselectAll}
-                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-rose-400"
+                  className="rounded-lg border border-line bg-ink-950/40 px-2 py-1 text-fg-subtle hover:text-rose-400 cursor-pointer"
                 >
                   Tozalash
                 </button>
@@ -470,6 +718,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
             <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3 max-h-56 overflow-y-auto rounded-xl border border-line bg-ink-950/40 p-2.5">
               {AVAILABLE_COLUMNS.map((col) => {
                 const checked = !!selectedCols[col.id]
+                const filled = filledCounts[col.id] ?? 0
                 return (
                   <button
                     key={col.id}
@@ -488,7 +737,12 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
                     >
                       {checked && <Check size={11} strokeWidth={3} />}
                     </div>
-                    <span className="truncate">{col.label}</span>
+                    <span className="min-w-0 flex-1 truncate">{col.label}</span>
+                    {col.id !== 'num' && (
+                      <span className={`shrink-0 text-[10px] tabular-nums ${filled === 0 ? 'text-fg-subtle/50' : 'text-fg-subtle'}`}>
+                        {filled}/{staff.length}
+                      </span>
+                    )}
                   </button>
                 )
               })}
@@ -498,7 +752,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
           {/* 3. Fayl nomi */}
           <div>
             <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wider text-fg-subtle">
-              3. Fayl Nomi (Tagchiziq o'rniga faqat probel ishlatiladi)
+              3. Fayl Nomi (Tagchiziq o&apos;rniga faqat probel ishlatiladi)
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -514,7 +768,7 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-line bg-ink-950/70 px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-ink-950/70 px-5 py-3.5">
           <div className="text-[12px] text-fg-subtle">
             <span className="font-bold text-fg">{filteredStaff.length} nafar</span> xodim,{' '}
             <span className="font-bold text-emerald-400">{activeColIds.length} ta ustun</span> tanlandi
@@ -529,8 +783,8 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
             </button>
             <button
               type="button"
-              onClick={handleSendTelegram}
-              disabled={tgBusy}
+              onClick={() => void handleSendTelegram()}
+              disabled={tgBusy || exportBusy}
               title="Ushbu moslashtirilgan Excel faylni Telegram botga yuborish"
               className="btn-ghost h-9 px-3.5 text-[12.5px] border border-sky/30 bg-sky/10 text-sky-soft hover:bg-sky/25"
             >
@@ -539,10 +793,11 @@ export default function StaffExportModal({ open, onClose, staff, onSuccess }: Pr
             </button>
             <button
               type="button"
-              onClick={handleDownload}
+              onClick={() => void handleDownload()}
+              disabled={exportBusy || tgBusy}
               className="btn-success h-9 px-4 text-[12.5px] font-semibold"
             >
-              <Download size={15} />
+              {exportBusy ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
               <span>Yuklab olish (.xlsx)</span>
             </button>
           </div>

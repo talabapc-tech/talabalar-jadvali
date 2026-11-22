@@ -9,7 +9,8 @@ import type { BuyruqHint } from '@/lib/buyruq'
 import BuyruqModal from './BuyruqModal'
 import DocImages from './DocImages'
 import MalumotnomaModal from './MalumotnomaModal'
-import { BazaButton, cx, GroupBadge, Mono, StatusIcon } from './ui'
+import type { Notify } from './Toast'
+import { BazaButton, CopyBtn, cx, formatPassportBundle, GroupBadge, Mono, StatusIcon } from './ui'
 
 interface Props {
   student: Student
@@ -22,26 +23,33 @@ interface Props {
   onToggleBaza: (s: Student) => void
   onDelete: (s: Student) => Promise<void>
   onOpenRow: (row: number) => void
+  notify?: Notify
 }
 
-function Section({ n, title, children, tone = 'blue' }: { n: number; title: string; children: React.ReactNode; tone?: 'blue' | 'emerald' | 'sky' | 'amber' }) {
+function Section({ n, title, children, tone = 'blue', action }: { n: number; title: string; children: React.ReactNode; tone?: 'blue' | 'emerald' | 'sky' | 'amber'; action?: React.ReactNode }) {
   const tones = { blue: 'from-blue to-sky', emerald: 'from-emerald to-emerald-soft', sky: 'from-sky to-sky-soft', amber: 'from-amber to-amber-soft' }
   return (
     <section className="rounded-xl border border-line bg-ink-900/70 p-4">
-      <h4 className="mb-3 flex items-center gap-2.5 text-[13px] font-bold text-fg">
-        <span className={cx('grid size-6 place-items-center rounded-lg bg-gradient-to-br text-[12px] font-extrabold text-ink-950', tones[tone])}>{n}</span>
-        {title}
-      </h4>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h4 className="flex items-center gap-2.5 text-[13px] font-bold text-fg">
+          <span className={cx('grid size-6 place-items-center rounded-lg bg-gradient-to-br text-[12px] font-extrabold text-ink-950', tones[tone])}>{n}</span>
+          {title}
+        </h4>
+        {action}
+      </div>
       {children}
     </section>
   )
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children, copyValue, copyLabel, onCopied }: { label: string; children: React.ReactNode; copyValue?: string; copyLabel?: string; onCopied?: (msg: string) => void }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-line/70 py-2 last:border-0">
       <span className="shrink-0 text-[12.5px] text-fg-muted">{label}</span>
-      <span className="min-w-0 text-right text-[13.5px] font-semibold break-words text-fg">{children}</span>
+      <span className="inline-flex min-w-0 items-center justify-end gap-1.5 text-right text-[13.5px] font-semibold break-words text-fg">
+        <span className="min-w-0 break-words">{children}</span>
+        {copyValue?.trim() && <CopyBtn value={copyValue} label={copyLabel || label} onCopied={onCopied} />}
+      </span>
     </div>
   )
 }
@@ -257,24 +265,36 @@ function EditForm({ student, all, onCancel, onSave }: { student: Student; all: S
   )
 }
 
-function ViewInfo({ s, onEdit, onToggleBaza }: { s: Student; onEdit: () => void; onToggleBaza: (s: Student) => void }) {
+function ViewInfo({ s, onEdit, onToggleBaza, onCopy }: { s: Student; onEdit: () => void; onToggleBaza: (s: Student) => void; onCopy?: (msg: string) => void }) {
   const flag = NAME_FLAGS[s.name_flag]
   const flagCls = !flag ? 'text-fg' : flag.tone === 'ok' ? 'text-emerald-soft' : flag.tone === 'warn' ? 'text-amber' : flag.tone === 'bad' ? 'text-rose' : 'text-violet'
+  const cleanPinfl = (s.pinfl || '').replace(/\s/g, '')
+  const passportBundle = formatPassportBundle({
+    fish: fullName(s),
+    pv: s.pv,
+    pinfl: cleanPinfl,
+    dob: s.dob,
+    ber: s.ber,
+  })
   return (
     <div className="space-y-3">
-      <Section n={1} title="Pasport / shaxs guvohnomasi">
+      <Section
+        n={1}
+        title="Pasport / shaxs guvohnomasi"
+        action={<CopyBtn value={passportBundle} text="Pasportni nusxalash" label="Pasport ma'lumotlari" onCopied={onCopy} />}
+      >
         <Row label="Hujjat turi">{s.pass_type || '—'}</Row>
-        <Row label="Seriya va №"><Mono value={s.pv} className="text-[14.5px]" /></Row>
-        <Row label="JSHSHIR"><Mono value={formatPinfl(s.pinfl)} /></Row>
-        <Row label="Tug'ilgan sana">{s.dob || '—'}</Row>
-        <Row label="Berilgan sana">{s.ber || '—'}</Row>
+        <Row label="Seriya va №" copyValue={s.pv} copyLabel={`Pasport (${s.pv})`} onCopied={onCopy}><Mono value={s.pv} className="text-[14.5px]" /></Row>
+        <Row label="JSHSHIR" copyValue={cleanPinfl} copyLabel="JSHSHIR" onCopied={onCopy}><Mono value={formatPinfl(s.pinfl)} /></Row>
+        <Row label="Tug'ilgan sana" copyValue={s.dob} onCopied={onCopy}>{s.dob || '—'}</Row>
+        <Row label="Berilgan sana" copyValue={s.ber} onCopied={onCopy}>{s.ber || '—'}</Row>
         <Row label="Otasining ismi">{s.ota || '—'}</Row>
-        {s.pass_fish && <Row label="Pasportdagi F.I.SH"><span className={flagCls} title={flag?.label}>{s.pass_fish}</span></Row>}
+        {s.pass_fish && <Row label="Pasportdagi F.I.SH" copyValue={s.pass_fish} onCopied={onCopy}><span className={flagCls} title={flag?.label}>{s.pass_fish}</span></Row>}
         <PinflCard pinfl={s.pinfl} />
       </Section>
       <Section n={2} title="Diplom / shahodatnoma" tone="emerald">
         <Row label="Hujjat turi">{s.doc_tur || '—'}</Row>
-        <Row label="Seriya va №">
+        <Row label="Seriya va №" copyValue={s.sh_doc} copyLabel="Hujjat raqami" onCopied={onCopy}>
           <span className="inline-flex items-center gap-2">
             <Mono value={s.sh_doc} className="text-[14.5px]" />
             {s.sh_qr && <a href={s.sh_qr} target="_blank" rel="noreferrer" className="chip border-sky/40 bg-sky/10 text-sky-soft hover:bg-sky/20"><Link2 size={12} /> QR PDF</a>}
@@ -283,7 +303,7 @@ function ViewInfo({ s, onEdit, onToggleBaza }: { s: Student; onEdit: () => void;
         <Row label="Muassasa">{s.mak || '—'}</Row>
         <Row label="Bitirgan yili">{s.yil || '—'}</Row>
         <Row label="Yo'nalishi"><span className="text-sky-soft">{s.yon || '—'}</span></Row>
-        {s.cert_fish && <Row label="Hujjatdagi F.I.SH"><span className={flagCls} title={flag?.label}>{s.cert_fish}</span></Row>}
+        {s.cert_fish && <Row label="Hujjatdagi F.I.SH" copyValue={s.cert_fish} onCopied={onCopy}><span className={flagCls} title={flag?.label}>{s.cert_fish}</span></Row>}
       </Section>
       <Section n={3} title="Shartnoma va aloqa" tone="sky">
         <Row label="Shartnoma raqami"><span className="mono text-blue-soft">#{s.shnum || '—'}</span></Row>
@@ -315,7 +335,7 @@ function ViewInfo({ s, onEdit, onToggleBaza }: { s: Student; onEdit: () => void;
             )}
           </Row>
         )}
-        <Row label="Telefon">{s.tel || '—'}</Row>
+        <Row label="Telefon" copyValue={s.tel} onCopied={onCopy}>{s.tel || '—'}</Row>
         <Row label="Shartnoma sanasi">{s.sana || '—'}</Row>
         <Row label="Hujjatlar holati"><span className="inline-flex items-center gap-1.5"><StatusIcon status={s.status} size={15} />{s.status === 'full' ? "To'liq" : s.status === 'chala' ? 'Chala' : "Yo'q"}</span></Row>
         <Row label="Ism tekshiruvi"><span className={flagCls}>{flag?.label || s.name_match || 'Tekshirilmagan'}</span></Row>
@@ -324,10 +344,10 @@ function ViewInfo({ s, onEdit, onToggleBaza }: { s: Student; onEdit: () => void;
       </Section>
       {(s.manzil_toliq || s.qatnov || s.tel_otaona) && (
         <Section n={4} title="Yashash joyi va so'rovnoma" tone="amber">
-          {s.manzil_toliq && <Row label="Doimiy manzili"><span className="font-semibold text-fg">{s.manzil_toliq}</span></Row>}
+          {s.manzil_toliq && <Row label="Doimiy manzili" copyValue={s.manzil_toliq} onCopied={onCopy}><span className="font-semibold text-fg">{s.manzil_toliq}</span></Row>}
           {s.qatnov && <Row label="Qatnov holati"><span className="chip border-amber/40 bg-amber/10 text-amber">{s.qatnov}</span></Row>}
-          {s.tel_shaxsiy && <Row label="Shaxsiy telefon">{s.tel_shaxsiy}</Row>}
-          {s.tel_otaona && <Row label="Qo'shimcha aloqa">{s.tel_otaona} ({s.tel_otaona_kim || "Oila a'zosi"})</Row>}
+          {s.tel_shaxsiy && <Row label="Shaxsiy telefon" copyValue={s.tel_shaxsiy} onCopied={onCopy}>{s.tel_shaxsiy}</Row>}
+          {s.tel_otaona && <Row label="Qo'shimcha aloqa" copyValue={s.tel_otaona} onCopied={onCopy}>{s.tel_otaona} ({s.tel_otaona_kim || "Oila a'zosi"})</Row>}
           {s.sorovnoma_vaqti && <Row label="To'ldirilgan vaqti"><span className="mono text-[12px] text-fg-subtle">{s.sorovnoma_vaqti}</span></Row>}
         </Section>
       )}
@@ -336,7 +356,7 @@ function ViewInfo({ s, onEdit, onToggleBaza }: { s: Student; onEdit: () => void;
   )
 }
 
-export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav, onClose, onSave, onToggleBaza, onDelete, onOpenRow }: Props) {
+export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav, onClose, onSave, onToggleBaza, onDelete, onOpenRow, notify }: Props) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [cert, setCert] = useState(false)
@@ -383,7 +403,10 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
             <button type="button" className="btn-ghost size-9 p-0" disabled={!hasNext} onClick={() => onNav(1)} title="Keyingi (→)"><ChevronRight size={18} /></button>
           </div>
           <div className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1">
-            <h2 className="text-[17px] leading-snug font-extrabold text-fg sm:truncate">{fullName(s)}</h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="min-w-0 text-[17px] leading-snug font-extrabold text-fg sm:truncate">{fullName(s)}</h2>
+              <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={14} onCopied={(m) => notify?.(m)} />
+            </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-fg-muted sm:gap-2">
               <GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} inline />
               <span className="mono">№{s.shnum || '—'}</span>
@@ -425,7 +448,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
                 // Guruh o'zgargan (ta'til, safdan chiqarish, o'tkazish, qaytish) — buyruq tayyor holda ochiladi
                 if (f.group !== undefined && f.group !== before.prevGroup) setOrder({ student: { ...s, ...f } as Student, hint: before })
               }} />
-              : <ViewInfo s={s} onEdit={() => setEditing(true)} onToggleBaza={onToggleBaza} />}
+              : <ViewInfo s={s} onEdit={() => setEditing(true)} onToggleBaza={onToggleBaza} onCopy={(m) => notify?.(m)} />}
           </div>
           <div className="border-t border-line bg-ink-950/40 p-4 sm:p-5 lg:overflow-y-auto lg:border-t-0 lg:border-l">
             <div className="mb-3 text-[11px] font-bold tracking-wider text-fg-subtle uppercase">Hujjat rasmlari va AI Tahlil</div>

@@ -1,12 +1,135 @@
 'use client'
 
-import { AlertTriangle, XCircle, CheckCircle2, Database, EyeOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertTriangle, Check, CheckCircle2, Copy, Database, EyeOff, XCircle } from 'lucide-react'
 import { GROUP_TITLES } from '@/lib/config'
 import { isAcademicLeave, isBazaEntered, isSecretGroup, isWithdrawn } from '@/lib/student'
 import type { Student } from '@/lib/types'
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ')
+}
+
+export async function copyToClipboard(text: string): Promise<boolean> {
+  const val = String(text ?? '').trim()
+  if (!val || typeof window === 'undefined') return false
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(val)
+      return true
+    }
+  } catch {
+    // HTTPS bo'lmagan yoki cheklangan muhitda zaxira usul
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = val
+    ta.setAttribute('readonly', '')
+    ta.style.position = 'fixed'
+    ta.style.top = '-9999px'
+    ta.style.left = '-9999px'
+    document.body.appendChild(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch {
+    return false
+  }
+}
+
+export function CopyBtn({
+  value,
+  label,
+  title,
+  text,
+  size = 12,
+  className,
+  onCopied,
+}: {
+  value?: string | null
+  label?: string
+  title?: string
+  text?: string
+  size?: number
+  className?: string
+  onCopied?: (msg: string) => void
+}) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) return
+    const t = setTimeout(() => setCopied(false), 1400)
+    return () => clearTimeout(t)
+  }, [copied])
+
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed) return null
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    const ok = await copyToClipboard(trimmed)
+    if (ok) {
+      setCopied(true)
+      onCopied?.(label ? `${label} nusxalandi` : 'Nusxalandi')
+    }
+  }
+
+  if (text) {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        title={title || (label ? `${label}ni nusxalash` : 'Nusxalash')}
+        className={cx(
+          'inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11.5px] font-semibold transition-colors cursor-pointer',
+          copied
+            ? 'border-emerald/50 bg-emerald/15 text-emerald-soft'
+            : 'border-sky/30 bg-sky/10 text-sky-soft hover:bg-sky/20',
+          className,
+        )}
+      >
+        {copied ? <Check size={size} strokeWidth={2.5} /> : <Copy size={size} />}
+        <span>{copied ? 'Nusxalandi' : text}</span>
+      </button>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      title={title || (label ? `${label}ni nusxalash` : 'Nusxalash')}
+      aria-label={title || (label ? `${label}ni nusxalash` : 'Nusxalash')}
+      className={cx(
+        'inline-flex shrink-0 items-center justify-center rounded p-1 transition-colors cursor-pointer',
+        copied ? 'bg-emerald/15 text-emerald-soft' : 'text-fg-subtle hover:bg-sky/15 hover:text-sky-soft',
+        className,
+      )}
+    >
+      {copied ? <Check size={size} strokeWidth={2.5} /> : <Copy size={size} />}
+    </button>
+  )
+}
+
+export function formatPassportBundle(parts: {
+  fish?: string
+  pv?: string
+  pinfl?: string
+  dob?: string
+  ber?: string
+  berJoy?: string
+}): string {
+  const lines: string[] = []
+  if (parts.fish?.trim()) lines.push(`F.I.Sh.: ${parts.fish.trim()}`)
+  if (parts.pv?.trim()) lines.push(`Pasport: ${parts.pv.trim()}`)
+  const cleanPinfl = parts.pinfl?.replace(/\s/g, '').trim()
+  if (cleanPinfl) lines.push(`JSHSHIR: ${cleanPinfl}`)
+  if (parts.dob?.trim()) lines.push(`Tug'ilgan sana: ${parts.dob.trim()}`)
+  if (parts.ber?.trim()) lines.push(`Berilgan sana: ${parts.ber.trim()}`)
+  if (parts.berJoy?.trim()) lines.push(`Berilgan joyi: ${parts.berJoy.trim()}`)
+  return lines.join('\n')
 }
 
 /** inline — maxfiy guruh belgisini bir qatorda to'liq ko'rsatish (profil); aks holda asl guruh chip ostida */

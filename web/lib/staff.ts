@@ -75,3 +75,32 @@ export function cleanStaffPhone(tel: string | undefined): string {
   }
   return String(tel).trim()
 }
+
+export function cleanStaffPinfl(pinfl: string | undefined): string {
+  if (!pinfl) return ''
+  return String(pinfl).replace(/\s+/g, '').trim()
+}
+
+export function formatStaffCard(card: string | undefined): string {
+  if (!card) return ''
+  const trimmed = String(card).trim()
+  const digits = trimmed.replace(/\D/g, '')
+  if (digits.length === 16) {
+    return `${digits.slice(0, 4)} ${digits.slice(4, 8)} ${digits.slice(8, 12)} ${digits.slice(12, 16)}`
+  }
+  return trimmed
+}
+
+export function matchesStaffCategory(s: StaffMember, category: string): boolean {
+  const cat = String(category || '').trim()
+  if (!cat || cat === 'Barchasi') return true
+  const k = (s.kategoriya || '').toLowerCase()
+  const t = (s.ish_turi || '').toLowerCase()
+  const c = cat.toLowerCase()
+  if (c === 'shtat' || c.includes('shtat')) return k.includes('shtat') || t.includes('shtat')
+  if (c === 'asosiy' || c.includes('asosiy')) return k.includes('asosiy') || t.includes('asosiy')
+  if (c.includes("o'rindosh") || c.includes('orindosh')) {
+    return k.includes("o'rindosh") || t.includes("o'rindosh") || k.includes('orindosh') || t.includes('orindosh')
+  }
+  return s.kategoriya === cat || s.ish_turi === cat
+}

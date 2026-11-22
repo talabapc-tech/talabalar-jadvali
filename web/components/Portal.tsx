@@ -458,7 +458,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
                 <div ref={filterRef} className="scroll-mt-20">
                   <FilterBar filters={filters} groups={groups} onFilter={patchFilters} shown={shown.length} total={data.students.length} mode={mode} onMode={setMode} onExportShown={onExportShown} />
                 </div>
-                <StudentList students={shown} mode={mode} duplicateRows={duplicateRows} onOpen={onOpen} onToggleBaza={onToggleBaza} onClearFilters={clearFilters} />
+                <StudentList students={shown} mode={mode} duplicateRows={duplicateRows} onOpen={onOpen} onToggleBaza={onToggleBaza} onClearFilters={clearFilters} notify={notify} />
               </>
             ) : view === 'groups' ? (
               <GroupsJournal key={filters.kurs || 'all'} students={data.students} groups={groups} onOpen={onOpen} notify={notify} />
@@ -499,6 +499,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: 'stud
           onToggleBaza={onToggleBaza}
           onDelete={onDelete}
           onOpenRow={setOpenRow}
+          notify={notify}
         />
       )}
 

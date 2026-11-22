@@ -6,7 +6,8 @@ import { FileText, Link2, Phone, SearchX, X } from 'lucide-react'
 import { formatPinfl, fullName, isBazaEntered, NAME_FLAGS, passTypeShort } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import type { DisplayMode } from './FilterBar'
-import { BazaButton, cx, GroupBadge, Mono, StatusIcon } from './ui'
+import { BazaButton, CopyBtn, cx, GroupBadge, Mono, StatusIcon } from './ui'
+import type { Notify } from './Toast'
 
 interface Props {
   students: Student[]
@@ -15,6 +16,7 @@ interface Props {
   onOpen: (s: Student) => void
   onToggleBaza: (s: Student) => void
   onClearFilters?: () => void
+  notify?: Notify
 }
 
 /** Jadval 1440px keng — telefonda (md dan tor) o'rniga ixcham kartalar ko'rsatiladi */
@@ -66,11 +68,12 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 )
 
-const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onToggleBaza }: {
-  s: Student; n: number; dup: boolean; compact?: boolean; onOpen: (s: Student) => void; onToggleBaza: (s: Student) => void
+const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onToggleBaza, onCopy }: {
+  s: Student; n: number; dup: boolean; compact?: boolean; onOpen: (s: Student) => void; onToggleBaza: (s: Student) => void; onCopy?: (msg: string) => void
 }) {
   const ok = isBazaEntered(s)
   const flag = NAME_FLAGS[s.name_flag]
+  const cleanPinfl = (s.pinfl || '').replace(/\s/g, '')
 
   if (compact) {
     return (
@@ -93,12 +96,21 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
           </span>
         </header>
         <div>
-          <h3 className="truncate text-[14px] font-bold text-fg group-hover:text-sky-soft">
-            {fullName(s)}
-          </h3>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-fg-muted">
-            <span className="mono text-fg">{s.pv || '—'}</span>
-            <span className="mono">{formatPinfl(s.pinfl)}</span>
+          <div className="flex items-center gap-1">
+            <h3 className="min-w-0 truncate text-[14px] font-bold text-fg group-hover:text-sky-soft">
+              {fullName(s)}
+            </h3>
+            <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" onCopied={onCopy} />
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11.5px] text-fg-muted">
+            <span className="inline-flex items-center gap-0.5">
+              <span className="mono text-fg">{s.pv || '—'}</span>
+              <CopyBtn value={s.pv} label={`Pasport (${s.pv})`} title="Pasport seriya va raqamini nusxalash" size={11} onCopied={onCopy} />
+            </span>
+            <span className="inline-flex items-center gap-0.5">
+              <span className="mono">{formatPinfl(s.pinfl)}</span>
+              <CopyBtn value={cleanPinfl} label="JSHSHIR" title="JSHSHIR nusxalash" size={11} onCopied={onCopy} />
+            </span>
             {s.dob && <span className="ml-auto tabular-nums">{s.dob}</span>}
           </div>
         </div>
@@ -127,10 +139,13 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
       </header>
 
       <div>
-        <h3 className="line-clamp-2 text-[15px] leading-snug font-bold text-fg group-hover:text-sky-soft">
-          {fullName(s)}
-          {dup && <span className="chip ml-2 border-rose/50 bg-rose/10 align-middle text-rose">Dublikat</span>}
-        </h3>
+        <div className="flex items-start justify-between gap-1.5">
+          <h3 className="line-clamp-2 min-w-0 flex-1 text-[15px] leading-snug font-bold text-fg group-hover:text-sky-soft">
+            {fullName(s)}
+            {dup && <span className="chip ml-2 border-rose/50 bg-rose/10 align-middle text-rose">Dublikat</span>}
+          </h3>
+          <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={13} onCopied={onCopy} />
+        </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-fg-muted">
           {s.dob && <span>Tug'ilgan: <strong className="text-fg">{s.dob}</strong></span>}
           {s.tel && <span className="inline-flex items-center gap-1"><Phone size={12} /> {s.tel}</span>}
@@ -143,8 +158,18 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
       </div>
 
       <div className="mt-auto grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-xl border border-line bg-ink-950/50 p-3">
-        <Field label={`Pasport ${passTypeShort(s)}`}><Mono value={s.pv} /></Field>
-        <Field label="JSHSHIR"><Mono value={formatPinfl(s.pinfl)} className="text-[12.5px]" /></Field>
+        <Field label={`Pasport ${passTypeShort(s)}`}>
+          <span className="inline-flex items-center gap-1">
+            <Mono value={s.pv} />
+            <CopyBtn value={s.pv} label={`Pasport (${s.pv})`} title="Pasport seriya va raqamini nusxalash" size={11} onCopied={onCopy} />
+          </span>
+        </Field>
+        <Field label="JSHSHIR">
+          <span className="inline-flex items-center gap-1">
+            <Mono value={formatPinfl(s.pinfl)} className="text-[12.5px]" />
+            <CopyBtn value={cleanPinfl} label="JSHSHIR" title="JSHSHIR (14 raqam) nusxalash" size={11} onCopied={onCopy} />
+          </span>
+        </Field>
         <Field label={s.doc_tur || "Ta'lim hujjati"}>
           <span className="inline-flex items-center gap-1.5">
             <Mono value={s.sh_doc} />
@@ -167,12 +192,13 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
   )
 })
 
-function CardGrid({ students, duplicateRows, compact, onOpen, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'> & { compact?: boolean }) {
+function CardGrid({ students, duplicateRows, compact, onOpen, onToggleBaza, notify }: Omit<Props, 'mode' | 'onClearFilters'> & { compact?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const gap = compact ? 10 : 12
   const cols = useColumns(ref, compact ? 310 : 330, gap)
   const top = useOffsetTop(ref)
   const rows = Math.ceil(students.length / cols)
+  const onCopy = (m: string) => notify?.(m)
 
   const v = useWindowVirtualizer({
     count: rows,
@@ -193,7 +219,7 @@ function CardGrid({ students, duplicateRows, compact, onOpen, onToggleBaza }: Om
           style={{ top: row.start - v.options.scrollMargin, gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap }}
         >
           {students.slice(row.index * cols, row.index * cols + cols).map((s, i) => (
-            <StudentCard key={s.row} s={s} n={row.index * cols + i + 1} dup={duplicateRows.has(s.row)} compact={compact} onOpen={onOpen} onToggleBaza={onToggleBaza} />
+            <StudentCard key={s.row} s={s} n={row.index * cols + i + 1} dup={duplicateRows.has(s.row)} compact={compact} onOpen={onOpen} onToggleBaza={onToggleBaza} onCopy={onCopy} />
           ))}
         </div>
       ))}
@@ -201,11 +227,12 @@ function CardGrid({ students, duplicateRows, compact, onOpen, onToggleBaza }: Om
   )
 }
 
-const COLS = '38px 84px 64px minmax(190px,1.35fr) 108px 138px 86px 114px minmax(120px,1fr) 46px 118px 36px'
+const COLS = '38px 84px 64px minmax(200px,1.35fr) 124px 158px 104px 114px minmax(115px,1fr) 46px 118px 36px'
 
-const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleBaza }: {
-  s: Student; n: number; dup: boolean; onOpen: (s: Student) => void; onToggleBaza: (s: Student) => void
+const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleBaza, onCopy }: {
+  s: Student; n: number; dup: boolean; onOpen: (s: Student) => void; onToggleBaza: (s: Student) => void; onCopy?: (msg: string) => void
 }) {
+  const cleanPinfl = (s.pinfl || '').replace(/\s/g, '')
   return (
     <div
       onClick={() => onOpen(s)}
@@ -215,10 +242,22 @@ const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleBaza }: {
       <span className="mono text-center text-[12px] font-bold text-fg-subtle tabular-nums">{n}</span>
       <span className="min-w-0 overflow-hidden"><GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} short /></span>
       <span className="mono font-bold text-blue-soft truncate">#{s.shnum || '—'}</span>
-      <span className="truncate font-semibold text-fg" title={fullName(s)}>{fullName(s)}</span>
-      <span className="truncate"><Mono value={s.pv} />{passTypeShort(s) && <span className="ml-1.5 text-[10.5px] font-bold text-fg-subtle">{passTypeShort(s)}</span>}</span>
-      <span className="truncate"><Mono value={formatPinfl(s.pinfl)} className="text-[12.5px]" /></span>
-      <span className="text-[12.5px] tabular-nums">{s.dob || '—'}</span>
+      <span className="flex min-w-0 items-center gap-1">
+        <span className="truncate font-semibold text-fg" title={fullName(s)}>{fullName(s)}</span>
+        <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={11} onCopied={onCopy} />
+      </span>
+      <span className="flex min-w-0 items-center gap-1">
+        <span className="truncate"><Mono value={s.pv} />{passTypeShort(s) && <span className="ml-1 text-[10.5px] font-bold text-fg-subtle">{passTypeShort(s)}</span>}</span>
+        <CopyBtn value={s.pv} label={`Pasport (${s.pv})`} title="Pasport seriya va raqamini nusxalash" size={11} onCopied={onCopy} />
+      </span>
+      <span className="flex min-w-0 items-center gap-1">
+        <span className="truncate"><Mono value={formatPinfl(s.pinfl)} className="text-[12.5px]" /></span>
+        <CopyBtn value={cleanPinfl} label="JSHSHIR" title="JSHSHIR (14 raqam) nusxalash" size={11} onCopied={onCopy} />
+      </span>
+      <span className="flex items-center gap-0.5 text-[12.5px] tabular-nums">
+        <span>{s.dob || '—'}</span>
+        <CopyBtn value={s.dob} label="Tug'ilgan sana" title="Tug'ilgan sanani nusxalash" size={11} onCopied={onCopy} />
+      </span>
       <span className="truncate"><Mono value={s.sh_doc} /></span>
       <span className="truncate text-[12.5px] text-fg-muted" title={s.mak}>{s.mak || '—'}</span>
       <span className="text-center text-[12.5px] font-semibold">{s.yil || '—'}</span>
@@ -230,14 +269,15 @@ const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleBaza }: {
 
 const ROW_H = 50
 
-function Table({ students, duplicateRows, onOpen, onToggleBaza }: Omit<Props, 'mode' | 'onClearFilters'>) {
+function Table({ students, duplicateRows, onOpen, onToggleBaza, notify }: Omit<Props, 'mode' | 'onClearFilters'>) {
   const ref = useRef<HTMLDivElement>(null)
   const top = useOffsetTop(ref)
   const v = useWindowVirtualizer({ count: students.length, estimateSize: () => ROW_H, overscan: 12, scrollMargin: top })
+  const onCopy = (m: string) => notify?.(m)
 
   return (
     <div className="panel overflow-x-auto">
-      <div className="min-w-[1240px] xl:min-w-full">
+      <div className="min-w-[1290px] xl:min-w-full">
         <div
           className="grid items-center gap-2 border-b border-line-strong bg-ink-850 px-4 py-3 text-[11px] font-bold tracking-wider text-fg-subtle uppercase"
           style={{ gridTemplateColumns: COLS }}
@@ -251,7 +291,7 @@ function Table({ students, duplicateRows, onOpen, onToggleBaza }: Omit<Props, 'm
             const s = students[item.index]
             return (
               <div key={s.row} className="absolute inset-x-0" style={{ top: item.start - v.options.scrollMargin, height: ROW_H }}>
-                <TableRow s={s} n={item.index + 1} dup={duplicateRows.has(s.row)} onOpen={onOpen} onToggleBaza={onToggleBaza} />
+                <TableRow s={s} n={item.index + 1} dup={duplicateRows.has(s.row)} onOpen={onOpen} onToggleBaza={onToggleBaza} onCopy={onCopy} />
               </div>
             )
           })}

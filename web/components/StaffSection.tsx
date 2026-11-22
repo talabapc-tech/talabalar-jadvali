@@ -21,17 +21,20 @@ import {
 } from 'lucide-react'
 import {
   cleanStaffPhone,
+  cleanStaffPinfl,
   formatSalary,
+  matchesStaffCategory,
   STAFF_CATEGORIES,
   STAFF_DEPARTMENTS,
   STAFF_WORK_TYPES,
   type StaffMember,
 } from '@/lib/staff'
+import { formatPinfl } from '@/lib/student'
 import StaffExportModal from './StaffExportModal'
 import StaffImportModal from './StaffImportModal'
 import StaffModal from './StaffModal'
 import type { Notify } from './Toast'
-import { cx } from './ui'
+import { CopyBtn, cx } from './ui'
 
 interface Props {
   notify: Notify
@@ -107,11 +110,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return staff.filter((s) => {
-      if (category !== 'Barchasi') {
-        if (category === 'ShTAT - xodimlar' && !(s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat')) return false
-        if (category === "Asosiy o'qituvchilar" && !(s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy'))) return false
-        if (category === "O'rindosh o'qituvchilar" && !(s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh"))) return false
-      }
+      if (!matchesStaffCategory(s, category)) return false
       if (dept !== 'Barchasi' && s.bolim !== dept) return false
       if (workType !== 'Barchasi' && s.ish_turi !== workType) return false
       if (!q) return true
@@ -138,9 +137,9 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
   // Statistika
   const stats = useMemo(() => {
     const total = staff.length
-    const shtat = staff.filter((s) => s.kategoriya?.includes('Shtat') || s.ish_turi === 'Shtat').length
-    const asosiy = staff.filter((s) => s.kategoriya?.includes('Asosiy') || s.ish_turi?.includes('Asosiy')).length
-    const orindosh = staff.filter((s) => s.kategoriya?.includes("O'rindosh") || s.ish_turi?.includes("O'rindosh")).length
+    const shtat = staff.filter((s) => matchesStaffCategory(s, 'Shtat')).length
+    const asosiy = staff.filter((s) => matchesStaffCategory(s, 'Asosiy')).length
+    const orindosh = staff.filter((s) => matchesStaffCategory(s, "O'rindosh")).length
     const teachers = asosiy + orindosh
     const active = staff.filter((s) => s.status === 'faol' || !s.status).length
     return { total, shtat, asosiy, orindosh, teachers, active }
@@ -329,77 +328,102 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
                   <th className="py-3.5 px-4 w-12 text-center">№</th>
                   <th className="py-3.5 px-4">Xodim F.I.Sh</th>
                   <th className="py-3.5 px-4">Lavozimi</th>
+                  <th className="py-3.5 px-4">Pasport / JSHSHIR</th>
                   <th className="py-3.5 px-4">Telefon raqami</th>
                   <th className="py-3.5 px-4 w-20 text-right">Amallar</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line/60">
-                {filtered.map((s, idx) => (
-                  <tr
-                    key={s.id || idx}
-                    onClick={() => { setEditMember(s); setInitialEdit(false); setModalOpen(true) }}
-                    className="cursor-pointer hover:bg-ink-800/60 transition-colors group select-none"
-                    title="Xodim haqida to'liq ma'lumotni ko'rish uchun bosing"
-                  >
-                    <td className="py-3.5 px-4 text-center text-fg-subtle font-mono text-[12px] tabular-nums">
-                      {idx + 1}
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-fg">
-                      <div className="flex items-center gap-3">
-                        <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-line bg-ink-800 text-[11.5px] font-bold text-emerald-soft group-hover:border-emerald/30 transition-colors">
-                          {s.fish.split(' ').filter(Boolean).map((p) => p[0]).join('').slice(0, 2).toUpperCase()}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="truncate font-bold text-[13.5px] text-fg group-hover:text-emerald-300 transition-colors">
-                            {s.fish}
-                          </div>
-                          <div className="text-[11px] font-normal text-fg-subtle truncate max-w-[280px]">
-                            {s.kategoriya || s.ish_turi || 'Texnikum xodimi'}
-                            {s.bolim ? ` · ${s.bolim}` : ''}
+                {filtered.map((s, idx) => {
+                  const cleanPinfl = cleanStaffPinfl(s.pinfl)
+                  const cleanPhone = cleanStaffPhone(s.tel)
+                  return (
+                    <tr
+                      key={s.id || idx}
+                      onClick={() => { setEditMember(s); setInitialEdit(false); setModalOpen(true) }}
+                      className="cursor-pointer hover:bg-ink-800/60 transition-colors group select-none"
+                      title="Xodim haqida to'liq ma'lumotni ko'rish uchun bosing"
+                    >
+                      <td className="py-3.5 px-4 text-center text-fg-subtle font-mono text-[12px] tabular-nums">
+                        {idx + 1}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-fg">
+                        <div className="flex items-center gap-3">
+                          <span className="grid size-8 shrink-0 place-items-center rounded-xl border border-line bg-ink-800 text-[11.5px] font-bold text-emerald-soft group-hover:border-emerald/30 transition-colors">
+                            {s.fish.split(' ').filter(Boolean).map((p) => p[0]).join('').slice(0, 2).toUpperCase()}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="truncate font-bold text-[13.5px] text-fg group-hover:text-emerald-300 transition-colors">
+                                {s.fish}
+                              </span>
+                              <CopyBtn value={s.fish} label="F.I.Sh." title="F.I.Sh. nusxalash" onCopied={(m) => notify(m)} />
+                            </div>
+                            <div className="text-[11px] font-normal text-fg-subtle truncate max-w-[280px]">
+                              {s.kategoriya || s.ish_turi || 'Texnikum xodimi'}
+                              {s.bolim ? ` · ${s.bolim}` : ''}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-fg-muted text-[13px]">{s.lavozim || '—'}</div>
-                    </td>
-                    <td className="py-3.5 px-4 mono text-[12.5px]">
-                      {s.tel ? (
-                        <a
-                          href={`tel:${s.tel.replace(/\s/g, '')}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1.5 text-sky-soft hover:underline font-mono"
-                          title="Qo'ng'iroq qilish"
-                        >
-                          <Phone size={13} className="text-sky-400 shrink-0" />
-                          <span>{cleanStaffPhone(s.tel)}</span>
-                        </a>
-                      ) : (
-                        <span className="text-fg-subtle">—</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-ink-700 hover:text-fg transition-colors"
-                          onClick={() => { setEditMember(s); setInitialEdit(true); setModalOpen(true) }}
-                          title="Ma'lumotlarni tahrirlash"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="grid size-8 place-items-center rounded-lg text-rose hover:bg-rose/15 transition-colors"
-                          onClick={() => void handleDelete(s.id, s.fish)}
-                          title="O'chirish"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="font-semibold text-fg-muted text-[13px]">{s.lavozim || '—'}</div>
+                      </td>
+                      <td className="py-3 px-4 mono text-[12px]">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1">
+                            <span className="font-semibold text-sky-soft uppercase">{s.pv || '—'}</span>
+                            <CopyBtn value={s.pv?.toUpperCase()} label={`Pasport (${s.pv})`} title="Pasport seriya va raqamini nusxalash" size={11} onCopied={(m) => notify(m)} />
+                          </div>
+                          {cleanPinfl ? (
+                            <div className="flex items-center gap-1 text-[11.5px] text-fg-muted">
+                              <span>{formatPinfl(cleanPinfl)}</span>
+                              <CopyBtn value={cleanPinfl} label="JSHSHIR" title="JSHSHIR (14 raqam) nusxalash" size={11} onCopied={(m) => notify(m)} />
+                            </div>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 mono text-[12.5px]">
+                        {s.tel ? (
+                          <div className="inline-flex items-center gap-1">
+                            <a
+                              href={`tel:${s.tel.replace(/\s/g, '')}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1.5 text-sky-soft hover:underline font-mono"
+                              title="Qo'ng'iroq qilish"
+                            >
+                              <Phone size={13} className="text-sky-400 shrink-0" />
+                              <span>{cleanPhone}</span>
+                            </a>
+                            <CopyBtn value={cleanPhone} label="Telefon" title="Telefon raqamini nusxalash" size={11} onCopied={(m) => notify(m)} />
+                          </div>
+                        ) : (
+                          <span className="text-fg-subtle">—</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="grid size-8 place-items-center rounded-lg text-fg-muted hover:bg-ink-700 hover:text-fg transition-colors"
+                            onClick={() => { setEditMember(s); setInitialEdit(true); setModalOpen(true) }}
+                            title="Ma'lumotlarni tahrirlash"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="grid size-8 place-items-center rounded-lg text-rose hover:bg-rose/15 transition-colors"
+                            onClick={() => void handleDelete(s.id, s.fish)}
+                            title="O'chirish"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -449,6 +473,7 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
               setInitialEdit(false)
             }
           }}
+          notify={notify}
         />
       )}
 
@@ -470,6 +495,8 @@ export default function StaffSection({ notify, addOpen, onCloseAdd, exportOpen: 
           onCloseExport?.()
         }}
         staff={staff}
+        initialCategory={category}
+        filteredFromPage={filtered}
         onSuccess={(msg) => notify(msg, 'success')}
       />
     </div>

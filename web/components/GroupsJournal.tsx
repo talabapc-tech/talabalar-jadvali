@@ -7,7 +7,7 @@ import { exportGroup, exportQabulShablonGroup, exportQabulShablonGroups, exportR
 import { byName, fullName, groupTitle, isAcademicLeave, isOutside } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
-import { cx } from './ui'
+import { cx, CopyBtn } from './ui'
 
 /** Maxsus guruhlar: kalit (Telegram tanlovida) va bazadagi nomi */
 const SPECIAL = {
@@ -113,8 +113,8 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
       ) : (
         <ol className="divide-y divide-line/70">
           {students.map((s, i) => (
-            <li key={s.row}>
-              <button type="button" onClick={() => onOpen(s)} className="grid w-full grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 text-left text-[13px] transition-colors hover:bg-ink-800/70 sm:grid-cols-[34px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4 sm:py-2">
+            <li key={s.row} className="flex items-center gap-1 pr-2 transition-colors hover:bg-ink-800/70 sm:pr-3">
+              <button type="button" onClick={() => onOpen(s)} className="grid min-w-0 flex-1 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 text-left text-[13px] sm:grid-cols-[34px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4 sm:py-2">
                 <span className="mono text-center text-[12px] font-bold text-fg-subtle tabular-nums">{i + 1}</span>
                 <span className={cx('truncate font-semibold', sp ? sp.text : 'text-fg')}>{fullName(s)}</span>
                 {sp ? (
@@ -127,6 +127,7 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
                   <span className="mono text-[12px] text-fg-muted tabular-nums">{s.dob || '—'}</span>
                 )}
               </button>
+              <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" onCopied={(m) => notify(m)} />
             </li>
           ))}
         </ol>

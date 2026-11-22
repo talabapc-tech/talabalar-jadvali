@@ -17,8 +17,17 @@ import {
   UserCheck,
   X,
 } from 'lucide-react'
-import { cleanStaffPhone, formatSalary, STAFF_DEPARTMENTS, STAFF_WORK_TYPES, type StaffMember } from '@/lib/staff'
-import { cx } from './ui'
+import {
+  cleanStaffPhone,
+  cleanStaffPinfl,
+  formatSalary,
+  formatStaffCard,
+  STAFF_DEPARTMENTS,
+  STAFF_WORK_TYPES,
+  type StaffMember,
+} from '@/lib/staff'
+import type { Notify } from './Toast'
+import { CopyBtn, cx, formatPassportBundle } from './ui'
 
 interface Props {
   member?: StaffMember | null
@@ -29,6 +38,7 @@ interface Props {
   hasNext?: boolean
   onNav?: (dir: -1 | 1) => void
   initialEdit?: boolean
+  notify?: Notify
 }
 
 const defaultMemberData = (): Partial<StaffMember> => ({
@@ -54,29 +64,38 @@ function InfoRow({
   value,
   mono,
   isPhone,
+  copyValue,
+  copyLabel,
+  onCopied,
 }: {
   label: string
   value?: React.ReactNode
   mono?: boolean
   isPhone?: boolean
+  copyValue?: string
+  copyLabel?: string
+  onCopied?: (msg: string) => void
 }) {
   if (!value) return null
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-line/50 py-2.5 last:border-0">
       <span className="shrink-0 text-[12px] font-medium text-fg-muted">{label}</span>
-      <span className={cx('text-right text-[13px] font-semibold break-words text-fg', mono && 'mono')}>
-        {isPhone && typeof value === 'string' ? (
-          <a
-            href={`tel:${value.replace(/\s/g, '')}`}
-            className="inline-flex items-center gap-1.5 text-sky-soft hover:underline font-mono"
-            title="Qo'ng'iroq qilish"
-          >
-            <Phone size={13} className="text-sky-400" />
-            <span>{cleanStaffPhone(value)}</span>
-          </a>
-        ) : (
-          value
-        )}
+      <span className={cx('inline-flex min-w-0 items-center justify-end gap-1.5 text-right text-[13px] font-semibold break-words text-fg', mono && 'mono')}>
+        <span className="min-w-0 break-words">
+          {isPhone && typeof value === 'string' ? (
+            <a
+              href={`tel:${value.replace(/\s/g, '')}`}
+              className="inline-flex items-center gap-1.5 text-sky-soft hover:underline font-mono"
+              title="Qo'ng'iroq qilish"
+            >
+              <Phone size={13} className="text-sky-400" />
+              <span>{cleanStaffPhone(value)}</span>
+            </a>
+          ) : (
+            value
+          )}
+        </span>
+        {copyValue?.trim() && <CopyBtn value={copyValue} label={copyLabel || label} onCopied={onCopied} />}
       </span>
     </div>
   )
@@ -86,19 +105,24 @@ function SectionCard({
   icon: Icon,
   title,
   iconColor = 'text-sky',
+  action,
   children,
 }: {
   icon: typeof User
   title: string
   iconColor?: string
+  action?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
     <section className="rounded-xl border border-line bg-ink-900/70 p-4">
-      <h4 className="mb-3 flex items-center gap-2 text-[13px] font-bold text-fg">
-        <Icon size={15} className={iconColor} />
-        <span>{title}</span>
-      </h4>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h4 className="flex items-center gap-2 text-[13px] font-bold text-fg">
+          <Icon size={15} className={iconColor} />
+          <span>{title}</span>
+        </h4>
+        {action}
+      </div>
       {children}
     </section>
   )
@@ -113,7 +137,9 @@ export default function StaffModal({
   hasNext = false,
   onNav,
   initialEdit = false,
+  notify,
 }: Props) {
+  const onCopy = (m: string) => notify?.(m)
   const isExisting = Boolean(member?.id)
   const [editing, setEditing] = useState<boolean>(() => !isExisting || initialEdit)
 
@@ -220,9 +246,12 @@ export default function StaffModal({
           </span>
 
           <div className="min-w-0 flex-1">
-            <h2 className="text-[16.5px] font-extrabold text-fg truncate">
-              {isExisting ? f.fish || "Xodim ma'lumotlari" : "Yangi xodim qo'shish"}
-            </h2>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-[16.5px] font-extrabold text-fg truncate">
+                {isExisting ? f.fish || "Xodim ma'lumotlari" : "Yangi xodim qo'shish"}
+              </h2>
+              {isExisting && <CopyBtn value={f.fish} label="F.I.Sh." title="F.I.Sh. nusxalash" size={14} onCopied={onCopy} />}
+            </div>
             <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11.5px] text-fg-muted">
               {f.lavozim && <span className="font-semibold text-fg">{f.lavozim}</span>}
               {f.bolim && <span>· {f.bolim}</span>}
@@ -274,12 +303,44 @@ export default function StaffModal({
           /* =================== VIEW MODE (Faqat Ma'lumot) =================== */
           <div className="flex-1 space-y-4 overflow-y-auto p-5">
             {/* 1. Shaxsiy ma'lumotlar */}
-            <SectionCard icon={User} title="Shaxsiy ma'lumotlar" iconColor="text-sky">
-              <InfoRow label="F.I.SH (To'liq)" value={f.fish} />
-              <InfoRow label="Telefon raqami" value={f.tel ? cleanStaffPhone(f.tel) : '—'} isPhone={!!f.tel} />
-              <InfoRow label="Tug'ilgan sana" value={f.dob || '—'} mono />
-              <InfoRow label="Pasport / ID-karta" value={f.pv || '—'} mono />
-              <InfoRow label="JSHSHIR (PINFL)" value={f.pinfl || '—'} mono />
+            <SectionCard
+              icon={User}
+              title="Shaxsiy ma'lumotlar"
+              iconColor="text-sky"
+              action={
+                <CopyBtn
+                  value={formatPassportBundle({
+                    fish: f.fish,
+                    pv: f.pv?.toUpperCase(),
+                    pinfl: cleanStaffPinfl(f.pinfl),
+                    dob: f.dob,
+                    berJoy: f.pasport_berilgan_joy,
+                  })}
+                  text="Pasportni nusxalash"
+                  label="Pasport ma'lumotlari"
+                  onCopied={onCopy}
+                />
+              }
+            >
+              <InfoRow label="F.I.SH (To'liq)" value={f.fish} copyValue={f.fish} copyLabel="F.I.Sh." onCopied={onCopy} />
+              <InfoRow label="Telefon raqami" value={f.tel ? cleanStaffPhone(f.tel) : '—'} isPhone={!!f.tel} copyValue={cleanStaffPhone(f.tel)} copyLabel="Telefon" onCopied={onCopy} />
+              <InfoRow label="Tug'ilgan sana" value={f.dob || '—'} mono copyValue={f.dob} onCopied={onCopy} />
+              {f.tugilgan_joy && <InfoRow label="Tug'ilgan joyi" value={f.tugilgan_joy} copyValue={f.tugilgan_joy} onCopied={onCopy} />}
+              <InfoRow label="Pasport / ID-karta" value={f.pv ? f.pv.toUpperCase() : '—'} mono copyValue={f.pv?.toUpperCase()} copyLabel={`Pasport (${f.pv})`} onCopied={onCopy} />
+              <InfoRow label="JSHSHIR (PINFL)" value={cleanStaffPinfl(f.pinfl) || '—'} mono copyValue={cleanStaffPinfl(f.pinfl)} copyLabel="JSHSHIR" onCopied={onCopy} />
+              {f.pasport_berilgan_joy && <InfoRow label="Pasport berilgan joyi" value={f.pasport_berilgan_joy} copyValue={f.pasport_berilgan_joy} onCopied={onCopy} />}
+              {f.yashash_joyi && <InfoRow label="Doimiy yashash manzili" value={f.yashash_joyi} copyValue={f.yashash_joyi} onCopied={onCopy} />}
+              {f.inn && <InfoRow label="INN (STIR)" value={f.inn} mono copyValue={f.inn} onCopied={onCopy} />}
+              {f.plastik_karta && (
+                <InfoRow
+                  label="Plastik karta"
+                  value={`${formatStaffCard(f.plastik_karta)}${f.plastik_muddati ? ` (${f.plastik_muddati})` : ''}`}
+                  mono
+                  copyValue={String(f.plastik_karta).replace(/\D/g, '') || f.plastik_karta}
+                  copyLabel="Plastik karta raqami"
+                  onCopied={onCopy}
+                />
+              )}
             </SectionCard>
 
             {/* 2. Ish faoliyati va Kadrlar */}
