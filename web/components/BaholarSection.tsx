@@ -210,6 +210,9 @@ export default function BaholarSection({
 
   // 3. Fanni alohida ochib baholash (Fokus rejimi)
   const [focusedFan, setFocusedFan] = useState<string | null>(null)
+  // Qator + ustun kesishmasi (crosshair) fokus holati
+  const [activeCell, setActiveCell] = useState<{ r: number; c: number; fan?: string } | null>(null)
+  const [focusActiveCell, setFocusActiveCell] = useState<{ r: number; c: number } | null>(null)
 
   // 4. O'qituvchiga ulashish modal holati
   const [shareModalOpen, setShareModalOpen] = useState(false)
@@ -246,6 +249,14 @@ export default function BaholarSection({
       /* bo'sh */
     }
   }, [guruh, semestr, view, birlikTanlov, prefsLoaded])
+
+  useEffect(() => {
+    setActiveCell(null)
+  }, [guruh, semestr, view])
+
+  useEffect(() => {
+    setFocusActiveCell(null)
+  }, [focusedFan])
 
   // Talabalarning maxsus tartibini yuklash: avval brauzer keshidan (tez), keyin serverdan (asosiy manba)
   useEffect(() => {
@@ -1906,7 +1917,12 @@ export default function BaholarSection({
           ) : (
             /* ASOSIY JADVAL */
             <XScroll ref={tableRef}>
-              <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
+              <table
+                className="w-max min-w-full border-separate border-spacing-0 text-[13px]"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
+                }}
+              >
                 <thead className="relative z-20">
                   <tr>
                     <th
@@ -1927,47 +1943,56 @@ export default function BaholarSection({
                       F.I.Sh.
                     </th>
 
-                    {visibleFanlar.map((f) => (
-                      <th
-                        key={f.nom}
-                        colSpan={4}
-                        className="border-b border-r-2 border-r-line-strong bg-ink-900 px-2 py-1.5 text-center group"
-                      >
-                        <div className="flex items-center justify-between gap-1.5">
-                          {/* Fanni bosganda alohida ochib baholash */}
-                          <button
-                            type="button"
-                            onClick={() => setFocusedFan(f.nom)}
-                            className="text-left font-extrabold text-[12.5px] text-fg hover:text-sky-soft flex items-center gap-1 truncate transition-colors"
-                            title={`"${f.nom}" fanini alohida ochib baholash`}
-                          >
-                            <span className="truncate max-w-[13rem]">{f.nom}</span>
-                            <Maximize2 size={11} className="opacity-0 group-hover:opacity-100 text-sky shrink-0" />
-                          </button>
+                    {visibleFanlar.map((f) => {
+                      const fanFocused = activeCell?.fan === f.nom
+                      return (
+                        <th
+                          key={f.nom}
+                          colSpan={4}
+                          className={cx(
+                            'border-b border-r-2 border-r-line-strong bg-ink-900 px-2 py-1.5 text-center group transition-colors',
+                            fanFocused && 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] shadow-[inset_0_2px_0_var(--color-sky)]',
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-1.5">
+                            {/* Fanni bosganda alohida ochib baholash */}
+                            <button
+                              type="button"
+                              onClick={() => setFocusedFan(f.nom)}
+                              className={cx(
+                                'text-left font-extrabold text-[12.5px] hover:text-sky-soft flex items-center gap-1 truncate transition-colors',
+                                fanFocused ? 'text-sky-soft' : 'text-fg',
+                              )}
+                              title={`"${f.nom}" fanini alohida ochib baholash`}
+                            >
+                              <span className="truncate max-w-[13rem]">{f.nom}</span>
+                              <Maximize2 size={11} className="opacity-0 group-hover:opacity-100 text-sky shrink-0" />
+                            </button>
 
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            {/* Fanni yashirish */}
-                            <button
-                              type="button"
-                              onClick={() => toggleHideFan(f.nom)}
-                              className="size-6 grid place-items-center rounded text-fg-subtle hover:text-fg hover:bg-ink-800"
-                              title={`"${f.nom}" fanini vaqtincha yashirish`}
-                            >
-                              <EyeOff size={12} />
-                            </button>
-                            {/* O'chirish */}
-                            <button
-                              type="button"
-                              onClick={() => deleteFan(f.nom)}
-                              className="size-6 grid place-items-center rounded text-fg-subtle hover:text-rose hover:bg-rose/10"
-                              title={`"${f.nom}" fanini o'chirish`}
-                            >
-                              <Trash2 size={12} />
-                            </button>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              {/* Fanni yashirish */}
+                              <button
+                                type="button"
+                                onClick={() => toggleHideFan(f.nom)}
+                                className="size-6 grid place-items-center rounded text-fg-subtle hover:text-fg hover:bg-ink-800"
+                                title={`"${f.nom}" fanini vaqtincha yashirish`}
+                              >
+                                <EyeOff size={12} />
+                              </button>
+                              {/* O'chirish */}
+                              <button
+                                type="button"
+                                onClick={() => deleteFan(f.nom)}
+                                className="size-6 grid place-items-center rounded text-fg-subtle hover:text-rose hover:bg-rose/10"
+                                title={`"${f.nom}" fanini o'chirish`}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      </th>
-                    ))}
+                        </th>
+                      )
+                    })}
 
                     <th
                       rowSpan={2}
@@ -1981,32 +2006,39 @@ export default function BaholarSection({
 
                   {/* Ichki Ustunlar: Yakuniy, Joriy, Oraliq, R-semestr */}
                   <tr>
-                    {visibleFanlar.map((f) =>
-                      BAHO_TURLARI.map((t, ti) => (
-                        <th
-                          key={f.nom + t.key}
-                          className={cx(
-                            'whitespace-nowrap border-b border-line px-1 py-1 text-center text-[10.5px] font-bold',
-                            t.key === 'r_semestr'
-                              ? 'min-w-[66px] bg-ink-850 bg-[linear-gradient(rgb(245_158_11_/_0.14),rgb(245_158_11_/_0.14))] text-amber'
-                              : 'min-w-[54px] bg-ink-850 text-fg-muted',
-                            ti === BAHO_TURLARI.length - 1 && 'border-r-2 border-r-line-strong',
-                          )}
-                        >
-                          {birlik === 'reyting' ? (
-                            t.label
-                          ) : (
-                            <CopyColMenu
-                              from={t.key as Kiritiladigan}
-                              cols={BAHO_TURLARI}
-                              title={f.nom}
-                              onCopy={(to, onlyEmpty) => copyColumn(f.nom, t.key, to, onlyEmpty)}
-                            >
-                              {t.label}
-                            </CopyColMenu>
-                          )}
-                        </th>
-                      )),
+                    {visibleFanlar.map((f, fi) =>
+                      BAHO_TURLARI.map((t, ti) => {
+                        const colIdx = fi * 4 + ti
+                        const colFocused = activeCell?.c === colIdx
+                        return (
+                          <th
+                            key={f.nom + t.key}
+                            className={cx(
+                              'whitespace-nowrap border-b border-line px-1 py-1 text-center text-[10.5px] font-bold transition-colors',
+                              colFocused
+                                ? 'bg-ink-850 bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
+                                : t.key === 'r_semestr'
+                                  ? 'min-w-[66px] bg-ink-850 bg-[linear-gradient(rgb(245_158_11_/_0.14),rgb(245_158_11_/_0.14))] text-amber'
+                                  : 'bg-ink-850 text-fg-muted',
+                              t.key === 'r_semestr' ? 'min-w-[66px]' : 'min-w-[54px]',
+                              ti === BAHO_TURLARI.length - 1 && 'border-r-2 border-r-line-strong',
+                            )}
+                          >
+                            {birlik === 'reyting' ? (
+                              t.label
+                            ) : (
+                              <CopyColMenu
+                                from={t.key as Kiritiladigan}
+                                cols={BAHO_TURLARI}
+                                title={f.nom}
+                                onCopy={(to, onlyEmpty) => copyColumn(f.nom, t.key, to, onlyEmpty)}
+                              >
+                                {t.label}
+                              </CopyColMenu>
+                            )}
+                          </th>
+                        )
+                      }),
                     )}
                   </tr>
                 </thead>
@@ -2016,6 +2048,7 @@ export default function BaholarSection({
                     const rs = visibleFanlar.map((f) => cellValue(calc.get(`${s.pinfl}|${f.nom}`), 'r_semestr'))
                     const m = mean(rs, birlik === 'reyting' ? 2 : 1)
                     const totalCols = visibleFanlar.length * 4
+                    const rowActive = activeCell?.r === r
 
                     return (
                       <tr
@@ -2027,7 +2060,7 @@ export default function BaholarSection({
                           tableSort.dragKey === s.pinfl &&
                             '[&>td]:!bg-ink-800 [&>td]:shadow-[inset_0_1px_0_rgba(56,189,248,0.55),inset_0_-1px_0_rgba(56,189,248,0.55),0_12px_24px_-10px_rgba(0,0,0,0.75)]',
                           justMovedPinfl === s.pinfl && !tableSort.dragKey && '[&>td]:bg-[linear-gradient(rgb(56_189_248_/_0.14),rgb(56_189_248_/_0.14))]',
-                          !tableSort.dragKey && 'hover:bg-ink-850/50',
+                          !tableSort.dragKey && !rowActive && 'hover:bg-ink-850/50',
                         )}
                       >
                         {/* 1. Tartib raqami va sudrab ko'chirish ushlagichi (Telegram uslubida) */}
@@ -2035,8 +2068,11 @@ export default function BaholarSection({
                           onPointerDown={(e) => tableSort.startDrag(e, s.pinfl)}
                           style={{ touchAction: 'none' }}
                           className={cx(
-                            'sticky left-0 z-10 w-12 min-w-12 max-w-12 border-b border-r border-line bg-ink-900 px-1 py-1 text-center text-[11.5px] font-mono tabular-nums text-fg-subtle select-none transition-colors duration-500',
-                            tableSort.dragKey ? 'cursor-grabbing' : 'cursor-grab group-hover:bg-ink-800',
+                            'sticky left-0 z-10 w-12 min-w-12 max-w-12 border-b border-r border-line bg-ink-900 px-1 py-1 text-center text-[11.5px] font-mono tabular-nums select-none transition-colors',
+                            tableSort.dragKey ? 'cursor-grabbing' : 'cursor-grab',
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
+                              : 'text-fg-subtle group-hover:bg-ink-800',
                           )}
                           title="Ushlab yuqoriga/pastga sudrang"
                         >
@@ -2049,8 +2085,10 @@ export default function BaholarSection({
                         {/* 2. Talaba F.I.Sh. */}
                         <td
                           className={cx(
-                            'sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-[19rem] truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold text-fg transition-colors duration-500 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]',
-                            !tableSort.dragKey && 'group-hover:bg-ink-800',
+                            'sticky left-12 z-10 min-w-[9.5rem] sm:min-w-[14rem] max-w-[12rem] sm:max-w-[19rem] truncate border-b border-r border-line bg-ink-900 px-2 sm:px-3 py-1 font-semibold transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]',
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] !text-sky-soft'
+                              : cx('text-fg', !tableSort.dragKey && 'group-hover:bg-ink-800'),
                           )}
                           title={holatTitle(s)}
                         >
@@ -2064,6 +2102,15 @@ export default function BaholarSection({
                             const colIdx = fi * 4 + ti
                             const last = ti === BAHO_TURLARI.length - 1
                             const c = calc.get(`${s.pinfl}|${f.nom}`)
+                            const colActive = activeCell?.c === colIdx
+                            const focusCellCls =
+                              rowActive && colActive
+                                ? 'bg-[linear-gradient(rgb(56_189_248_/_0.24),rgb(56_189_248_/_0.24))]'
+                                : rowActive
+                                  ? 'bg-[linear-gradient(rgb(56_189_248_/_0.10),rgb(56_189_248_/_0.10))]'
+                                  : colActive
+                                    ? 'bg-[linear-gradient(rgb(56_189_248_/_0.12),rgb(56_189_248_/_0.12))]'
+                                    : ''
 
                             // Reyting (100) ko'rinishida barcha kataklar hisoblangan reytingni ko'rsatadi
                             if (birlik === 'reyting') {
@@ -2074,6 +2121,7 @@ export default function BaholarSection({
                                   className={cx(
                                     'border-b border-line px-1 py-1 text-center tabular-nums font-semibold',
                                     rangOf(v),
+                                    focusCellCls,
                                     last && 'border-r-2 border-r-line-strong',
                                   )}
                                 >
@@ -2091,8 +2139,9 @@ export default function BaholarSection({
                               <td
                                 key={f.nom + t.key}
                                 className={cx(
-                                  'border-b border-line px-0.5 py-1 text-center',
-                                  t.key === 'r_semestr' && 'bg-amber/5',
+                                  'border-b border-line px-0.5 py-1 text-center transition-colors',
+                                  t.key === 'r_semestr' && !rowActive && !colActive && 'bg-amber/5',
+                                  focusCellCls,
                                   last && 'border-r-2 border-r-line-strong',
                                 )}
                               >
@@ -2110,7 +2159,10 @@ export default function BaholarSection({
                                   onChange={(e) => setCell(s.pinfl, f.nom, key, e.target.value)}
                                   onKeyDown={(e) => onCellKey(e, r, colIdx, totalCols, tableRef)}
                                   onPaste={(e) => handlePaste(e, r, colIdx, cellColsMap)}
-                                  onFocus={(e) => e.currentTarget.select()}
+                                  onFocus={(e) => {
+                                    e.currentTarget.select()
+                                    setActiveCell({ r, c: colIdx, fan: f.nom })
+                                  }}
                                 />
                               </td>
                             )
@@ -2122,6 +2174,7 @@ export default function BaholarSection({
                           className={cx(
                             'border-b border-line px-3 py-1 text-center font-bold tabular-nums',
                             rangOf(m),
+                            rowActive && 'bg-[linear-gradient(rgb(56_189_248_/_0.10),rgb(56_189_248_/_0.10))]',
                           )}
                         >
                           {m ?? '—'}
@@ -2254,7 +2307,12 @@ export default function BaholarSection({
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>
           ) : (
             <XScroll ref={tableRef}>
-              <table className="w-max min-w-full border-separate border-spacing-0 text-[13px]">
+              <table
+                className="w-max min-w-full border-separate border-spacing-0 text-[13px]"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
+                }}
+              >
                 <thead className="relative z-20">
                   <tr className="text-[11px] font-bold tracking-wider text-fg-subtle uppercase">
                     <th className="sticky left-0 z-20 w-10 min-w-10 max-w-10 border-b border-r border-line bg-ink-900 px-2 py-2">
@@ -2263,18 +2321,49 @@ export default function BaholarSection({
                     <th className="sticky left-10 z-20 min-w-[13rem] max-w-[18rem] border-b border-r border-line bg-ink-900 px-3 py-2 text-left shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]">
                       F.I.Sh.
                     </th>
-                    <th className="min-w-[16rem] border-b border-line bg-ink-900 px-2 py-2 text-left">
+                    <th
+                      className={cx(
+                        'min-w-[16rem] border-b border-line bg-ink-900 px-2 py-2 text-left transition-colors',
+                        activeCell?.c === 0 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
+                      )}
+                    >
                       Amaliyot joyi
                     </th>
-                    <th className="border-b border-line bg-ink-900 px-2 py-2">Boshlanish</th>
-                    <th className="border-b border-line bg-ink-900 px-2 py-2">Tugash</th>
-                    <th className="border-b border-line bg-ink-900 px-2 py-2">Baho</th>
+                    <th
+                      className={cx(
+                        'border-b border-line bg-ink-900 px-2 py-2 transition-colors',
+                        activeCell?.c === 1 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
+                      )}
+                    >
+                      Boshlanish
+                    </th>
+                    <th
+                      className={cx(
+                        'border-b border-line bg-ink-900 px-2 py-2 transition-colors',
+                        activeCell?.c === 2 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
+                      )}
+                    >
+                      Tugash
+                    </th>
+                    <th
+                      className={cx(
+                        'border-b border-line bg-ink-900 px-2 py-2 transition-colors',
+                        activeCell?.c === 3 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
+                      )}
+                    >
+                      Baho
+                    </th>
                     {!faqat5 && (
                       <th className="border-b border-line bg-ink-900 px-2 py-2" title="Avtomatik hosil qilinadi">
                         Reyting
                       </th>
                     )}
-                    <th className="min-w-[12rem] border-b border-line bg-ink-900 px-2 py-2 text-left">
+                    <th
+                      className={cx(
+                        'min-w-[12rem] border-b border-line bg-ink-900 px-2 py-2 text-left transition-colors',
+                        activeCell?.c === 4 && 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]',
+                      )}
+                    >
                       Izoh
                     </th>
                   </tr>
@@ -2284,45 +2373,68 @@ export default function BaholarSection({
                     const ch = (f: AmField) => `${s.pinfl}|${f}` in amEdits
                     const ball = amShown(s.pinfl, 'ball')
                     const rey = amReyting(s.pinfl)
+                    const rowActive = activeCell?.r === r
+                    const amCellCls = (colIdx: number) => {
+                      const colActive = activeCell?.c === colIdx
+                      if (rowActive && colActive) return 'bg-[linear-gradient(rgb(56_189_248_/_0.24),rgb(56_189_248_/_0.24))]'
+                      if (rowActive) return 'bg-[linear-gradient(rgb(56_189_248_/_0.10),rgb(56_189_248_/_0.10))]'
+                      if (colActive) return 'bg-[linear-gradient(rgb(56_189_248_/_0.12),rgb(56_189_248_/_0.12))]'
+                      return ''
+                    }
                     const txt = (f: AmField, extra = '') =>
                       cx('field h-8 py-0', extra, ch(f) && 'border-amber/60 bg-amber/10')
                     return (
-                      <tr key={s.pinfl} className="group hover:bg-ink-850/50">
-                        <td className="sticky left-0 z-10 w-10 min-w-10 max-w-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums text-fg-subtle group-hover:bg-ink-800">
+                      <tr key={s.pinfl} className={cx('group', !rowActive && 'hover:bg-ink-850/50')}>
+                        <td
+                          className={cx(
+                            'sticky left-0 z-10 w-10 min-w-10 max-w-10 border-b border-r border-line bg-ink-900 px-2 py-1 text-center text-[12px] tabular-nums transition-colors',
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
+                              : 'text-fg-subtle group-hover:bg-ink-800',
+                          )}
+                        >
                           {r + 1}
                         </td>
                         <td
-                          className="sticky left-10 z-10 min-w-[13rem] max-w-[18rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1 font-semibold text-fg group-hover:bg-ink-800 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]"
+                          className={cx(
+                            'sticky left-10 z-10 min-w-[13rem] max-w-[18rem] truncate border-b border-r border-line bg-ink-900 px-3 py-1 font-semibold transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]',
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] !text-sky-soft'
+                              : 'text-fg group-hover:bg-ink-800',
+                          )}
                           title={holatTitle(s)}
                         >
                           {fullName(s)}
                           {holatBelgi(s)}
                         </td>
-                        <td className="border-b border-line px-1 py-1">
+                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(0))}>
                           <input
                             className={txt('joy')}
                             value={amShown(s.pinfl, 'joy')}
                             maxLength={200}
+                            onFocus={() => setActiveCell({ r, c: 0 })}
                             onChange={(e) => setAm(s.pinfl, 'joy', e.target.value)}
                           />
                         </td>
-                        <td className="border-b border-line px-1 py-1">
+                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(1))}>
                           <input
                             type="date"
                             className={txt('boshlanish', 'w-[9.5rem]')}
                             value={amShown(s.pinfl, 'boshlanish')}
+                            onFocus={() => setActiveCell({ r, c: 1 })}
                             onChange={(e) => setAm(s.pinfl, 'boshlanish', e.target.value)}
                           />
                         </td>
-                        <td className="border-b border-line px-1 py-1">
+                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(2))}>
                           <input
                             type="date"
                             className={txt('tugash', 'w-[9.5rem]')}
                             value={amShown(s.pinfl, 'tugash')}
+                            onFocus={() => setActiveCell({ r, c: 2 })}
                             onChange={(e) => setAm(s.pinfl, 'tugash', e.target.value)}
                           />
                         </td>
-                        <td className="border-b border-line px-1 py-1 text-center">
+                        <td className={cx('border-b border-line px-1 py-1 text-center transition-colors', amCellCls(3))}>
                           <input
                             data-cell={`${r}:0`}
                             inputMode="numeric"
@@ -2332,7 +2444,10 @@ export default function BaholarSection({
                             className={cellCls(ch('ball'), parseBaho(ball) === undefined)}
                             onChange={(e) => setAm(s.pinfl, 'ball', e.target.value)}
                             onKeyDown={(e) => onCellKey(e, r, 0, 1, tableRef)}
-                            onFocus={(e) => e.currentTarget.select()}
+                            onFocus={(e) => {
+                              e.currentTarget.select()
+                              setActiveCell({ r, c: 3 })
+                            }}
                           />
                         </td>
                         {!faqat5 && (
@@ -2340,16 +2455,18 @@ export default function BaholarSection({
                             className={cx(
                               'border-b border-line px-2 py-1 text-center font-semibold tabular-nums',
                               rey === null ? 'text-fg-subtle' : BAHO_RANG[bahoOf(rey)],
+                              rowActive && 'bg-[linear-gradient(rgb(56_189_248_/_0.10),rgb(56_189_248_/_0.10))]',
                             )}
                           >
                             {rey ?? '—'}
                           </td>
                         )}
-                        <td className="border-b border-line px-1 py-1">
+                        <td className={cx('border-b border-line px-1 py-1 transition-colors', amCellCls(4))}>
                           <input
                             className={txt('izoh')}
                             value={amShown(s.pinfl, 'izoh')}
                             maxLength={500}
+                            onFocus={() => setActiveCell({ r, c: 4 })}
                             onChange={(e) => setAm(s.pinfl, 'izoh', e.target.value)}
                           />
                         </td>
@@ -2554,41 +2671,86 @@ export default function BaholarSection({
 
             {/* Alohida Fan Jadvali */}
             <div ref={focusTableRef} className="overflow-auto flex-1 px-3 pb-3 pt-0">
-              <table className="w-full text-left text-[13px] border-separate border-spacing-0">
+              <table
+                className="w-full text-left text-[13px] border-separate border-spacing-0"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusActiveCell(null)
+                }}
+              >
                 <thead className="sticky top-0 z-10 bg-ink-950 text-[11px] font-bold text-fg-subtle uppercase">
                   <tr>
                     <th className="border-b border-line bg-ink-950 py-2.5 px-3 w-12 text-center">№</th>
                     <th className="border-b border-line bg-ink-950 py-2.5 px-4 min-w-[200px]">Talaba F.I.Sh.</th>
-                    {BAHO_TURLARI.map((t) => (
-                      <th key={t.key} className={cx('border-b border-line bg-ink-950 py-2.5 px-2 text-center', t.key === 'r_semestr' ? 'w-24 text-amber' : 'w-20')}>
-                        <CopyColMenu
-                          from={t.key as Kiritiladigan}
-                          cols={BAHO_TURLARI}
-                          title={focusedFan}
-                          onCopy={(to, onlyEmpty) => copyColumn(focusedFan, t.key, to, onlyEmpty)}
+                    {BAHO_TURLARI.map((t, ti) => {
+                      const colFocused = focusActiveCell?.c === ti
+                      return (
+                        <th
+                          key={t.key}
+                          className={cx(
+                            'border-b border-line py-2.5 px-2 text-center transition-colors',
+                            colFocused
+                              ? 'bg-ink-950 bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
+                              : 'bg-ink-950',
+                            t.key === 'r_semestr' ? 'w-24 text-amber' : 'w-20',
+                          )}
                         >
-                          {t.label}
-                        </CopyColMenu>
-                      </th>
-                    ))}
+                          <CopyColMenu
+                            from={t.key as Kiritiladigan}
+                            cols={BAHO_TURLARI}
+                            title={focusedFan}
+                            onCopy={(to, onlyEmpty) => copyColumn(focusedFan, t.key, to, onlyEmpty)}
+                          >
+                            {t.label}
+                          </CopyColMenu>
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/40">
                   {rows.map((s, r) => {
                     const focusCols: Kiritiladigan[] = ['yakuniy', 'joriy', 'oraliq', 'r_semestr']
                     const focusColsList = focusCols.map((k) => ({ fan: focusedFan, key: k }))
+                    const rowActive = focusActiveCell?.r === r
 
                     return (
-                      <tr key={s.pinfl} className="hover:bg-ink-850/60 transition-colors">
-                        <td className="py-2.5 px-3 text-center text-[12px] font-mono text-fg-subtle">
+                      <tr key={s.pinfl} className={cx('transition-colors', !rowActive && 'hover:bg-ink-850/60')}>
+                        <td
+                          className={cx(
+                            'border-b border-line/40 py-2.5 px-3 text-center text-[12px] font-mono transition-colors',
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
+                              : 'text-fg-subtle',
+                          )}
+                        >
                           {r + 1}
                         </td>
-                        <td className="py-2.5 px-4 font-semibold text-fg">{fullName(s)}</td>
+                        <td
+                          className={cx(
+                            'border-b border-line/40 py-2.5 px-4 font-semibold transition-colors',
+                            rowActive ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] text-sky-soft' : 'text-fg',
+                          )}
+                        >
+                          {fullName(s)}
+                        </td>
                         {focusCols.map((colKey, c) => {
                           const v = shown(s.pinfl, focusedFan, colKey)
                           const changed = `${s.pinfl}|${focusedFan}|${colKey}` in edits
+                          const colActive = focusActiveCell?.c === c
                           return (
-                            <td key={colKey} className="py-2 px-2 text-center">
+                            <td
+                              key={colKey}
+                              className={cx(
+                                'border-b border-line/40 py-2 px-2 text-center transition-colors',
+                                rowActive && colActive
+                                  ? 'bg-[linear-gradient(rgb(56_189_248_/_0.24),rgb(56_189_248_/_0.24))]'
+                                  : rowActive
+                                    ? 'bg-[linear-gradient(rgb(56_189_248_/_0.10),rgb(56_189_248_/_0.10))]'
+                                    : colActive
+                                      ? 'bg-[linear-gradient(rgb(56_189_248_/_0.12),rgb(56_189_248_/_0.12))]'
+                                      : '',
+                              )}
+                            >
                               <input
                                 data-cell={`${r}:${c}`}
                                 inputMode="numeric"
@@ -2602,7 +2764,10 @@ export default function BaholarSection({
                                 onChange={(e) => setCell(s.pinfl, focusedFan, colKey, e.target.value)}
                                 onKeyDown={(e) => onCellKey(e, r, c, 4, focusTableRef)}
                                 onPaste={(e) => handlePaste(e, r, c, focusColsList)}
-                                onFocus={(e) => e.currentTarget.select()}
+                                onFocus={(e) => {
+                                  e.currentTarget.select()
+                                  setFocusActiveCell({ r, c })
+                                }}
                               />
                             </td>
                           )

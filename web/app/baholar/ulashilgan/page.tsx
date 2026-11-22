@@ -93,7 +93,12 @@ function TeacherGradesContent() {
   const savingRef = useRef(false)
   const [savedSuccess, setSavedSuccess] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'info' | 'success'; text: string } | null>(null)
+  const [activeCell, setActiveCell] = useState<{ r: number; c: number; fan?: string } | null>(null)
   const tableRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setActiveCell(null)
+  }, [activeFan, butun])
 
   const loadData = useCallback(
     async (keepFan?: string) => {
@@ -472,8 +477,18 @@ function TeacherGradesContent() {
     const val = getShownVal(s.pinfl, fan, col)
     const isEdited = editKey(s.pinfl, fan, col) in edits
     const bad = isInvalid(val)
+    const rowActive = activeCell?.r === r
+    const colActive = activeCell?.c === idx
+    const focusCls =
+      rowActive && colActive
+        ? 'bg-[linear-gradient(rgb(56_189_248_/_0.24),rgb(56_189_248_/_0.24))]'
+        : rowActive
+          ? 'bg-[linear-gradient(rgb(56_189_248_/_0.10),rgb(56_189_248_/_0.10))]'
+          : colActive
+            ? 'bg-[linear-gradient(rgb(56_189_248_/_0.12),rgb(56_189_248_/_0.12))]'
+            : ''
     return (
-      <td key={fan + col} className={`py-2 px-0.5 sm:px-2 text-center ${className}`}>
+      <td key={fan + col} className={`py-2 px-0.5 sm:px-2 text-center transition-colors ${focusCls} ${className}`}>
         <input
           data-cell={`${r}:${idx}`}
           type="text"
@@ -485,7 +500,10 @@ function TeacherGradesContent() {
           onChange={(e) => setCells([{ pinfl: s.pinfl, col, value: e.target.value, fan }])}
           onKeyDown={(e) => handleKeyNav(e, r, idx)}
           onPaste={(e) => handlePaste(e, r, idx)}
-          onFocus={(e) => e.currentTarget.select()}
+          onFocus={(e) => {
+            e.currentTarget.select()
+            setActiveCell({ r, c: idx, fan })
+          }}
           className={`h-9 w-9 ${keng ? 'sm:w-10' : 'sm:w-12'} rounded-lg border text-center text-[14px] font-bold tabular-nums outline-none transition-all ${
             bad
               ? 'border-rose bg-rose/10 text-rose'
@@ -715,19 +733,31 @@ function TeacherGradesContent() {
         {keng && students.length > 0 && (
           <div className="panel overflow-clip border-line bg-ink-900 shadow-2xl">
             <XScroll ref={tableRef}>
-              <table className="text-left text-[13px] border-collapse">
-                <thead className="sticky top-0 z-10 bg-ink-950 border-b border-line text-[10.5px] font-bold text-fg-subtle uppercase tracking-wider">
+              <table
+                className="text-left text-[13px] border-separate border-spacing-0"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
+                }}
+              >
+                <thead className="relative z-10 bg-ink-950 border-b border-line text-[10.5px] font-bold text-fg-subtle uppercase tracking-wider">
                   <tr>
                     <th rowSpan={2} className="sticky left-0 z-20 w-9 sm:w-11 bg-ink-950 py-2 px-1 text-center border-b border-line">№</th>
-                    <th rowSpan={2} className="sticky left-9 sm:left-11 z-20 min-w-[9rem] sm:min-w-[15rem] bg-ink-950 py-2 px-2 sm:px-3 border-b border-r border-line">Talaba F.I.Sh.</th>
+                    <th rowSpan={2} className="sticky left-9 sm:left-11 z-20 min-w-[9rem] sm:min-w-[15rem] bg-ink-950 py-2 px-2 sm:px-3 border-b border-r border-line shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)]">Talaba F.I.Sh.</th>
                     {fanlar.map((f, fi) => {
                       const st = fanStats.get(f) ?? { done: 0, dirty: 0, bad: 0 }
+                      const fanFocused = activeCell?.fan === f
                       return (
-                        <th key={f} colSpan={COLS.length} className="border-b border-r border-line px-2 py-1.5 text-center normal-case tracking-normal">
+                        <th
+                          key={f}
+                          colSpan={COLS.length}
+                          className={`border-b border-r border-line bg-ink-950 px-2 py-1.5 text-center normal-case tracking-normal transition-colors ${
+                            fanFocused ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] shadow-[inset_0_2px_0_var(--color-sky)]' : ''
+                          }`}
+                        >
                           <button
                             type="button"
                             onClick={() => goFan(fi)}
-                            className="mx-auto block max-w-[15rem] truncate text-[12px] font-extrabold text-fg hover:text-sky-soft"
+                            className={`mx-auto block max-w-[15rem] truncate text-[12px] font-extrabold hover:text-sky-soft ${fanFocused ? 'text-sky-soft' : 'text-fg'}`}
                             title={`${f} — faqat shu fanni ochish`}
                           >
                             {fi + 1}. {f}
@@ -741,28 +771,57 @@ function TeacherGradesContent() {
                     })}
                   </tr>
                   <tr>
-                    {fanlar.map((f) =>
-                      COLS.map((c, ci) => (
-                        <th
-                          key={f + c}
-                          className={`border-b border-line bg-ink-900 px-0.5 py-1 text-center whitespace-nowrap ${c === 'r_semestr' ? 'text-amber' : ''} ${ci === COLS.length - 1 ? 'border-r' : ''}`}
-                        >
-                          {colHead(f, c, true)}
-                        </th>
-                      )),
+                    {fanlar.map((f, fi) =>
+                      COLS.map((c, ci) => {
+                        const colIdx = fi * COLS.length + ci
+                        const colFocused = activeCell?.c === colIdx
+                        return (
+                          <th
+                            key={f + c}
+                            className={`border-b border-line bg-ink-900 px-0.5 py-1 text-center whitespace-nowrap transition-colors ${
+                              colFocused
+                                ? 'bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
+                                : c === 'r_semestr'
+                                  ? 'text-amber'
+                                  : ''
+                            } ${ci === COLS.length - 1 ? 'border-r' : ''}`}
+                          >
+                            {colHead(f, c, true)}
+                          </th>
+                        )
+                      }),
                     )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/40">
-                  {students.map((s, r) => (
-                    <tr key={s.pinfl} className="group">
-                      <td className="sticky left-0 z-[1] bg-ink-900 group-hover:bg-ink-850 py-2 px-1 text-center text-[12px] font-mono text-fg-muted">{s.tartib}</td>
-                      <td className="sticky left-9 sm:left-11 z-[1] bg-ink-900 group-hover:bg-ink-850 py-2 px-2 sm:px-3 border-r border-line text-[12.5px] leading-snug font-semibold text-fg sm:whitespace-nowrap">{s.name}</td>
-                      {fanlar.map((f, fi) =>
-                        COLS.map((col, c) => cell(s, r, f, col, fi * COLS.length + c, c === COLS.length - 1 ? 'border-r border-line' : '')),
-                      )}
-                    </tr>
-                  ))}
+                  {students.map((s, r) => {
+                    const rowActive = activeCell?.r === r
+                    return (
+                      <tr key={s.pinfl} className="group">
+                        <td
+                          className={`sticky left-0 z-[1] border-b border-line/40 bg-ink-900 py-2 px-1 text-center text-[12px] font-mono transition-colors ${
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
+                              : 'text-fg-muted group-hover:bg-ink-850'
+                          }`}
+                        >
+                          {s.tartib}
+                        </td>
+                        <td
+                          className={`sticky left-9 sm:left-11 z-[1] border-b border-line/40 bg-ink-900 py-2 px-2 sm:px-3 border-r border-line text-[12.5px] leading-snug font-semibold sm:whitespace-nowrap transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.35)] ${
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] !text-sky-soft'
+                              : 'text-fg group-hover:bg-ink-850'
+                          }`}
+                        >
+                          {s.name}
+                        </td>
+                        {fanlar.map((f, fi) =>
+                          COLS.map((col, c) => cell(s, r, f, col, fi * COLS.length + c, `border-b border-line/40 ${c === COLS.length - 1 ? 'border-r border-line' : ''}`)),
+                        )}
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </XScroll>
@@ -785,29 +844,60 @@ function TeacherGradesContent() {
               </div>
             )}
             <XScroll ref={tableRef}>
-              <table className="w-full text-left text-[13px] border-collapse">
-                <thead className="sticky top-0 z-10 bg-ink-950/95 backdrop-blur-sm border-b border-line text-[11px] font-bold text-fg-subtle uppercase tracking-wider">
+              <table
+                className="w-full text-left text-[13px] border-separate border-spacing-0"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setActiveCell(null)
+                }}
+              >
+                <thead className="sticky top-0 z-10 bg-ink-950 border-b border-line text-[11px] font-bold text-fg-subtle uppercase tracking-wider">
                   <tr>
-                    <th className="py-3 px-1 sm:px-3 w-8 sm:w-12 text-center">№</th>
-                    <th className="py-3 px-1.5 sm:px-4 sm:min-w-[200px]">Talaba F.I.Sh.</th>
-                    {COLS.map((c) => (
-                      <th
-                        key={c}
-                        className={`py-3 px-0.5 sm:px-2 text-center whitespace-nowrap ${c === 'r_semestr' ? 'sm:w-24 text-amber' : 'sm:w-20'}`}
-                      >
-                        {colHead(activeFan, c)}
-                      </th>
-                    ))}
+                    <th className="border-b border-line bg-ink-950 py-3 px-1 sm:px-3 w-8 sm:w-12 text-center">№</th>
+                    <th className="border-b border-line bg-ink-950 py-3 px-1.5 sm:px-4 sm:min-w-[200px]">Talaba F.I.Sh.</th>
+                    {COLS.map((c, ci) => {
+                      const colFocused = activeCell?.c === ci
+                      return (
+                        <th
+                          key={c}
+                          className={`border-b border-line bg-ink-950 py-3 px-0.5 sm:px-2 text-center whitespace-nowrap transition-colors ${
+                            colFocused
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.26),rgb(56_189_248_/_0.26))] !text-sky-soft shadow-[inset_0_-2px_0_var(--color-sky)]'
+                              : c === 'r_semestr'
+                                ? 'text-amber'
+                                : ''
+                          } ${c === 'r_semestr' ? 'sm:w-24' : 'sm:w-20'}`}
+                        >
+                          {colHead(activeFan, c)}
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line/40">
-                  {students.map((s, r) => (
-                    <tr key={s.pinfl} className="hover:bg-ink-850/60 transition-colors">
-                      <td className="py-2.5 px-1 sm:px-3 text-center text-[12px] font-mono text-fg-muted">{s.tartib}</td>
-                      <td className="py-2.5 px-1.5 sm:px-4 text-[12.5px] sm:text-[13px] leading-snug font-semibold text-fg">{s.name}</td>
-                      {COLS.map((col, c) => cell(s, r, activeFan, col, c))}
-                    </tr>
-                  ))}
+                  {students.map((s, r) => {
+                    const rowActive = activeCell?.r === r
+                    return (
+                      <tr key={s.pinfl} className={`transition-colors ${!rowActive ? 'hover:bg-ink-850/60' : ''}`}>
+                        <td
+                          className={`border-b border-line/40 py-2.5 px-1 sm:px-3 text-center text-[12px] font-mono transition-colors ${
+                            rowActive
+                              ? 'bg-[linear-gradient(rgb(56_189_248_/_0.22),rgb(56_189_248_/_0.22))] !text-sky-soft font-bold shadow-[inset_3px_0_0_var(--color-sky)]'
+                              : 'text-fg-muted'
+                          }`}
+                        >
+                          {s.tartib}
+                        </td>
+                        <td
+                          className={`border-b border-line/40 py-2.5 px-1.5 sm:px-4 text-[12.5px] sm:text-[13px] leading-snug font-semibold transition-colors ${
+                            rowActive ? 'bg-[linear-gradient(rgb(56_189_248_/_0.18),rgb(56_189_248_/_0.18))] text-sky-soft' : 'text-fg'
+                          }`}
+                        >
+                          {s.name}
+                        </td>
+                        {COLS.map((col, c) => cell(s, r, activeFan, col, c, 'border-b border-line/40'))}
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </XScroll>
