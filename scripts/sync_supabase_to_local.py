@@ -33,55 +33,46 @@ BAZA_FILE = os.path.join(BASE_DIR, 'data', 'talabalar_bazasi.json')
 with open(STUDENTS_FILE, 'r', encoding='utf-8') as f:
     local_students = json.load(f)
 
-local_by_row = {s['row']: s for s in local_students if 'row' in s}
-added_count = 0
-
+updated_students = []
 for s in sb_students:
     r = s.get('row')
-    if r not in local_by_row:
-        # Yangi talaba
-        new_entry = {
-            "row": int(s.get("row") or len(local_students) + 1),
-            "tr": int(s.get("tr") or len(local_students) + 1),
-            "shnum": str(s.get("shnum") or ''),
-            "sana": str(s.get("sana") or ''),
-            "ism": str(s.get("ism") or ''),
-            "ota": str(s.get("ota") or ''),
-            "fish": str(s.get("fish") or f"{s.get('ism', '')} {s.get('ota', '')}".strip()),
-            "yon": str(s.get("yon") or ''),
-            "group": str(s.get("group") or ''),
-            "pv": str(s.get("pv") or ''),
-            "pass_type": str(s.get("pass_type") or ''),
-            "pinfl": str(s.get("pinfl") or ''),
-            "dob": str(s.get("dob") or ''),
-            "ber": str(s.get("ber") or ''),
-            "sh_doc": str(s.get("sh_doc") or ''),
-            "sh_qr": str(s.get("sh_qr") or ''),
-            "mak": str(s.get("mak") or ''),
-            "doc_tur": str(s.get("doc_tur") or ''),
-            "yil": str(s.get("yil") or ''),
-            "tel": str(s.get("tel") or ''),
-            "doc_file": str(s.get("doc_file") or ''),
-            "status": str(s.get("status") or 'full'),
-            "pass_fish": str(s.get("pass_fish") or ''),
-            "cert_fish": str(s.get("cert_fish") or ''),
-            "name_match": str(s.get("name_match") or ''),
-            "name_flag": str(s.get("name_flag") or ''),
-            "verified": str(s.get("verified") or 'KUTILMOQDA'),
-            "baza": str(s.get("baza") or 'KIRITILDI'),
-            "buyruq": str(s.get("buyruq") or ''),
-            "buyruq_sana": str(s.get("buyruq_sana") or '')
-        }
-        local_students.append(new_entry)
-        local_by_row[r] = new_entry
-        added_count += 1
-        print(f"  + Qo'shildi: Row {r} | [{new_entry['group']}] {new_entry['fish']}")
-    else:
-        # Mavjud talaba maydonlarini yangilash agar kerak bo'lsa
-        loc = local_by_row[r]
-        for field in ['verified', 'baza', 'group']:
-            if s.get(field):
-                loc[field] = s[field]
+    entry = {
+        "id": s.get("id"),
+        "row": int(s.get("row") or len(updated_students) + 1),
+        "tr": int(s.get("tr") or len(updated_students) + 1),
+        "shnum": str(s.get("shnum") or ''),
+        "sana": str(s.get("sana") or ''),
+        "ism": str(s.get("ism") or ''),
+        "ota": str(s.get("ota") or ''),
+        "fish": str(s.get("fish") or f"{s.get('ism', '')} {s.get('ota', '')}".strip()),
+        "yon": str(s.get("yon") or ''),
+        "group": str(s.get("group") or ''),
+        "pv": str(s.get("pv") or ''),
+        "pass_type": str(s.get("pass_type") or ''),
+        "pinfl": str(s.get("pinfl") or ''),
+        "dob": str(s.get("dob") or ''),
+        "ber": str(s.get("ber") or ''),
+        "sh_doc": str(s.get("sh_doc") or ''),
+        "sh_qr": str(s.get("sh_qr") or ''),
+        "mak": str(s.get("mak") or ''),
+        "doc_tur": str(s.get("doc_tur") or ''),
+        "yil": str(s.get("yil") or ''),
+        "tel": str(s.get("tel") or ''),
+        "doc_file": str(s.get("doc_file") or ''),
+        "status": str(s.get("status") or 'full'),
+        "pass_fish": str(s.get("pass_fish") or ''),
+        "cert_fish": str(s.get("cert_fish") or ''),
+        "name_match": str(s.get("name_match") or ''),
+        "name_flag": str(s.get("name_flag") or ''),
+        "verified": str(s.get("verified") or 'KUTILMOQDA'),
+        "baza": str(s.get("baza") or 'KIRITILDI'),
+        "buyruq": str(s.get("buyruq") or ''),
+        "buyruq_sana": str(s.get("buyruq_sana") or '')
+    }
+    updated_students.append(entry)
+
+local_students = updated_students
+
 
 # Sort by row
 local_students.sort(key=lambda x: int(x.get('row', 0)))
@@ -100,4 +91,4 @@ with open(BAZA_FILE, 'w', encoding='utf-8') as f:
     json.dump(talabalar_bazasi_payload, f, ensure_ascii=False, indent=2)
 print(f"✅ data/talabalar_bazasi.json saqlandi ({len(local_students)} ta talaba).")
 
-print(f"Sinxronizatsiya yakunlandi! (+{added_count} ta yangi talaba kiritildi).")
+print(f"Sinxronizatsiya yakunlandi! ({len(local_students)} ta talaba to'liq sinxronlandi).")

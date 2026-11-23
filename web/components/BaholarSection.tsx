@@ -26,6 +26,7 @@ import {
   RefreshCw,
   RotateCcw,
   Save,
+  Search,
   Share2,
   Trash2,
   Undo2,
@@ -203,9 +204,13 @@ export default function BaholarSection({
   const [justMovedPinfl, setJustMovedPinfl] = useState<string | null>(null)
   const [reorderModalOpen, setReorderModalOpen] = useState(false)
 
-  // 2. Yashirilgan fanlar ro'yxati
+  // 2. Yashirilgan fanlar ro'yxati va fan qidirish
   const [hiddenFanlar, setHiddenFanlar] = useState<string[]>([])
   const [fanVisibilityModalOpen, setFanVisibilityModalOpen] = useState(false)
+  const [fanSearch, setFanSearch] = useState('')
+  useEffect(() => {
+    setFanSearch('')
+  }, [guruh, semestr])
 
   // 3. Fanni alohida ochib baholash (Fokus rejimi)
   const [focusedFan, setFocusedFan] = useState<string | null>(null)
@@ -662,10 +667,11 @@ export default function BaholarSection({
 
   const fanlar: Fan[] = data?.fanlar ?? []
 
-  // Ko'rinadigan fanlar (yashirilmaganlari)
+  // Ko'rinadigan fanlar (yashirilmaganlari + qidiruv filtri)
   const visibleFanlar = useMemo(() => {
-    return fanlar.filter((f) => !hiddenFanlar.includes(f.nom))
-  }, [fanlar, hiddenFanlar])
+    const q = fanSearch.trim().toLowerCase()
+    return fanlar.filter((f) => !hiddenFanlar.includes(f.nom) && (!q || f.nom.toLowerCase().includes(q)))
+  }, [fanlar, hiddenFanlar, fanSearch])
 
   const storeHidden = (next: string[]) => {
     try {
@@ -1292,10 +1298,10 @@ export default function BaholarSection({
 
     const toExport = (g: Record<Kiritiladigan, number | null>, rey: Reyting, stored?: BahoRow): ExportGrade => ({
       y: g.yakuniy, j: g.joriy, o: g.oraliq, r: g.r_semestr ?? rey.r_semestr,
-      y100: stored?.yakuniy100 ?? rey.yakuniy100,
-      j100: stored?.joriy100 ?? rey.joriy100,
-      o100: stored?.oraliq100 ?? rey.oraliq100,
-      r100: stored?.r100 ?? rey.r100,
+      y100: g.yakuniy === stored?.yakuniy && stored?.yakuniy100 != null ? stored.yakuniy100 : rey.yakuniy100,
+      j100: g.joriy === stored?.joriy && stored?.joriy100 != null ? stored.joriy100 : rey.joriy100,
+      o100: g.oraliq === stored?.oraliq && stored?.oraliq100 != null ? stored.oraliq100 : rey.oraliq100,
+      r100: (g.r_semestr ?? rey.r_semestr) === stored?.r_semestr && stored?.r100 != null ? stored.r100 : rey.r100,
     })
     const fromRow = (stored: BahoRow | undefined, pinfl: string, fan: string): ExportGrade => {
       const g = { yakuniy: null, joriy: null, oraliq: null, r_semestr: null } as Record<Kiritiladigan, number | null>
@@ -1841,6 +1847,35 @@ export default function BaholarSection({
                   <span>Alifbo tartibini tiklash</span>
                 </button>
               )}
+
+              {/* Fanni qidirish maydoni */}
+              {fanlar.length > 0 && (
+                <div className="relative flex items-center">
+                  <Search size={13} className="pointer-events-none absolute left-2.5 text-fg-subtle" />
+                  <input
+                    type="text"
+                    value={fanSearch}
+                    onChange={(e) => setFanSearch(e.target.value)}
+                    placeholder="Fanni qidirish..."
+                    aria-label="Fanni qidirish"
+                    className={cx(
+                      'input h-8 w-44 sm:w-52 pl-8 pr-7 text-[12px] transition-colors',
+                      fanSearch.trim() && 'border-sky/60 bg-sky/5 text-fg',
+                    )}
+                  />
+                  {fanSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setFanSearch('')}
+                      className="absolute right-1.5 grid size-5 place-items-center rounded text-fg-muted hover:bg-ink-800 hover:text-fg"
+                      title="Qidiruvni tozalash"
+                      aria-label="Qidiruvni tozalash"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -1932,6 +1967,21 @@ export default function BaholarSection({
             </div>
           ) : rows.length === 0 ? (
             <div className="px-6 py-14 text-center text-[13px] text-fg-muted">Bu guruhda talaba yo'q.</div>
+          ) : fanSearch.trim() && visibleFanlar.length === 0 ? (
+            <div className="grid place-items-center gap-3 px-6 py-14 text-center">
+              <Search size={28} className="text-fg-subtle" />
+              <div className="text-[14px] font-bold text-fg">
+                «{fanSearch.trim()}» bo‘yicha fan topilmadi
+              </div>
+              <button
+                type="button"
+                onClick={() => setFanSearch('')}
+                className="btn-ghost h-8 px-3 text-[12px]"
+              >
+                <X size={13} />
+                <span>Qidiruvni tozalash</span>
+              </button>
+            </div>
           ) : (
             /* ASOSIY JADVAL */
             <XScroll ref={tableRef}>
