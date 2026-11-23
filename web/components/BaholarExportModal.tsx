@@ -36,14 +36,41 @@ export default function BaholarExportModal({ guruh, semestr, plan, joriyFanlar, 
   const [turi, setTuri] = useState<ExportTuri>('baza')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [remoteFanlar, setRemoteFanlar] = useState<Record<number, string[]>>({})
+  const [loadingSem, setLoadingSem] = useState(false)
+
+  useEffect(() => {
+    if (sem === semestr || remoteFanlar[sem] !== undefined) return
+    let active = true
+    setLoadingSem(true)
+    fetch(`/api/baholar?guruh=${encodeURIComponent(guruh)}&semestr=${sem}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((body) => {
+        if (!active) return
+        if (body?.ok && Array.isArray(body.fanlar)) {
+          setRemoteFanlar((prev) => ({ ...prev, [sem]: body.fanlar.map((f: { nom: string }) => f.nom) }))
+        } else {
+          setRemoteFanlar((prev) => ({ ...prev, [sem]: [] }))
+        }
+      })
+      .catch(() => {
+        if (active) setRemoteFanlar((prev) => ({ ...prev, [sem]: [] }))
+      })
+      .finally(() => {
+        if (active) setLoadingSem(false)
+      })
+    return () => { active = false }
+  }, [sem, semestr, guruh, remoteFanlar])
 
   const planFanlar = (s: number) =>
     [...(plan?.semestrlar?.[String(s)]?.fanlar ?? [])].sort((a, b) => a.tartib - b.tartib).map((f) => f.nom)
   const fanlar = useMemo(() => {
+    if (sem === semestr && joriyFanlar.length > 0) return joriyFanlar
+    if (sem !== semestr && remoteFanlar[sem]?.length) return remoteFanlar[sem]
     const p = planFanlar(sem)
     return p.length ? p : sem === semestr ? joriyFanlar : []
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sem, plan, joriyFanlar, semestr])
+  }, [sem, plan, joriyFanlar, semestr, remoteFanlar])
   const [tanlangan, setTanlangan] = useState<Set<string>>(new Set())
   useEffect(() => setTanlangan(new Set(fanlar)), [fanlar])
 
@@ -91,29 +118,34 @@ export default function BaholarExportModal({ guruh, semestr, plan, joriyFanlar, 
             <div className="label mb-1.5">Semestr</div>
             <div className="flex flex-wrap gap-1.5">
               {SEMESTRLAR.map((s) => {
-                const n = planFanlar(s).length
+                const n = s === semestr && joriyFanlar.length > 0
+                  ? joriyFanlar.length
+                  : remoteFanlar[s]?.length
+                    ? remoteFanlar[s].length
+                    : planFanlar(s).length
                 return (
                   <button key={s} type="button" onClick={() => setSem(s)} aria-pressed={sem === s}
                     className={cx('rounded-lg border px-3 py-1.5 text-left text-[12.5px] font-bold transition-colors',
                       sem === s ? 'border-accent bg-accent text-white' : 'border-line text-fg-muted hover:border-line-strong hover:text-fg')}>
                     {s}-semestr
-                    {plan && <span className={cx('ml-1.5 text-[11px] font-semibold', sem === s ? 'text-white/80' : 'text-fg-subtle')}>{n} fan</span>}
+                    {(n > 0 || plan) && <span className={cx('ml-1.5 text-[11px] font-semibold', sem === s ? 'text-white/80' : 'text-fg-subtle')}>{n} fan</span>}
                   </button>
                 )
               })}
             </div>
             <p className="mt-1.5 text-[11.5px] text-fg-subtle">
-              {plan
-                ? `O‘quv reja bo‘yicha ${sem}-semestrda ${planFanlar(sem).length} ta fan — boshqa semestr fanlari faylga kirmaydi.`
-                : 'Guruhga o‘quv reja biriktirilmagan — semestrdagi baholar jadvali fanlari olinadi.'}
+              {loadingSem
+                ? `${sem}-semestr fanlari yuklanmoqda...`
+                : fanlar.length > 0
+                ? `${guruh} guruhi ${sem}-semestridagi ${fanlar.length} ta fan eksport qilinadi.`
+                : 'Semestrdagi baholar jadvali fanlari olinadi.'}
             </p>
           </div>
 
           <div>
             <div className="label mb-1.5">Fayl turi</div>
             <div className="grid gap-2">
-              {TURLAR.map(({ key, icon: Icon, title, text: t }) => {
-                const text = faqat5 && key === 'baza' ? '1) 5 ballik · 2) Malakaviy amaliyot — har bir talaba bilan (2 yillik: 100 ballik yo‘q)' : t
+              {TURLAR.map(({ key, icon: Icon, title, text }) => {
                 return (
                 <button key={key} type="button" onClick={() => setTuri(key)} aria-pressed={turi === key}
                   className={cx('flex items-start gap-3 rounded-xl border p-3 text-left transition-colors',

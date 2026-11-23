@@ -52,7 +52,7 @@ function davr(guruh: string, semestr: number) {
 }
 
 export function baholarFileName(d: Pick<BaholarExportData, 'guruh' | 'semestr' | 'davomiylik' | 'faqat5'>) {
-  return `${d.guruh}. ${d.semestr}-s BAHOLAR${d.davomiylik ? ` ${d.davomiylik.replace(/\s+/g, '')}` : ''}${d.faqat5 ? '' : ' (REYTING)'}.xlsx`
+  return `${d.guruh}. ${d.semestr}-s BAHOLAR${d.davomiylik ? ` ${d.davomiylik.replace(/\s+/g, '')}` : ''} (REYTING).xlsx`
 }
 
 export type ExportTuri = 'baza' | 'qaydnoma' | 'hisobot'
@@ -379,10 +379,10 @@ function fanHisobot(d: BaholarExportData, fan: string): Sheet {
   const head = st({ bold: true, color: 'FFFFFF', fill: '1E3A8A', wrap: true })
   sh.merge(2, 0, 3, 0, '№', head)
   sh.merge(2, 1, 3, 1, 'Talabaning F.I.SH', head)
-  const rey = !d.faqat5
+  const rey = true
   sh.merge(2, 2, 2, 5, '5 ballik baholar', st({ bold: true, color: 'FFFFFF', fill: '0F766E' }))
-  if (rey) sh.merge(2, 6, 2, 9, 'Reyting (100 ball)', st({ bold: true, color: 'FFFFFF', fill: '7C3AED' }))
-  ;(rey ? [0, 1] : [0]).forEach((blk) => BAHO_TURLARI.forEach((t, ti) => {
+  sh.merge(2, 6, 2, 9, 'Reyting (100 ball)', st({ bold: true, color: 'FFFFFF', fill: '7C3AED' }))
+  ;[0, 1].forEach((blk) => BAHO_TURLARI.forEach((t, ti) => {
     const isR = t.key === 'r_semestr'
     sh.put(3, 2 + blk * 4 + ti, t.nazorat, st({ bold: true, sz: 9, wrap: true, fill: isR ? 'FDE68A' : 'DBEAFE', color: isR ? '713F12' : '1E3A8A' }))
   }))
@@ -410,7 +410,7 @@ function fanHisobot(d: BaholarExportData, fan: string): Sheet {
   const extra: [string, number | string, string?][] = [
     ['O‘zlashtirish %', s.oz, PCT], ['Sifatli o‘zlashtirish %', s.sifat, PCT],
     ['O‘rtacha baho (R-semestr)', mean(d.talabalar.map((_, i) => d.grade(i, fan).r)) ?? '', '0.00'],
-    ...(rey ? [['O‘rtacha reyting (R-semestr)', mean(d.talabalar.map((_, i) => d.grade(i, fan).r100)) ?? '', '0.00'] as [string, number | string, string]] : []),
+    ['O‘rtacha reyting (R-semestr)', mean(d.talabalar.map((_, i) => d.grade(i, fan).r100)) ?? '', '0.00'],
   ]
   extra.forEach(([t, v, z], i) => {
     const r = fr + 5 + i
@@ -511,11 +511,6 @@ const fileStem = (d: BaholarExportData) => `${d.guruh}. ${d.semestr}-s`
 /** Baza uchun: 1) reyting (100 ball), 2) 5 ballik, 3) malakaviy amaliyot */
 export function exportBaza(d: BaholarExportData) {
   return yozish(d, baholarFileName(d), (add) => {
-    if (d.faqat5) {
-      add(jadval(d, false), '#', '0F766E')
-      add(amaliyotSheet(d), 'Malakaviy amaliyot', 'BE123C')
-      return [[1, 3, 6], [2, 2, 3]]
-    }
     add(jadval(d, true), '# (Reyting)', '7C3AED')
     add(jadval(d, false), '#', '0F766E')
     add(amaliyotSheet(d), 'Malakaviy amaliyot', 'BE123C')

@@ -1288,14 +1288,19 @@ export default function BaholarSection({
       .sort((x, y) => x.tartib - y.tartib)
       .map((f) => f.nom)
 
-    const toExport = (g: Record<Kiritiladigan, number | null>, rey: Reyting): ExportGrade => ({
+    const cleanFan = (s: string) => s.toLowerCase().replace(/[^a-z0-9а-яё]/gi, '')
+
+    const toExport = (g: Record<Kiritiladigan, number | null>, rey: Reyting, stored?: BahoRow): ExportGrade => ({
       y: g.yakuniy, j: g.joriy, o: g.oraliq, r: g.r_semestr ?? rey.r_semestr,
-      y100: rey.yakuniy100, j100: rey.joriy100, o100: rey.oraliq100, r100: rey.r100,
+      y100: stored?.yakuniy100 ?? rey.yakuniy100,
+      j100: stored?.joriy100 ?? rey.joriy100,
+      o100: stored?.oraliq100 ?? rey.oraliq100,
+      r100: stored?.r100 ?? rey.r100,
     })
     const fromRow = (stored: BahoRow | undefined, pinfl: string, fan: string): ExportGrade => {
       const g = { yakuniy: null, joriy: null, oraliq: null, r_semestr: null } as Record<Kiritiladigan, number | null>
       for (const k of KIRITILADIGAN) g[k] = stored?.[k] ?? null
-      return toExport(g, hisoblaReyting(reytingSeed(pinfl, sem, fan), g))
+      return toExport(g, hisoblaReyting(reytingSeed(pinfl, sem, fan), g), stored)
     }
     const BOSH: ExportGrade = { y: null, j: null, o: null, r: null, y100: null, j100: null, o100: null, r100: null }
 
@@ -1305,10 +1310,28 @@ export default function BaholarSection({
     const amBosh = (name: string, nom: string): ExportAmaliyot => ({ name, nom, joy: '', boshlanish: '', tugash: '', ball: null, ball100: null, izoh: '' })
 
     if (sem === semestr) {
-      semFanlar = planFanlar.length ? planFanlar : fanlar.map((f) => f.nom)
+      const joriy = fanlar.map((f) => f.nom)
+      semFanlar = joriy.length ? joriy : (planFanlar.length ? planFanlar : [])
       gradeOf = (pinfl, fan) => {
-        const c = calc.get(`${pinfl}|${fan}`)
-        return c ? toExport(c.g, c.rey) : fromRow(bahoMap.get(`${pinfl}|${fan}`), pinfl, fan)
+        let c = calc.get(`${pinfl}|${fan}`)
+        if (!c) {
+          const cf = cleanFan(fan)
+          for (const [k, v] of calc.entries()) {
+            if (k.startsWith(`${pinfl}|`)) {
+              if (cleanFan(k.slice(pinfl.length + 1)) === cf) { c = v; break }
+            }
+          }
+        }
+        let stored = bahoMap.get(`${pinfl}|${fan}`)
+        if (!stored) {
+          const cf = cleanFan(fan)
+          for (const [k, v] of bahoMap.entries()) {
+            if (k.startsWith(`${pinfl}|`)) {
+              if (cleanFan(k.slice(pinfl.length + 1)) === cf) { stored = v; break }
+            }
+          }
+        }
+        return c ? toExport(c.g, c.rey, stored) : fromRow(stored, pinfl, fan)
       }
       for (const nom of amNoms) {
         for (const s of talabalar) {
@@ -1333,8 +1356,20 @@ export default function BaholarSection({
       const hasData = new Set([...(body.baholar ?? []), ...(body.amaliyot ?? [])].filter((r) => (r.guruh ?? guruh) === guruh).map((r) => r.pinfl))
       talabalar = talabalar.filter((s) => !formerSet.has(s.pinfl) || hasData.has(s.pinfl))
       const bm = new Map((body.baholar ?? []).map((r) => [`${r.pinfl}|${r.fan}`, r]))
-      semFanlar = planFanlar.length ? planFanlar : (body.fanlar ?? []).map((f) => f.nom)
-      gradeOf = (pinfl, fan) => fromRow(bm.get(`${pinfl}|${fan}`), pinfl, fan)
+      const bodyFanlar = (body.fanlar ?? []).map((f) => f.nom)
+      semFanlar = bodyFanlar.length ? bodyFanlar : (planFanlar.length ? planFanlar : [])
+      gradeOf = (pinfl, fan) => {
+        let stored = bm.get(`${pinfl}|${fan}`)
+        if (!stored) {
+          const cf = cleanFan(fan)
+          for (const [k, v] of bm.entries()) {
+            if (k.startsWith(`${pinfl}|`)) {
+              if (cleanFan(k.slice(pinfl.length + 1)) === cf) { stored = v; break }
+            }
+          }
+        }
+        return fromRow(stored, pinfl, fan)
+      }
       const am = body.amaliyot ?? []
       const noms = [...new Set(am.map((x) => x.nom))]
       const amM = new Map(am.map((x) => [`${x.pinfl}|${x.nom}`, x]))
