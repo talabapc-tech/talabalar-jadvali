@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "aud_1795492027709_4gr8k",
+    "vaqt": "2026-11-24T03:47:07.709Z",
+    "amal": "add_student",
+    "row": 0,
+    "fish": "Jurayeva Mohunur Sulton qizi",
+    "pinfl": "42612935680024",
+    "group": "25-20",
+    "tafsilot": "Yangi talaba qo'shildi (25-20)",
+    "fields": {
+      "ism": "Jurayeva Mohunur",
+      "ota": "Sulton qizi",
+      "group": "25-20",
+      "pv": "AC1647561",
+      "pinfl": "42612935680024",
+      "dob": "26.12.1993",
+      "ber": "",
+      "doc_tur": "Shahodatnoma",
+      "sh_doc": "UM 01974580",
+      "mak": "Qarshi shahar 21-maktab",
+      "yil": "2023",
+      "yon": "Hamshiralik ishi",
+      "shnum": "",
+      "tel": ""
+    }
+  }
+]
