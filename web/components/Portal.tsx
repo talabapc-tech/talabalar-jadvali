@@ -3,6 +3,7 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowUp, BookOpenCheck, Database, History, Loader2, Search, ServerCrash, ShieldAlert, Zap } from 'lucide-react'
 import { exportFiltered } from '@/lib/excel'
+import { uploadStudentPhotoFile } from '@/lib/photo-upload'
 import { useStudents } from '@/lib/store'
 import { applyGroupSettings, COURSES, GROUP_SETTINGS, type GroupSettings } from '@/lib/config'
 import { academicGroups, EMPTY_FILTERS, fullName, isOfficialGroup, kursOf, matches, scanDuplicates, searchText, selectedGroups, type Filters } from '@/lib/student'
@@ -237,16 +238,33 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: NavTa
     if (next) setOpenRow(next.row)
   }, [navList, navIdx])
 
-  const { saveEdit, toggleBaza, remove, addStudent, refresh } = data
+  const { saveEdit, toggleBaza, remove, addStudent, setStudentPhoto, refresh } = data
 
-  const onAdd = useCallback(async (fields: EditFields) => {
+  const onPhotoChange = useCallback((s: Student, photoUrl: string | undefined) => {
+    setStudentPhoto(s, photoUrl)
+    void refresh()
+  }, [setStudentPhoto, refresh])
+
+  const onAdd = useCallback(async (fields: EditFields, _keepOpen?: boolean, photoFile?: File | null) => {
     try {
       await addStudent(fields)
       notify(`${fields.ism} (${fields.group || '26-02'}) muvaffaqiyatli qo'shildi!`)
+      if (photoFile) {
+        try {
+          const pinfl = (fields.pinfl || '').replace(/\s/g, '')
+          const fish = `${fields.ism || ''} ${fields.ota || ''}`.trim()
+          const nextRow = (data.students.reduce((m, s) => Math.max(m, s.row), 1) || 1) + 1
+          const url = await uploadStudentPhotoFile({ row: nextRow, pinfl, fish, ism: fields.ism || '', ota: fields.ota || '' }, photoFile)
+          setStudentPhoto({ row: nextRow, pinfl, fish, ism: fields.ism || '', ota: fields.ota || '' }, url)
+          void refresh()
+        } catch (photoErr) {
+          notify(`Talaba qo'shildi, lekin rasm yuklanmadi: ${(photoErr as Error).message}`, 'warning')
+        }
+      }
     } catch (e) {
       notify(`Serverga yuborish navbatga qo'yildi: ${(e as Error).message}`, 'warning')
     }
-  }, [addStudent, notify])
+  }, [addStudent, data.students, setStudentPhoto, refresh, notify])
 
   const onToggleBaza = useCallback(async (s: Student) => {
     try {
@@ -517,6 +535,7 @@ export default function Portal({ initialTab = 'students' }: { initialTab?: NavTa
           onToggleBaza={onToggleBaza}
           onDelete={onDelete}
           onOpenRow={setOpenRow}
+          onPhotoChange={onPhotoChange}
           notify={notify}
         />
       )}

@@ -235,10 +235,11 @@ export interface Filters {
   nameFlag: string // '' | 'none' | ok | translit | farq | tekshir | boshqa
   baza: string // '' | 'KIRITILDI' | 'KIRITILMAGAN'
   yon: string
+  photo: string // '' | 'bor' | 'yoq'
 }
 
 export const EMPTY_FILTERS: Filters = {
-  search: '', kurs: '', group: '', passType: '', docType: '', status: '', nameFlag: '', baza: '', yon: '',
+  search: '', kurs: '', group: '', passType: '', docType: '', status: '', nameFlag: '', baza: '', yon: '', photo: '',
 }
 
 export function isBazaEntered(s: Pick<Student, 'baza'>): boolean {
@@ -279,6 +280,8 @@ export function matches(s: Student, text: string, f: Filters, q: string): boolea
   }
   if (f.baza && (s.baza || 'KIRITILDI') !== f.baza) return false
   if (f.yon && !(s.yon || '').toLowerCase().includes(f.yon.toLowerCase())) return false
+  if (f.photo === 'bor' && !s.photo_url) return false
+  if (f.photo === 'yoq' && !!s.photo_url) return false
   return true
 }
 

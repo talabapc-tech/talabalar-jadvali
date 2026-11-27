@@ -49,6 +49,8 @@ export interface Student {
   tel_otaona?: string
   tel_otaona_kim?: string
   sorovnoma_vaqti?: string
+  /** Talabaning 3x4 / profil rasmi (Supabase Storage URL) */
+  photo_url?: string
 }
 
 /** Bitta guruh almashtirish: qayerdan → qayerga, buyruq va tizimga kiritilgan vaqt */

@@ -489,6 +489,22 @@ export function useStudents() {
     }
   }, [server, updatePending])
 
+  const setStudentPhoto = useCallback((student: Pick<Student, 'row' | 'pinfl' | 'fish' | 'ism' | 'ota'>, photoUrl: string | undefined) => {
+    const cleanP = String(student.pinfl || '').replace(/\s/g, '')
+    const targetName = fullName(student).toLowerCase()
+    setServer((prev) => {
+      if (!prev) return prev
+      return prev.map((s) => {
+        const hitPin = cleanP.length === 14 && pinOf(s) === cleanP
+        const hitRow = s.row === student.row && (!cleanP || !pinOf(s) || pinOf(s) === cleanP)
+        const hitName = !cleanP && !student.row && targetName && fullName(s).toLowerCase() === targetName
+        if (!hitPin && !hitRow && !hitName) return s
+        return { ...s, photo_url: photoUrl || undefined }
+      })
+    })
+    version.current = ''
+  }, [])
+
   const pendingCount =
     Object.keys(pending.edits).length +
     Object.keys(pending.verifies).length +
@@ -499,6 +515,6 @@ export function useStudents() {
   return {
     students: merged?.list ?? [],
     state, error, source, fetchedAt, pendingCount,
-    refresh, saveEdit, toggleBaza, remove, addStudent,
+    refresh, saveEdit, toggleBaza, remove, addStudent, setStudentPhoto,
   }
 }

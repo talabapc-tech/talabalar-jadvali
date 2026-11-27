@@ -22,6 +22,7 @@ import { COURSES } from '@/lib/config'
 import { academicGroups, fullName, isOfficialGroup, kursOf } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
+import StudentAvatar from './StudentAvatar'
 import { GroupBadge, cx } from './ui'
 
 interface AuditLogEntry {
@@ -36,7 +37,7 @@ interface AuditLogEntry {
   fields?: Record<string, string>
 }
 
-type IssueKind = 'all' | 'no_tel' | 'no_shnum' | 'no_doc' | 'no_pass' | 'name_diff' | 'unverified'
+type IssueKind = 'all' | 'no_tel' | 'no_shnum' | 'no_doc' | 'no_pass' | 'name_diff' | 'no_photo' | 'unverified'
 
 function studentIssues(s: Student) {
   const noTel = !String(s.tel || '').trim()
@@ -45,9 +46,10 @@ function studentIssues(s: Student) {
   const cleanPin = String(s.pinfl || '').replace(/\s/g, '')
   const noPass = !String(s.pv || '').trim() || cleanPin.length !== 14 || !String(s.dob || '').trim()
   const nameDiff = !!s.name_flag && s.name_flag !== 'ok'
+  const noPhoto = !String(s.photo_url || '').trim()
   const unverified = s.verified !== 'TASDIQLANDI'
   const anyCore = noTel || noShnum || noDoc || noPass || nameDiff
-  return { noTel, noShnum, noDoc, noPass, nameDiff, unverified, anyCore }
+  return { noTel, noShnum, noDoc, noPass, nameDiff, noPhoto, unverified, anyCore }
 }
 
 const ACTION_META: Record<AuditLogEntry['amal'], { label: string; cls: string; icon: typeof History }> = {
@@ -102,7 +104,7 @@ export default function DataAuditView({
   }, [students, includeLeft, kurs, group])
 
   const counts = useMemo(() => {
-    const c = { all: 0, no_tel: 0, no_shnum: 0, no_doc: 0, no_pass: 0, name_diff: 0, unverified: 0 }
+    const c = { all: 0, no_tel: 0, no_shnum: 0, no_doc: 0, no_pass: 0, name_diff: 0, no_photo: 0, unverified: 0 }
     for (const s of pool) {
       const k = studentIssues(s)
       if (k.anyCore) c.all++
@@ -111,6 +113,7 @@ export default function DataAuditView({
       if (k.noDoc) c.no_doc++
       if (k.noPass) c.no_pass++
       if (k.nameDiff) c.name_diff++
+      if (k.noPhoto) c.no_photo++
       if (k.unverified) c.unverified++
     }
     return c
@@ -133,7 +136,9 @@ export default function DataAuditView({
                   ? k.noPass
                   : issue === 'name_diff'
                     ? k.nameDiff
-                    : k.unverified
+                    : issue === 'no_photo'
+                      ? k.noPhoto
+                      : k.unverified
       if (!hit) return false
       if (!q) return true
       return [fullName(s), s.group, s.pinfl, s.pv, s.shnum, s.tel].join(' ').toLowerCase().includes(q)
@@ -325,6 +330,7 @@ export default function DataAuditView({
     { id: 'no_doc', label: "Ta'lim hujjati yo'q", count: counts.no_doc, tone: 'border-rose/40 bg-rose/10 text-rose' },
     { id: 'no_pass', label: 'Pasport/JSHSHIR chala', count: counts.no_pass, tone: 'border-rose/40 bg-rose/10 text-rose' },
     { id: 'name_diff', label: 'Imlo farqi bor', count: counts.name_diff, tone: 'border-amber/40 bg-amber/10 text-amber' },
+    { id: 'no_photo', label: "Rasmi yo'q", count: counts.no_photo, tone: 'border-blue/40 bg-blue/10 text-blue-soft' },
     { id: 'unverified', label: 'Tasdiqlanmagan', count: counts.unverified, tone: 'border-line bg-ink-800 text-fg-muted' },
   ]
 
@@ -348,7 +354,7 @@ export default function DataAuditView({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
           {cards.map((c) => {
             const active = issue === c.id
             return (
@@ -445,7 +451,12 @@ export default function DataAuditView({
                       className="cursor-pointer transition-colors hover:bg-ink-850/70"
                     >
                       <td className="mono px-3 py-2.5 text-[12px] text-fg-subtle">{idx + 1}</td>
-                      <td className="px-3 py-2.5 font-semibold text-fg">{fullName(s)}</td>
+                      <td className="px-3 py-2.5 font-semibold text-fg">
+                        <span className="inline-flex items-center gap-2">
+                          <StudentAvatar student={s} size="xs" />
+                          <span>{fullName(s)}</span>
+                        </span>
+                      </td>
                       <td className="px-3 py-2.5">
                         <GroupBadge group={s.group} short asl={s.asl_guruh} from={s.chiqqan_guruh} />
                       </td>
@@ -474,6 +485,11 @@ export default function DataAuditView({
                           {k.nameDiff && (
                             <span className="chip border-amber/40 bg-amber/10 text-[11px] text-amber">
                               Imlo farqi ({s.name_flag})
+                            </span>
+                          )}
+                          {k.noPhoto && issue === 'no_photo' && (
+                            <span className="chip border-blue/40 bg-blue/10 text-[11px] text-blue-soft">
+                              Rasmi yo&apos;q
                             </span>
                           )}
                           {k.unverified && (

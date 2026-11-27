@@ -116,7 +116,7 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
         </div>
       </div>
 
-      <div className={cx('mt-3 grid-cols-2 gap-2 sm:gap-2.5 md:grid md:grid-cols-3 xl:grid-cols-6', open ? 'grid' : 'hidden')}>
+      <div className={cx('mt-3 grid-cols-2 gap-2 sm:gap-2.5 md:grid md:grid-cols-3 xl:grid-cols-7', open ? 'grid' : 'hidden')}>
         <Select label="Guruh" value={filters.group} onChange={(v) => onFilter({ group: v })}
           options={[
             // Kontingent plitkalarida Ctrl bilan bir nechta guruh tanlanganda
@@ -126,6 +126,8 @@ function FilterBar({ filters, groups, onFilter, shown, total, mode, onMode, onEx
           options={[['KIRITILDI', 'Bazaga kiritilganlar'], ['KIRITILMAGAN', 'Bazaga kiritilmaganlar']]} />
         <Select label="Hujjat holati" value={filters.status} onChange={(v) => onFilter({ status: v })}
           options={[['full', "To'liq"], ['chala', 'Chala'], ['yoq', "Bo'sh (hujjat yo'q)"]]} />
+        <Select label="Talaba rasmi" value={filters.photo} onChange={(v) => onFilter({ photo: v })}
+          options={[['bor', 'Rasmi bor'], ['yoq', "Rasmi yo'q"]]} />
         <Select label="Pasport turi" value={filters.passType} onChange={(v) => onFilter({ passType: v })}
           options={[['ID-karta', 'ID-karta (AD / AE)'], ['Biometrik Pasport', 'Biometrik (AA / AB / AC)'], ['Mavjud emas', 'Mavjud emas']]} />
         <Select label="Ta'lim hujjati" value={filters.docType} onChange={(v) => onFilter({ docType: v })}

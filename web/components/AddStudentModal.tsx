@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Award, Check, FileText, IdCard, Loader2, Plus, Save, Sparkles, UserPlus, X } from 'lucide-react'
+import { AlertTriangle, Award, Camera, Check, FileText, IdCard, Loader2, Plus, Save, Sparkles, Trash2, UserPlus, X } from 'lucide-react'
 import { analyzeAndUploadDocs, getSavedAiModel, setSavedAiModel } from '@/lib/ai-doc'
 import { getActiveAllowedModels } from '@/lib/settings'
 import { YON_OPTIONS } from '@/lib/config'
@@ -14,7 +14,7 @@ interface Props {
   all: Student[]
   defaultGroup?: string
   onClose: () => void
-  onAdd: (fields: EditFields, keepOpen?: boolean) => Promise<void>
+  onAdd: (fields: EditFields, keepOpen?: boolean, photoFile?: File | null) => Promise<void>
 }
 
 function Input({ label, value, onChange, mono, placeholder, upper, highlight, required, inputMode }: {
@@ -84,6 +84,16 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
   const [passFiles, setPassFiles] = useState<File[]>([])
   const [certFiles, setCertFiles] = useState<File[]>([])
   const [docxFiles, setDocxFiles] = useState<File[]>([])
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState('')
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!photoFile) { setPhotoPreview(''); return }
+    const url = URL.createObjectURL(photoFile)
+    setPhotoPreview(url)
+    return () => URL.revokeObjectURL(url)
+  }, [photoFile])
 
   const set = (k: keyof EditFields) => (v: string) => setF((x) => ({ ...x, [k]: v }))
 
@@ -182,9 +192,10 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
       }
     }
     try {
-      await onAdd(finalFields, keepOpen)
+      await onAdd(finalFields, keepOpen, photoFile)
       if (keepOpen) {
         setF(makeInitial(f.group))
+        setPhotoFile(null)
       } else {
         onClose()
       }
@@ -276,6 +287,44 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
               <span className="grid size-6 place-items-center rounded-lg bg-blue/15 text-[12px] font-extrabold text-blue-soft">1</span>
               Shaxs va pasport ma'lumotlari
             </h4>
+            <div className="mb-3.5 flex items-center gap-3 rounded-xl border border-line bg-ink-950/40 p-2.5">
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                className="relative grid h-16 w-13 shrink-0 place-items-center overflow-hidden rounded-xl border border-dashed border-sky/45 bg-ink-900 text-sky-soft transition-colors hover:border-sky hover:bg-sky/10"
+                title="Talabaning 3x4 rasmini tanlash"
+              >
+                {photoPreview ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={photoPreview} alt="Talaba rasmi" className="h-full w-full object-cover object-top" />
+                ) : (
+                  <Camera size={18} />
+                )}
+              </button>
+              <div className="min-w-0 flex-1">
+                <div className="text-[12.5px] font-semibold text-fg">Talaba rasmi (ixtiyoriy, 3×4)</div>
+                <div className="text-[11.5px] text-fg-muted">
+                  {photoFile ? photoFile.name : 'JPG, PNG yoki WebP — avtomatik siqilib saqlanadi'}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button type="button" onClick={() => photoInputRef.current?.click()} className="btn-ghost h-8 px-2.5 text-[12px]">
+                  <Camera size={13} /> {photoFile ? 'Almashtirish' : 'Tanlash'}
+                </button>
+                {photoFile && (
+                  <button type="button" onClick={() => { setPhotoFile(null); if (photoInputRef.current) photoInputRef.current.value = '' }} className="btn-danger h-8 px-2 text-[12px]" title="Rasmni olib tashlash">
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/*"
+                className="hidden"
+                onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Input label="Familiya va ism *" value={f.ism || ''} onChange={set('ism')} placeholder="Karimova Zilola" required />
               <Input label="Otasining ismi (Sharifi)" value={f.ota || ''} onChange={set('ota')} placeholder="Rustam qizi" />

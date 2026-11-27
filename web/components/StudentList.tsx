@@ -6,6 +6,7 @@ import { FileText, Link2, Phone, SearchX, X } from 'lucide-react'
 import { formatPinfl, fullName, isBazaEntered, NAME_FLAGS, passTypeShort } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import type { DisplayMode } from './FilterBar'
+import StudentAvatar from './StudentAvatar'
 import { BazaButton, CopyBtn, cx, GroupBadge, Mono, StatusIcon } from './ui'
 import type { Notify } from './Toast'
 
@@ -95,23 +96,26 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
             <BazaButton student={s} onToggle={onToggleBaza} compact />
           </span>
         </header>
-        <div>
-          <div className="flex items-center gap-1">
-            <h3 className="min-w-0 truncate text-[14px] font-bold text-fg group-hover:text-sky-soft">
-              {fullName(s)}
-            </h3>
-            <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" onCopied={onCopy} />
-          </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11.5px] text-fg-muted">
-            <span className="inline-flex items-center gap-0.5">
-              <span className="mono text-fg">{s.pv || '—'}</span>
-              <CopyBtn value={s.pv} label={`Pasport (${s.pv})`} title="Pasport seriya va raqamini nusxalash" size={11} onCopied={onCopy} />
-            </span>
-            <span className="inline-flex items-center gap-0.5">
-              <span className="mono">{formatPinfl(s.pinfl)}</span>
-              <CopyBtn value={cleanPinfl} label="JSHSHIR" title="JSHSHIR nusxalash" size={11} onCopied={onCopy} />
-            </span>
-            {s.dob && <span className="ml-auto tabular-nums">{s.dob}</span>}
+        <div className="flex items-center gap-2.5">
+          <StudentAvatar student={s} size="md" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              <h3 className="min-w-0 truncate text-[14px] font-bold text-fg group-hover:text-sky-soft">
+                {fullName(s)}
+              </h3>
+              <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" onCopied={onCopy} />
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11.5px] text-fg-muted">
+              <span className="inline-flex items-center gap-0.5">
+                <span className="mono text-fg">{s.pv || '—'}</span>
+                <CopyBtn value={s.pv} label={`Pasport (${s.pv})`} title="Pasport seriya va raqamini nusxalash" size={11} onCopied={onCopy} />
+              </span>
+              <span className="inline-flex items-center gap-0.5">
+                <span className="mono">{formatPinfl(s.pinfl)}</span>
+                <CopyBtn value={cleanPinfl} label="JSHSHIR" title="JSHSHIR nusxalash" size={11} onCopied={onCopy} />
+              </span>
+              {s.dob && <span className="ml-auto tabular-nums">{s.dob}</span>}
+            </div>
           </div>
         </div>
       </article>
@@ -138,22 +142,25 @@ const StudentCard = memo(function StudentCard({ s, n, dup, compact, onOpen, onTo
         </span>
       </header>
 
-      <div>
-        <div className="flex items-start justify-between gap-1.5">
-          <h3 className="line-clamp-2 min-w-0 flex-1 text-[15px] leading-snug font-bold text-fg group-hover:text-sky-soft">
-            {fullName(s)}
-            {dup && <span className="chip ml-2 border-rose/50 bg-rose/10 align-middle text-rose">Dublikat</span>}
-          </h3>
-          <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={13} onCopied={onCopy} />
-        </div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-fg-muted">
-          {s.dob && <span>Tug'ilgan: <strong className="text-fg">{s.dob}</strong></span>}
-          {s.tel && <span className="inline-flex items-center gap-1"><Phone size={12} /> {s.tel}</span>}
-          {flag && s.name_flag !== 'ok' && (
-            <span className={cx('font-semibold', flag.tone === 'bad' ? 'text-rose' : flag.tone === 'warn' ? 'text-amber' : 'text-violet')} title={flag.label}>
-              ● {flag.label.split(' — ')[0]}
-            </span>
-          )}
+      <div className="flex items-start gap-3">
+        <StudentAvatar student={s} size="card" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-1.5">
+            <h3 className="line-clamp-2 min-w-0 flex-1 text-[15px] leading-snug font-bold text-fg group-hover:text-sky-soft">
+              {fullName(s)}
+              {dup && <span className="chip ml-2 border-rose/50 bg-rose/10 align-middle text-rose">Dublikat</span>}
+            </h3>
+            <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={13} onCopied={onCopy} />
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-fg-muted">
+            {s.dob && <span>Tug'ilgan: <strong className="text-fg">{s.dob}</strong></span>}
+            {s.tel && <span className="inline-flex items-center gap-1"><Phone size={12} /> {s.tel}</span>}
+            {flag && s.name_flag !== 'ok' && (
+              <span className={cx('font-semibold', flag.tone === 'bad' ? 'text-rose' : flag.tone === 'warn' ? 'text-amber' : 'text-violet')} title={flag.label}>
+                ● {flag.label.split(' — ')[0]}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -242,7 +249,8 @@ const TableRow = memo(function TableRow({ s, n, dup, onOpen, onToggleBaza, onCop
       <span className="mono text-center text-[12px] font-bold text-fg-subtle tabular-nums">{n}</span>
       <span className="min-w-0 overflow-hidden"><GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} short /></span>
       <span className="mono font-bold text-blue-soft truncate">#{s.shnum || '—'}</span>
-      <span className="flex min-w-0 items-center gap-1">
+      <span className="flex min-w-0 items-center gap-2">
+        <StudentAvatar student={s} size="sm" />
         <span className="truncate font-semibold text-fg" title={fullName(s)}>{fullName(s)}</span>
         <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={11} onCopied={onCopy} />
       </span>

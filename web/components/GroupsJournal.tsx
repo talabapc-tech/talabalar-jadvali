@@ -7,6 +7,7 @@ import { exportGroup, exportQabulShablonGroup, exportQabulShablonGroups, exportR
 import { byName, fullName, groupTitle, isAcademicLeave, isOutside } from '@/lib/student'
 import type { Student } from '@/lib/types'
 import type { Notify } from './Toast'
+import StudentAvatar from './StudentAvatar'
 import { cx, CopyBtn } from './ui'
 
 /** Maxsus guruhlar: kalit (Telegram tanlovida) va bazadagi nomi */
@@ -114,9 +115,12 @@ function GroupCard({ code, title, leader, students, special, onOpen, notify }: {
         <ol className="divide-y divide-line/70">
           {students.map((s, i) => (
             <li key={s.row} className="flex items-center gap-1 pr-2 transition-colors hover:bg-ink-800/70 sm:pr-3">
-              <button type="button" onClick={() => onOpen(s)} className="grid min-w-0 flex-1 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5 text-left text-[13px] sm:grid-cols-[34px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4 sm:py-2">
+              <button type="button" onClick={() => onOpen(s)} className="grid min-w-0 flex-1 grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 text-left text-[13px] sm:grid-cols-[34px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4 sm:py-1.5">
                 <span className="mono text-center text-[12px] font-bold text-fg-subtle tabular-nums">{i + 1}</span>
-                <span className={cx('truncate font-semibold', sp ? sp.text : 'text-fg')}>{fullName(s)}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <StudentAvatar student={s} size="xs" />
+                  <span className={cx('truncate font-semibold', sp ? sp.text : 'text-fg')}>{fullName(s)}</span>
+                </span>
                 {sp ? (
                   // Maxsus bo'limda tug'ilgan sana o'rniga: qaysi guruhdan va qachon chiqqan
                   <span className="flex items-center gap-2 text-[12px] tabular-nums">

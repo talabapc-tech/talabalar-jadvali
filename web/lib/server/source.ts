@@ -6,6 +6,7 @@ import { buildAddedStudent, fullName, isLeftGroup, lastMoveInto, normalizeShnum,
 import type { Change, EditFields, GroupMove, Student } from '@/lib/types'
 import type { StaffMember } from '@/lib/staff'
 import { getServiceSupabase } from '@/lib/server/supabase'
+import { enrichStudentPhotos, invalidatePhotoIndexCache } from '@/lib/server/student-photos'
 import { syncStudentsToWebJurnal, withdrawStudentFromWebJurnal } from '@/lib/server/webjurnal'
 
 /*
@@ -238,6 +239,7 @@ const CACHE_TTL_MS = 10_000 // 10 soniya server in-memory kesh (Vercel Serverles
 
 export function invalidateCache() {
   cachedStudents = null
+  invalidatePhotoIndexCache()
 }
 
 async function loadFromSupabase(): Promise<Student[] | null> {
@@ -475,9 +477,14 @@ async function splitGroupHistory(change: Change): Promise<Change | null> {
   return { ...change, data: { ...change.data, fields: rest } }
 }
 
-/** So'rovnoma, asl guruh va guruh tarixi fayllari bir vaqtda o'qiladi (avval ketma-ket edi) */
+/** So'rovnoma, asl guruh, guruh tarixi va talaba rasmlari bir vaqtda o'qiladi */
 async function enrichAll(students: Student[]): Promise<Student[]> {
-  await Promise.all([enrichSurveyData(students), enrichAslGuruh(students), enrichGroupHistory(students)])
+  await Promise.all([
+    enrichSurveyData(students),
+    enrichAslGuruh(students),
+    enrichGroupHistory(students),
+    enrichStudentPhotos(students),
+  ])
   return students
 }
 

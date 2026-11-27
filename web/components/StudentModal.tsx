@@ -1,14 +1,17 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Check, ChevronLeft, ChevronRight, FileText, Link2, Pencil, Save, ScrollText, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, FileText, Link2, Loader2, Pencil, Save, ScrollText, Trash2, X } from 'lucide-react'
 import { YON_OPTIONS } from '@/lib/config'
+import { removeStudentPhoto, uploadStudentPhotoFile } from '@/lib/photo-upload'
 import { decodePinfl, dobFromPinfl, findDuplicates, formatPinfl, fullName, groupOptions, isAcademicLeave, isLeftGroup, isOfficialGroup, isSecretGroup, isWithdrawn, lastMoveInto, NAME_FLAGS, needsOrder, ORDER_DATE_RE } from '@/lib/student'
 import { EDIT_FIELDS, type EditFields, type GroupMove, type Student } from '@/lib/types'
 import type { BuyruqHint } from '@/lib/buyruq'
 import BuyruqModal from './BuyruqModal'
 import DocImages from './DocImages'
+import Lightbox from './Lightbox'
 import MalumotnomaModal from './MalumotnomaModal'
+import StudentAvatar from './StudentAvatar'
 import type { Notify } from './Toast'
 import { BazaButton, CopyBtn, cx, formatPassportBundle, GroupBadge, Mono, StatusIcon } from './ui'
 
@@ -23,6 +26,7 @@ interface Props {
   onToggleBaza: (s: Student) => void
   onDelete: (s: Student) => Promise<void>
   onOpenRow: (row: number) => void
+  onPhotoChange?: (s: Student, photoUrl: string | undefined) => void
   notify?: Notify
 }
 
@@ -356,15 +360,50 @@ function ViewInfo({ s, onEdit, onToggleBaza, onCopy }: { s: Student; onEdit: () 
   )
 }
 
-export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav, onClose, onSave, onToggleBaza, onDelete, onOpenRow, notify }: Props) {
+export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav, onClose, onSave, onToggleBaza, onDelete, onOpenRow, onPhotoChange, notify }: Props) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [cert, setCert] = useState(false)
   // Buyruq oynasi: guruh o'zgarib saqlanganda o'zi ochiladi (hint — saqlashdan oldingi holat)
   const [order, setOrder] = useState<{ student: Student; hint?: BuyruqHint } | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoDrag, setPhotoDrag] = useState(false)
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   // Boshqa talabaga o'tilganda tahrirlash rejimidan chiqamiz
-  useEffect(() => { setEditing(false); setCert(false); setOrder(null) }, [s.row])
+  useEffect(() => { setEditing(false); setCert(false); setOrder(null); setPhotoPreviewOpen(false) }, [s.row])
+
+  const handlePhotoFile = async (file: File | undefined | null) => {
+    if (!file || photoBusy) return
+    setPhotoBusy(true)
+    try {
+      const url = await uploadStudentPhotoFile(s, file)
+      onPhotoChange?.(s, url)
+      notify?.(`${s.ism}: Talaba rasmi saqlandi`)
+    } catch (e) {
+      notify?.(`Rasm yuklanmadi: ${(e as Error).message}`, 'error')
+    } finally {
+      setPhotoBusy(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }
+
+  const handlePhotoDelete = async () => {
+    if (!s.photo_url || photoBusy) return
+    if (!confirm(`${fullName(s)}ning rasmini o'chirmoqchimisiz?`)) return
+    setPhotoBusy(true)
+    try {
+      await removeStudentPhoto(s)
+      onPhotoChange?.(s, undefined)
+      setPhotoPreviewOpen(false)
+      notify?.(`${s.ism}: Rasm o'chirildi`)
+    } catch (e) {
+      notify?.(`Rasm o'chirilmadi: ${(e as Error).message}`, 'error')
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
 
   // Sahifa orqada aylanib ketmasin
   useEffect(() => {
@@ -377,14 +416,14 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
-      if (e.key === 'Escape') { if (order) setOrder(null); else if (cert) setCert(false); else if (editing) setEditing(false); else onClose() }
-      else if (cert || order) return
+      if (e.key === 'Escape') { if (photoPreviewOpen) setPhotoPreviewOpen(false); else if (order) setOrder(null); else if (cert) setCert(false); else if (editing) setEditing(false); else onClose() }
+      else if (cert || order || photoPreviewOpen) return
       else if (!typing && e.key === 'ArrowLeft' && hasPrev) onNav(-1)
       else if (!typing && e.key === 'ArrowRight' && hasNext) onNav(1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [cert, order, editing, hasPrev, hasNext, onNav, onClose])
+  }, [cert, order, photoPreviewOpen, editing, hasPrev, hasNext, onNav, onClose])
 
   const dups = useMemo(() => findDuplicates(all, s.pv, s.pinfl, s.row), [all, s.pv, s.pinfl, s.row])
 
@@ -402,19 +441,92 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
             <button type="button" className="btn-ghost size-9 p-0" disabled={!hasPrev} onClick={() => onNav(-1)} title="Oldingi (←)"><ChevronLeft size={18} /></button>
             <button type="button" className="btn-ghost size-9 p-0" disabled={!hasNext} onClick={() => onNav(1)} title="Keyingi (→)"><ChevronRight size={18} /></button>
           </div>
-          <div className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1">
-            <div className="flex items-center gap-1.5">
-              <h2 className="min-w-0 text-[17px] leading-snug font-extrabold text-fg sm:truncate">{fullName(s)}</h2>
-              <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={14} onCopied={(m) => notify?.(m)} />
+          <div className="order-last flex w-full min-w-0 items-center gap-3 sm:order-none sm:w-auto sm:flex-1">
+            {/* Talabaning 3x4 portret rasmi (bosish — kattalashtirish yoki yuklash, tortib tashlash qo'llab-quvvatlanadi) */}
+            <div
+              className={cx('group/photo relative shrink-0 rounded-2xl transition-all', photoDrag && 'ring-2 ring-sky ring-offset-2 ring-offset-ink-900')}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setPhotoDrag(true) }}
+              onDragLeave={() => setPhotoDrag(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setPhotoDrag(false)
+                const dropped = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(f.name))
+                if (dropped) void handlePhotoFile(dropped)
+              }}
+            >
+              <StudentAvatar
+                student={s}
+                size="portrait"
+                title={s.photo_url ? "Rasmni kattalashtirish uchun bosing" : "Talaba rasmini yuklash uchun bosing yoki rasmni shu yerga tashlang"}
+                onClick={() => {
+                  if (photoBusy) return
+                  if (s.photo_url) setPhotoPreviewOpen(true)
+                  else photoInputRef.current?.click()
+                }}
+              />
+              {photoBusy ? (
+                <span className="absolute inset-0 grid place-items-center rounded-2xl bg-ink-950/75 text-sky">
+                  <Loader2 size={18} className="animate-spin" />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); photoInputRef.current?.click() }}
+                  title={s.photo_url ? "Rasmni almashtirish" : "Rasm yuklash"}
+                  aria-label={s.photo_url ? "Rasmni almashtirish" : "Rasm yuklash"}
+                  className="absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-lg border border-line-strong bg-ink-900 text-sky-soft shadow-sm transition-colors hover:border-sky/60 hover:bg-sky/20"
+                >
+                  <Camera size={12} />
+                </button>
+              )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/*"
+                className="hidden"
+                onChange={(e) => void handlePhotoFile(e.target.files?.[0])}
+              />
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-fg-muted sm:gap-2">
-              <GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} inline />
-              <span className="mono">№{s.shnum || '—'}</span>
-              {!isOfficialGroup(s.group) && <span className="text-rose">rasmiy kontingentga kirmaydi</span>}
-              {/* Eng ko'p bosiladigan belgi — pastga tushmasdan */}
-              <span className="flex items-center gap-1.5">
-                <BazaButton student={s} onToggle={onToggleBaza} compact />
-              </span>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <h2 className="min-w-0 text-[17px] leading-snug font-extrabold text-fg sm:truncate">{fullName(s)}</h2>
+                <CopyBtn value={fullName(s)} label="F.I.Sh." title="F.I.Sh. nusxalash" size={14} onCopied={(m) => notify?.(m)} />
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-fg-muted sm:gap-2">
+                <GroupBadge group={s.group} asl={s.asl_guruh} from={s.chiqqan_guruh} inline />
+                <span className="mono">№{s.shnum || '—'}</span>
+                {!isOfficialGroup(s.group) && <span className="text-rose">rasmiy kontingentga kirmaydi</span>}
+                {/* Eng ko'p bosiladigan belgi — pastga tushmasdan */}
+                <span className="flex items-center gap-1.5">
+                  <BazaButton student={s} onToggle={onToggleBaza} compact />
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={photoBusy}
+                    onClick={() => photoInputRef.current?.click()}
+                    className="chip cursor-pointer border-sky/35 bg-sky/10 text-sky-soft transition-colors hover:bg-sky/20 disabled:opacity-50"
+                    title={s.photo_url ? "Talaba rasmini almashtirish" : "Talaba rasmini yuklash"}
+                  >
+                    <Camera size={11} />
+                    <span>{s.photo_url ? 'Rasmni almashtirish' : 'Rasm yuklash'}</span>
+                  </button>
+                  {s.photo_url && (
+                    <button
+                      type="button"
+                      disabled={photoBusy}
+                      onClick={() => void handlePhotoDelete()}
+                      className="chip cursor-pointer border-rose/35 bg-rose/10 px-1.5 text-rose transition-colors hover:bg-rose/20 disabled:opacity-50"
+                      title="Talaba rasmini o'chirish"
+                      aria-label="Talaba rasmini o'chirish"
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  )}
+                </span>
+              </div>
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -466,6 +578,9 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
       </div>
       {cert && <MalumotnomaModal student={s} onClose={() => setCert(false)} />}
       {order && <BuyruqModal student={order.student} hint={order.hint} onMove={(fields) => onSave(s, fields)} onClose={() => setOrder(null)} />}
+      {photoPreviewOpen && s.photo_url && (
+        <Lightbox images={[s.photo_url]} index={0} onIndex={() => {}} onClose={() => setPhotoPreviewOpen(false)} />
+      )}
     </div>
   )
 }
