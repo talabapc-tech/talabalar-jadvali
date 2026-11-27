@@ -442,9 +442,9 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
             <button type="button" className="btn-ghost size-9 p-0" disabled={!hasNext} onClick={() => onNav(1)} title="Keyingi (→)"><ChevronRight size={18} /></button>
           </div>
           <div className="order-last flex w-full min-w-0 items-center gap-3 sm:order-none sm:w-auto sm:flex-1">
-            {/* Talabaning 3x4 portret rasmi (bosish — kattalashtirish yoki yuklash, tortib tashlash qo'llab-quvvatlanadi) */}
+            {/* Talabaning portret rasmi (bosish — kattalashtirish yoki yuklash, tortib tashlash qo'llab-quvvatlanadi) */}
             <div
-              className={cx('group/photo relative shrink-0 rounded-2xl transition-all', photoDrag && 'ring-2 ring-sky ring-offset-2 ring-offset-ink-900')}
+              className={cx('group/photo relative shrink-0 rounded-full transition-all', photoDrag && 'ring-2 ring-sky ring-offset-2 ring-offset-ink-900')}
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setPhotoDrag(true) }}
               onDragLeave={() => setPhotoDrag(false)}
               onDrop={(e) => {
@@ -466,7 +466,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
                 }}
               />
               {photoBusy ? (
-                <span className="absolute inset-0 grid place-items-center rounded-2xl bg-ink-950/75 text-sky">
+                <span className="absolute inset-0 grid place-items-center rounded-full bg-ink-950/75 text-sky">
                   <Loader2 size={18} className="animate-spin" />
                 </span>
               ) : (
@@ -475,7 +475,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
                   onClick={(e) => { e.stopPropagation(); photoInputRef.current?.click() }}
                   title={s.photo_url ? "Rasmni almashtirish" : "Rasm yuklash"}
                   aria-label={s.photo_url ? "Rasmni almashtirish" : "Rasm yuklash"}
-                  className="absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-lg border border-line-strong bg-ink-900 text-sky-soft shadow-sm transition-colors hover:border-sky/60 hover:bg-sky/20"
+                  className="absolute right-0 bottom-0 grid size-6 place-items-center rounded-full border border-line-strong bg-ink-900 text-sky-soft shadow-sm transition-colors hover:border-sky/60 hover:bg-sky/20"
                 >
                   <Camera size={12} />
                 </button>
@@ -579,7 +579,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
       {cert && <MalumotnomaModal student={s} onClose={() => setCert(false)} />}
       {order && <BuyruqModal student={order.student} hint={order.hint} onMove={(fields) => onSave(s, fields)} onClose={() => setOrder(null)} />}
       {photoPreviewOpen && s.photo_url && (
-        <Lightbox images={[s.photo_url]} index={0} onIndex={() => {}} onClose={() => setPhotoPreviewOpen(false)} />
+        <Lightbox images={[s.photo_url]} index={0} onIndex={() => {}} onClose={() => setPhotoPreviewOpen(false)} title={fullName(s)} />
       )}
     </div>
   )

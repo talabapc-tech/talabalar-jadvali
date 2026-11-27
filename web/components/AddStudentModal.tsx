@@ -8,6 +8,7 @@ import { YON_OPTIONS } from '@/lib/config'
 import { decodePinfl, dobFromPinfl, findDuplicates, fullName, groupOptions, isAcademicLeave, isOfficialGroup, isWithdrawn } from '@/lib/student'
 import type { EditFields, Student } from '@/lib/types'
 import DocDropZone from './DocDropZone'
+import Lightbox from './Lightbox'
 import { cx } from './ui'
 
 interface Props {
@@ -86,10 +87,11 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
   const [docxFiles, setDocxFiles] = useState<File[]>([])
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  const [photoZoomOpen, setPhotoZoomOpen] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!photoFile) { setPhotoPreview(''); return }
+    if (!photoFile) { setPhotoPreview(''); setPhotoZoomOpen(false); return }
     const url = URL.createObjectURL(photoFile)
     setPhotoPreview(url)
     return () => URL.revokeObjectURL(url)
@@ -138,10 +140,15 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
   }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (photoZoomOpen) setPhotoZoomOpen(false)
+        else onClose()
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, photoZoomOpen])
 
   const dups = useMemo(() => findDuplicates(all, f.pv || '', f.pinfl || ''), [all, f.pv, f.pinfl])
   const pinDecoded = useMemo(() => decodePinfl(f.pinfl || ''), [f.pinfl])
@@ -290,9 +297,12 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
             <div className="mb-3.5 flex items-center gap-3 rounded-xl border border-line bg-ink-950/40 p-2.5">
               <button
                 type="button"
-                onClick={() => photoInputRef.current?.click()}
-                className="relative grid h-16 w-13 shrink-0 place-items-center overflow-hidden rounded-xl border border-dashed border-sky/45 bg-ink-900 text-sky-soft transition-colors hover:border-sky hover:bg-sky/10"
-                title="Talabaning 3x4 rasmini tanlash"
+                onClick={() => (photoPreview ? setPhotoZoomOpen(true) : photoInputRef.current?.click())}
+                className={cx(
+                  'relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full border border-dashed border-sky/45 bg-ink-900 text-sky-soft transition-all hover:border-sky hover:bg-sky/10',
+                  photoPreview && 'cursor-zoom-in border-solid hover:scale-105 hover:ring-2 hover:ring-sky/60',
+                )}
+                title={photoPreview ? 'Rasmni kattalashtirish uchun bosing' : 'Talaba rasmini tanlash'}
               >
                 {photoPreview ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -410,6 +420,15 @@ export default function AddStudentModal({ all, defaultGroup, onClose, onAdd }: P
           </div>
         </form>
       </div>
+      {photoZoomOpen && photoPreview && (
+        <Lightbox
+          images={[photoPreview]}
+          index={0}
+          onIndex={() => {}}
+          onClose={() => setPhotoZoomOpen(false)}
+          title={`${f.ism || ''} ${f.ota || ''}`.trim() || 'Talaba rasmi'}
+        />
+      )}
     </div>
   )
 }

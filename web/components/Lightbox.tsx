@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, RefreshCcw, RotateCcw, RotateCw, X, ZoomIn, ZoomOut } from 'lucide-react'
 
 /** Hujjat rasmini to'liq ekranda ko'rish: g'ildirak bilan zoom, sichqoncha bilan surish, R — burish */
-export default function Lightbox({ images, index, onIndex, onClose, initialRotation = 0 }: {
-  images: string[]; index: number; onIndex: (i: number) => void; onClose: () => void; initialRotation?: number
+export default function Lightbox({ images, index, onIndex, onClose, initialRotation = 0, title }: {
+  images: string[]; index: number; onIndex: (i: number) => void; onClose: () => void; initialRotation?: number; title?: string
 }) {
   const [zoom, setZoom] = useState(1)
   const [rot, setRot] = useState(initialRotation)
@@ -37,10 +37,14 @@ export default function Lightbox({ images, index, onIndex, onClose, initialRotat
   const tool = 'grid size-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/8 text-white transition-colors hover:bg-white/15 sm:size-10'
 
   return (
-    <div className="animate-fade-in fixed inset-0 z-[70] flex flex-col bg-black/92 select-none">
+    <div
+      className="animate-fade-in fixed inset-0 z-[70] flex flex-col bg-black/92 select-none"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center justify-between gap-2 p-2.5 sm:gap-3 sm:p-4">
-        <span className="shrink-0 rounded-lg border border-white/10 bg-white/8 px-2.5 py-1.5 text-[13px] font-semibold text-white tabular-nums sm:px-3">
-          {index + 1} / {images.length}
+        <span className="max-w-[55vw] truncate rounded-lg border border-white/10 bg-white/8 px-2.5 py-1.5 text-[13px] font-semibold text-white tabular-nums sm:px-3">
+          {title && images.length === 1 ? title : `${index + 1} / ${images.length}`}
         </span>
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button type="button" className={tool} onClick={() => setZoom((z) => Math.min(5, z + 0.25))} title="Kattalashtirish (+)" aria-label="Kattalashtirish"><ZoomIn size={18} /></button>

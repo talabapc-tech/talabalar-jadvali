@@ -1,18 +1,20 @@
 'use client'
 
 import { memo, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { fullName } from '@/lib/student'
 import type { Student } from '@/lib/types'
+import Lightbox from './Lightbox'
 import { cx } from './ui'
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'card' | 'portrait'
 
 const SIZE_CLS: Record<AvatarSize, string> = {
-  xs: 'size-7 rounded-lg text-[10px]',
-  sm: 'size-8 rounded-lg text-[11px]',
-  md: 'size-10 rounded-xl text-[12px]',
-  card: 'h-[58px] w-[46px] rounded-xl text-[13px]',
-  portrait: 'h-[72px] w-[58px] rounded-2xl text-[17px]',
+  xs: 'size-7 rounded-full text-[10px]',
+  sm: 'size-8 rounded-full text-[11px]',
+  md: 'size-10 rounded-full text-[12px]',
+  card: 'size-14 rounded-full text-[14px]',
+  portrait: 'size-[72px] rounded-full text-[18px]',
 }
 
 const TONES = [
@@ -42,41 +44,86 @@ interface Props {
   className?: string
   title?: string
   onClick?: (e: React.MouseEvent) => void
+  /** Rasm ustiga bosilganda to'liq ekranda kattalashtirish (standart: true) */
+  zoomable?: boolean
 }
 
-function StudentAvatar({ student, size = 'sm', className, title, onClick }: Props) {
+function StudentAvatar({ student, size = 'sm', className, title, onClick, zoomable = true }: Props) {
   const name = fullName(student)
   const src = student.photo_url?.trim() || ''
   const [failed, setFailed] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   useEffect(() => {
     setFailed(false)
+    setPreviewOpen(false)
   }, [src])
 
   const showImg = !!src && !failed
+  const canBuiltInZoom = showImg && zoomable && !onClick
+
+  const handleImgClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      onClick(e)
+      return
+    }
+    if (canBuiltInZoom) {
+      e.stopPropagation()
+      e.preventDefault()
+      setPreviewOpen(true)
+    }
+  }
 
   if (showImg) {
     return (
-      <span
-        onClick={onClick}
-        title={title || name}
-        className={cx(
-          'relative inline-flex shrink-0 overflow-hidden border border-line-strong bg-ink-850 select-none',
-          SIZE_CLS[size],
-          onClick && 'cursor-pointer',
-          className,
-        )}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt={name}
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailed(true)}
-          className="h-full w-full object-cover object-top"
-        />
-      </span>
+      <>
+        <span
+          role={onClick || canBuiltInZoom ? 'button' : undefined}
+          tabIndex={onClick || canBuiltInZoom ? 0 : undefined}
+          onClick={onClick || canBuiltInZoom ? handleImgClick : undefined}
+          onKeyDown={
+            onClick || canBuiltInZoom
+              ? (e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (onClick) onClick(e as unknown as React.MouseEvent)
+                    else setPreviewOpen(true)
+                  }
+                }
+              : undefined
+          }
+          title={title || (canBuiltInZoom ? `${name} — kattalashtirish uchun bosing` : name)}
+          className={cx(
+            'relative inline-flex shrink-0 overflow-hidden border border-line-strong bg-ink-850 select-none',
+            SIZE_CLS[size],
+            (onClick || canBuiltInZoom) &&
+              'cursor-zoom-in transition-transform duration-150 hover:scale-105 hover:ring-2 hover:ring-sky/60',
+            className,
+          )}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={name}
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+            className="h-full w-full object-cover object-top"
+          />
+        </span>
+        {previewOpen && typeof document !== 'undefined' &&
+          createPortal(
+            <Lightbox
+              images={[src]}
+              index={0}
+              onIndex={() => {}}
+              onClose={() => setPreviewOpen(false)}
+              title={name}
+            />,
+            document.body,
+          )}
+      </>
     )
   }
 
