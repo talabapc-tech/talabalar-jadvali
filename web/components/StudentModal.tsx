@@ -579,7 +579,7 @@ export default function StudentModal({ student: s, all, hasPrev, hasNext, onNav,
       {cert && <MalumotnomaModal student={s} onClose={() => setCert(false)} />}
       {order && <BuyruqModal student={order.student} hint={order.hint} onMove={(fields) => onSave(s, fields)} onClose={() => setOrder(null)} />}
       {photoPreviewOpen && s.photo_url && (
-        <Lightbox images={[s.photo_url]} index={0} onIndex={() => {}} onClose={() => setPhotoPreviewOpen(false)} title={fullName(s)} />
+        <Lightbox images={[s.photo_url]} index={0} onIndex={() => {}} onClose={() => setPhotoPreviewOpen(false)} title={fullName(s)} rounded />
       )}
     </div>
   )

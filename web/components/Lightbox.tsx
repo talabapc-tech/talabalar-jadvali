@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, RefreshCcw, RotateCcw, RotateCw, X, ZoomIn, ZoomOut } from 'lucide-react'
 
-/** Hujjat rasmini to'liq ekranda ko'rish: g'ildirak bilan zoom, sichqoncha bilan surish, R — burish */
-export default function Lightbox({ images, index, onIndex, onClose, initialRotation = 0, title }: {
-  images: string[]; index: number; onIndex: (i: number) => void; onClose: () => void; initialRotation?: number; title?: string
+/** Hujjat yoki profil rasmini to'liq ekranda ko'rish: g'ildirak bilan zoom, sichqoncha bilan surish, R — burish */
+export default function Lightbox({ images, index, onIndex, onClose, initialRotation = 0, title, rounded = false }: {
+  images: string[]; index: number; onIndex: (i: number) => void; onClose: () => void; initialRotation?: number; title?: string; rounded?: boolean
 }) {
   const [zoom, setZoom] = useState(1)
   const [rot, setRot] = useState(initialRotation)
@@ -71,9 +71,13 @@ export default function Lightbox({ images, index, onIndex, onClose, initialRotat
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={images[index]}
-          alt=""
+          alt={title || ''}
           draggable={false}
-          className="max-h-[86vh] max-w-[92vw] rounded-md object-contain shadow-2xl shadow-black/80 transition-transform duration-150 ease-out"
+          className={
+            rounded
+              ? 'animate-pop-in size-[min(80vw,74vh,520px)] rounded-full border-2 border-white/20 object-cover object-top shadow-2xl shadow-black/80 ring-4 ring-white/8 transition-transform duration-150 ease-out'
+              : 'max-h-[86vh] max-w-[92vw] rounded-md object-contain shadow-2xl shadow-black/80 transition-transform duration-150 ease-out'
+          }
           style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rot}deg)` }}
         />
         {images.length > 1 && (

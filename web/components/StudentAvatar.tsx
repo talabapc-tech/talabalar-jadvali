@@ -120,6 +120,7 @@ function StudentAvatar({ student, size = 'sm', className, title, onClick, zoomab
               onIndex={() => {}}
               onClose={() => setPreviewOpen(false)}
               title={name}
+              rounded
             />,
             document.body,
           )}
